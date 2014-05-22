@@ -64,7 +64,7 @@ var maxConcurrent = flag.Int(
 
 var auctionNATSTimeout = flag.Duration(
 	"natsAuctionTimeout",
-	500*time.Millisecond,
+	time.Second,
 	"How long the auction will wait to hear back from a request/response nats message",
 )
 
