@@ -7,27 +7,27 @@
 	"Deps": [
 		{
 			"ImportPath": "github.com/cloudfoundry-incubator/auction/auctionrunner",
-			"Rev": "73adabf08d9cfc29755daebaba61bb5ea01c5132"
+			"Rev": "f64b67df7a34ee2597321d8877974e050cf35777"
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry-incubator/auction/auctiontypes",
-			"Rev": "73adabf08d9cfc29755daebaba61bb5ea01c5132"
+			"Rev": "f64b67df7a34ee2597321d8877974e050cf35777"
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry-incubator/auction/communication/nats/repnatsclient",
-			"Rev": "73adabf08d9cfc29755daebaba61bb5ea01c5132"
+			"Rev": "f64b67df7a34ee2597321d8877974e050cf35777"
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry-incubator/auction/util",
-			"Rev": "73adabf08d9cfc29755daebaba61bb5ea01c5132"
+			"Rev": "f64b67df7a34ee2597321d8877974e050cf35777"
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry-incubator/runtime-schema/bbs",
-			"Rev": "0057684a15328244f328803669dbc506b4938c99"
+			"Rev": "f4ccd84ffb364e6d27e30d9e0677729986b94dcc"
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry-incubator/runtime-schema/models",
-			"Rev": "0057684a15328244f328803669dbc506b4938c99"
+			"Rev": "f4ccd84ffb364e6d27e30d9e0677729986b94dcc"
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry/gosteno",

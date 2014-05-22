@@ -13,10 +13,6 @@ type FakeRepBBS struct {
 	desiredTaskStopChan chan bool
 	desiredTaskErrChan  chan error
 
-	desiredLrpChan     chan models.TransitionalLongRunningProcess
-	desiredLrpStopChan chan bool
-	desiredLrpErrChan  chan error
-
 	claimedTasks []models.Task
 	claimTaskErr error
 
@@ -27,8 +23,8 @@ type FakeRepBBS struct {
 	completeTaskErr          error
 	convergeTimeToClaimTasks time.Duration
 
-	startedLrps []models.TransitionalLongRunningProcess
-	startLrpErr error
+	runningLrps   []models.LRP
+	runningLrpErr error
 
 	MaintainRepPresenceInput struct {
 		HeartbeatInterval time.Duration
@@ -47,9 +43,6 @@ func NewFakeRepBBS() *FakeRepBBS {
 	fakeBBS.desiredTaskChan = make(chan models.Task, 1)
 	fakeBBS.desiredTaskStopChan = make(chan bool)
 	fakeBBS.desiredTaskErrChan = make(chan error)
-	fakeBBS.desiredLrpChan = make(chan models.TransitionalLongRunningProcess, 1)
-	fakeBBS.desiredLrpStopChan = make(chan bool)
-	fakeBBS.desiredLrpErrChan = make(chan error)
 	return fakeBBS
 }
 
@@ -57,16 +50,8 @@ func (fakeBBS *FakeRepBBS) WatchForDesiredTask() (<-chan models.Task, chan<- boo
 	return fakeBBS.desiredTaskChan, fakeBBS.desiredTaskStopChan, fakeBBS.desiredTaskErrChan
 }
 
-func (fakeBBS *FakeRepBBS) WatchForDesiredTransitionalLongRunningProcess() (<-chan models.TransitionalLongRunningProcess, chan<- bool, <-chan error) {
-	return fakeBBS.desiredLrpChan, fakeBBS.desiredLrpStopChan, fakeBBS.desiredLrpErrChan
-}
-
 func (fakeBBS *FakeRepBBS) EmitDesiredTask(task models.Task) {
 	fakeBBS.desiredTaskChan <- task
-}
-
-func (fakeBBS *FakeRepBBS) EmitDesiredLrp(lrp models.TransitionalLongRunningProcess) {
-	fakeBBS.desiredLrpChan <- lrp
 }
 
 func (fakeBBS *FakeRepBBS) ClaimTask(task models.Task, executorID string) (models.Task, error) {
@@ -122,9 +107,9 @@ func (fakeBBS *FakeRepBBS) StartTask(task models.Task, containerHandle string) (
 	return task, nil
 }
 
-func (fakeBBS *FakeRepBBS) StartTransitionalLongRunningProcess(lrp models.TransitionalLongRunningProcess) error {
+func (fakeBBS *FakeRepBBS) ReportLongRunningProcessAsRunning(lrp models.LRP) error {
 	fakeBBS.RLock()
-	err := fakeBBS.startLrpErr
+	err := fakeBBS.runningLrpErr
 	fakeBBS.RUnlock()
 
 	if err != nil {
@@ -132,7 +117,7 @@ func (fakeBBS *FakeRepBBS) StartTransitionalLongRunningProcess(lrp models.Transi
 	}
 
 	fakeBBS.Lock()
-	fakeBBS.startedLrps = append(fakeBBS.startedLrps, lrp)
+	fakeBBS.runningLrps = append(fakeBBS.runningLrps, lrp)
 	fakeBBS.Unlock()
 
 	return nil
@@ -148,14 +133,21 @@ func (fakeBBS *FakeRepBBS) StartedTasks() []models.Task {
 	return started
 }
 
-func (fakeBBS *FakeRepBBS) StartedLongRunningProcesses() []models.TransitionalLongRunningProcess {
+func (fakeBBS *FakeRepBBS) RunningLongRunningProcesses() []models.LRP {
 	fakeBBS.RLock()
 	defer fakeBBS.RUnlock()
 
-	started := make([]models.TransitionalLongRunningProcess, len(fakeBBS.startedLrps))
-	copy(started, fakeBBS.startedLrps)
+	running := make([]models.LRP, len(fakeBBS.runningLrps))
+	copy(running, fakeBBS.runningLrps)
 
-	return started
+	return running
+}
+
+func (fakeBBS *FakeRepBBS) SetRunningError(err error) {
+	fakeBBS.Lock()
+	defer fakeBBS.Unlock()
+
+	fakeBBS.runningLrpErr = err
 }
 
 func (fakeBBS *FakeRepBBS) SetStartTaskErr(err error) {
@@ -163,13 +155,6 @@ func (fakeBBS *FakeRepBBS) SetStartTaskErr(err error) {
 	defer fakeBBS.Unlock()
 
 	fakeBBS.startTaskErr = err
-}
-
-func (fakeBBS *FakeRepBBS) SetStartLrpErr(err error) {
-	fakeBBS.Lock()
-	defer fakeBBS.Unlock()
-
-	fakeBBS.startLrpErr = err
 }
 
 func (fakeBBS *FakeRepBBS) CompleteTask(task models.Task, failed bool, failureReason string, result string) (models.Task, error) {
