@@ -84,7 +84,7 @@ func main() {
 
 	process := ifrit.Envoke(auctioneer)
 	logger.Infof("auctioneer.started")
-	process.Wait()
+	<-process.Wait()
 }
 
 func initializeAuctioneer(bbs Bbs.AuctioneerBBS, natsClient yagnats.NATSClient, logger *steno.Logger) *auctioneer.Auctioneer {

@@ -1,10 +1,10 @@
 package ifrit_test
 
 import (
+	"os"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/tedsuo/ifrit"
-	"os"
 )
 
 var _ = Describe("Process", func() {
@@ -22,10 +22,10 @@ var _ = Describe("Process", func() {
 		Describe("Wait()", func() {
 			BeforeEach(func() {
 				go func() {
-					errChan <- pingProc.Wait()
+					errChan <- <-pingProc.Wait()
 				}()
 				go func() {
-					errChan <- pingProc.Wait()
+					errChan <- <-pingProc.Wait()
 				}()
 			})
 
@@ -49,10 +49,24 @@ var _ = Describe("Process", func() {
 			BeforeEach(func() {
 				pingProc.Signal(os.Kill)
 			})
+
 			It("sends the signal to the runner", func() {
-				err := pingProc.Wait()
+				err := <-pingProc.Wait()
 				Ω(err).Should(Equal(PingerExitedFromSignal))
 			})
+		})
+	})
+
+	Context("when a process exits without closing ready", func() {
+		var proc ifrit.Process
+
+		BeforeEach(func(done Done) {
+			proc = ifrit.Envoke(NoReadyRunner)
+			close(done)
+		})
+
+		It("waits normally", func() {
+			Ω(<-proc.Wait()).Should(Equal(NoReadyExitedNormally))
 		})
 	})
 })

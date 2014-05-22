@@ -6,7 +6,7 @@ import (
 )
 
 type Process interface {
-	Wait() error
+	Wait() <-chan error
 	Signal(os.Signal)
 }
 
@@ -28,7 +28,12 @@ func envokeProcess(r Runner) Process {
 		ready:          make(chan struct{}),
 	}
 	go p.run()
-	<-p.ready
+
+	select {
+	case <-p.ready:
+	case <-p.Wait():
+	}
+
 	return p
 }
 
@@ -45,11 +50,21 @@ func (p *process) run() {
 	p.exitStatusChan <- p.runner.Run(p.sig, p.ready)
 }
 
-func (p *process) Wait() error {
+func (p *process) getExitStatus() error {
 	p.exitOnce.Do(func() {
 		p.exitStatus = <-p.exitStatusChan
 	})
 	return p.exitStatus
+}
+
+func (p *process) Wait() <-chan error {
+	exitChan := make(chan error, 1)
+
+	go func() {
+		exitChan <- p.getExitStatus()
+	}()
+
+	return exitChan
 }
 
 func (p *process) Signal(signal os.Signal) {

@@ -71,7 +71,7 @@ var _ = Describe("Auctioneer", func() {
 
 		AfterEach(func() {
 			process.Signal(syscall.SIGTERM)
-			process.Wait()
+			<-process.Wait()
 			Ω(bbs.LRPStartAuctionStopChan).Should(BeClosed())
 		})
 
