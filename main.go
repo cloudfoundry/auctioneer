@@ -17,6 +17,7 @@ import (
 	"github.com/cloudfoundry/storeadapter/workerpool"
 	"github.com/cloudfoundry/yagnats"
 	"github.com/tedsuo/ifrit"
+	"github.com/tedsuo/ifrit/sigmon"
 )
 
 var etcdCluster = flag.String(
@@ -77,7 +78,17 @@ func main() {
 
 	process := ifrit.Envoke(auctioneer)
 	logger.Infof("auctioneer.started")
-	<-process.Wait()
+
+	monitor := ifrit.Envoke(sigmon.New(process))
+
+	err := <-monitor.Wait()
+	if err != nil {
+		logger.Errord(map[string]interface{}{
+			"error": err.Error(),
+		}, "auctioneer.exited")
+		return
+	}
+	logger.Infof("auctioneer.exited")
 }
 
 func initializeAuctioneer(bbs Bbs.AuctioneerBBS, natsClient yagnats.NATSClient, logger *steno.Logger) *auctioneer.Auctioneer {
