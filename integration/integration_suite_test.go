@@ -76,7 +76,7 @@ var _ = BeforeEach(func() {
 
 	dotNetRep, dotNetPresence = startSimulationRep(simulationRepPath, dotNetGuid, dotNetStack, natsPort)
 	lucidRep, lucidPresence = startSimulationRep(simulationRepPath, lucidGuid, lucidStack, natsPort)
-	repClient = repnatsclient.New(natsRunner.MessageBus, 500*time.Millisecond)
+	repClient = repnatsclient.New(natsRunner.MessageBus, 500*time.Millisecond, 10*time.Second)
 })
 
 func startSimulationRep(simulationRepPath, guid string, stack string, natsPort int) (*gexec.Session, services_bbs.Presence) {
