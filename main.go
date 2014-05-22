@@ -77,7 +77,7 @@ func main() {
 	auctioneer := initializeAuctioneer(bbs, natsClient, logger)
 
 	process := ifrit.Envoke(auctioneer)
-	logger.Infof("auctioneer.started")
+	logger.Info("auctioneer.started")
 
 	monitor := ifrit.Envoke(sigmon.New(process))
 
@@ -86,9 +86,9 @@ func main() {
 		logger.Errord(map[string]interface{}{
 			"error": err.Error(),
 		}, "auctioneer.exited")
-		return
+		os.Exit(1)
 	}
-	logger.Infof("auctioneer.exited")
+	logger.Info("auctioneer.exited")
 }
 
 func initializeAuctioneer(bbs Bbs.AuctioneerBBS, natsClient yagnats.NATSClient, logger *steno.Logger) *auctioneer.Auctioneer {
