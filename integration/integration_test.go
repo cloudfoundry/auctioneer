@@ -11,7 +11,7 @@ var _ = Describe("Integration", func() {
 	Context("when a start auction message arrives", func() {
 		BeforeEach(func() {
 			bbs.RequestLRPStartAuction(models.LRPStartAuction{
-				Guid:         "app-guid",
+				ProcessGuid:  "app-guid",
 				InstanceGuid: "instance-guid-1",
 				DiskMB:       1,
 				MemoryMB:     1,
@@ -20,7 +20,7 @@ var _ = Describe("Integration", func() {
 			})
 
 			bbs.RequestLRPStartAuction(models.LRPStartAuction{
-				Guid:         "app-guid",
+				ProcessGuid:  "app-guid",
 				InstanceGuid: "instance-guid-2",
 				DiskMB:       1,
 				MemoryMB:     1,

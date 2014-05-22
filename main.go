@@ -19,13 +19,6 @@ import (
 	"github.com/tedsuo/ifrit"
 )
 
-//etcd
-//bbs
-//logger
-//nats
-//nats rep client
-//in main: start handler: watches etcd
-
 var etcdCluster = flag.String(
 	"etcdCluster",
 	"http://127.0.0.1:4001",

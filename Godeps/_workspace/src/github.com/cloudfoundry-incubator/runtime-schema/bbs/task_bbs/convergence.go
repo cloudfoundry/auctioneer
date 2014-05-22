@@ -1,6 +1,7 @@
 package task_bbs
 
 import (
+	"sync"
 	"time"
 
 	"github.com/cloudfoundry-incubator/runtime-schema/bbs/shared"
@@ -118,8 +119,8 @@ func markTaskFailed(task models.Task, reason string) models.Task {
 }
 
 func (self *TaskBBS) batchCompareAndSwapTasks(tasksToCAS []compareAndSwappableTask, logger *steno.Logger) {
-	done := make(chan struct{}, len(tasksToCAS))
-
+	waitGroup := &sync.WaitGroup{}
+	waitGroup.Add(len(tasksToCAS))
 	for _, taskToCAS := range tasksToCAS {
 		task := taskToCAS.NewTask
 		task.UpdatedAt = self.timeProvider.Time().UnixNano()
@@ -128,20 +129,18 @@ func (self *TaskBBS) batchCompareAndSwapTasks(tasksToCAS []compareAndSwappableTa
 			Value: task.ToJSON(),
 		}
 
-		go func() {
+		go func(taskToCAS compareAndSwappableTask, newStoreNode storeadapter.StoreNode) {
 			err := self.store.CompareAndSwapByIndex(taskToCAS.OldIndex, newStoreNode)
 			if err != nil {
 				logger.Errord(map[string]interface{}{
 					"error": err.Error(),
 				}, "task.converge.failed-to-compare-and-swap")
 			}
-			done <- struct{}{}
-		}()
+			waitGroup.Done()
+		}(taskToCAS, newStoreNode)
 	}
 
-	for _ = range tasksToCAS {
-		<-done
-	}
+	waitGroup.Wait()
 }
 
 func demoteToPending(task models.Task) models.Task {
