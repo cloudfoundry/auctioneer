@@ -2,6 +2,7 @@ package fake_bbs
 
 import (
 	"sync"
+	"time"
 
 	"github.com/cloudfoundry-incubator/runtime-schema/models"
 )
@@ -10,6 +11,10 @@ type FakeAuctioneerBBS struct {
 	LRPStartAuctionChan      chan models.LRPStartAuction
 	LRPStartAuctionStopChan  chan bool
 	LRPStartAuctionErrorChan chan error
+
+	LockChannel        chan bool
+	ReleaseLockChannel chan chan bool
+	LockError          error
 
 	claimedLRPStartAuctions   []models.LRPStartAuction
 	claimLRPStartAuctionError error
@@ -27,8 +32,15 @@ func NewFakeAuctioneerBBS() *FakeAuctioneerBBS {
 		LRPStartAuctionChan:      make(chan models.LRPStartAuction),
 		LRPStartAuctionStopChan:  make(chan bool),
 		LRPStartAuctionErrorChan: make(chan error),
+		LockChannel:              make(chan bool),
+		ReleaseLockChannel:       make(chan chan bool),
+
 		lock: &sync.Mutex{},
 	}
+}
+
+func (bbs *FakeAuctioneerBBS) MaintainAuctioneerLock(interval time.Duration, auctioneerID string) (<-chan bool, chan<- chan bool, error) {
+	return bbs.LockChannel, bbs.ReleaseLockChannel, bbs.LockError
 }
 
 func (bbs *FakeAuctioneerBBS) GetAllReps() ([]models.RepPresence, error) {

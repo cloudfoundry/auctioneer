@@ -3,9 +3,11 @@ package auctioneer
 import (
 	"os"
 	"syscall"
+	"time"
 
 	"github.com/cloudfoundry-incubator/auction/auctionrunner"
 	"github.com/cloudfoundry-incubator/auction/auctiontypes"
+	"github.com/nu7hatch/gouuid"
 
 	Bbs "github.com/cloudfoundry-incubator/runtime-schema/bbs"
 
@@ -19,47 +21,77 @@ type Auctioneer struct {
 	maxConcurrent int
 	logger        *steno.Logger
 	semaphore     chan bool
+	lockInterval  time.Duration
 }
 
-func New(bbs Bbs.AuctioneerBBS, runner auctiontypes.AuctionRunner, maxConcurrent int, logger *steno.Logger) *Auctioneer {
+func New(bbs Bbs.AuctioneerBBS, runner auctiontypes.AuctionRunner, maxConcurrent int, lockInterval time.Duration, logger *steno.Logger) *Auctioneer {
 	return &Auctioneer{
 		bbs:           bbs,
 		runner:        runner,
 		maxConcurrent: maxConcurrent,
 		logger:        logger,
 		semaphore:     make(chan bool, maxConcurrent),
+		lockInterval:  lockInterval,
 	}
 }
 
 func (a *Auctioneer) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
-	auctions, stopChan, errorChan := a.bbs.WatchForLRPStartAuction()
-	close(ready)
+	guid, err := uuid.NewV4()
+	if err != nil {
+		return err
+	}
+
+	haveLockChan, stopMaintainingLockChan, err := a.bbs.MaintainAuctioneerLock(a.lockInterval, guid.String())
+	if err != nil {
+		return err
+	}
+
+	var auctionChan <-chan models.LRPStartAuction
+	var errorChan <-chan error
+	var stopWatchingChan chan<- bool
 
 	for {
-	InnerLoop:
-		for {
-			select {
-			case auction, ok := <-auctions:
-				if !ok {
-					break InnerLoop
-				}
-				go a.runAuction(auction)
-			case err := <-errorChan:
-				a.logger.Errord(map[string]interface{}{
-					"error": err.Error(),
-				}, "auctioneer.auction-watch-failed")
-
-				break InnerLoop
-			case sig := <-signals:
-				if a.shouldStop(sig) {
-					a.logger.Info("auctioneer.stopping-watch")
-					close(stopChan)
-					return nil
+		select {
+		case haveLock := <-haveLockChan:
+			if haveLock && auctionChan == nil {
+				a.logger.Info("auctioneer.have-lock-starting-watch")
+				auctionChan, stopWatchingChan, errorChan = a.bbs.WatchForLRPStartAuction()
+				if ready != nil {
+					close(ready)
+					ready = nil
 				}
 			}
-		}
+			if !haveLock && auctionChan != nil {
+				close(stopWatchingChan)
+				auctionChan, stopWatchingChan, errorChan = nil, nil, nil
+			}
 
-		auctions, stopChan, errorChan = a.bbs.WatchForLRPStartAuction()
+		case auction, ok := <-auctionChan:
+			if !ok {
+				auctionChan = nil
+				continue
+			}
+			go a.runAuction(auction)
+
+		case err := <-errorChan:
+			a.logger.Errord(map[string]interface{}{
+				"error": err.Error(),
+			}, "auctioneer.auction-watch-failed")
+			auctionChan = nil
+
+		case sig := <-signals:
+			if a.shouldStop(sig) {
+				a.logger.Info("auctioneer.releasing-lock")
+				stoppedMaintainingLockChan := make(chan bool)
+				stopMaintainingLockChan <- stoppedMaintainingLockChan
+				<-stoppedMaintainingLockChan
+				if stopWatchingChan != nil {
+					a.logger.Info("auctioneer.stopping-watch")
+					close(stopWatchingChan)
+				}
+				return nil
+			}
+		}
 	}
 
 	return nil

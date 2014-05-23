@@ -2,6 +2,8 @@ package auctioneer_test
 
 import (
 	"errors"
+	"fmt"
+	"os"
 	"syscall"
 	"time"
 
@@ -61,18 +63,123 @@ var _ = Describe("Auctioneer", func() {
 		}
 	})
 
+	Describe("the lock lifecycle", func() {
+		var signals chan os.Signal
+		var ready chan struct{}
+		var errors chan error
+		BeforeEach(func() {
+			runner = fake_auctionrunner.NewFakeAuctionRunner(0)
+			auctioneer = New(bbs, runner, 2, time.Second, logger)
+			signals = make(chan os.Signal)
+			ready = make(chan struct{})
+			errors = make(chan error)
+
+			go func() {
+				errors <- auctioneer.Run(signals, ready)
+			}()
+		})
+
+		AfterEach(func() {
+			signals <- syscall.SIGTERM
+			close(<-bbs.ReleaseLockChannel)
+			Eventually(errors).Should(Receive())
+		})
+
+		Context("before the lock is obtained", func() {
+			It("should not be ready", func() {
+				Consistently(ready).ShouldNot(BeClosed())
+			})
+		})
+
+		Context("once the lock is obtained", func() {
+			BeforeEach(func() {
+				bbs.LockChannel <- true
+			})
+
+			It("should start watching", func() {
+				bbs.LRPStartAuctionChan <- auction
+				Eventually(runner.GetStartAuctionRequest).ShouldNot(BeZero())
+			})
+
+			It("should become ready", func() {
+				Eventually(ready).Should(BeClosed())
+			})
+
+			Context("if the watch channel is closed", func() {
+				BeforeEach(func() {
+					close(bbs.LRPStartAuctionChan)
+					time.Sleep(10 * time.Millisecond) //make sure this gets processed
+				})
+
+				It("should start watching again on the next lock tick", func() {
+					bbs.LRPStartAuctionChan = make(chan models.LRPStartAuction)
+					bbs.LockChannel <- true
+					bbs.LRPStartAuctionChan <- auction
+					Eventually(runner.GetStartAuctionRequest).ShouldNot(BeZero())
+				})
+			})
+
+			Context("if the watch errors", func() {
+				BeforeEach(func() {
+					bbs.LRPStartAuctionErrorChan <- fmt.Errorf("boom")
+				})
+
+				It("should start watching again on the next lock tick", func() {
+					bbs.LRPStartAuctionChan = make(chan models.LRPStartAuction)
+					bbs.LockChannel <- true
+					bbs.LRPStartAuctionChan <- auction
+					Eventually(runner.GetStartAuctionRequest).ShouldNot(BeZero())
+				})
+			})
+
+			Context("if the lock is lost", func() {
+				BeforeEach(func() {
+					bbs.LockChannel <- false
+				})
+
+				It("should stop watching", func() {
+					Eventually(bbs.LRPStartAuctionStopChan).Should(BeClosed())
+				})
+
+				Context("when the lock is regained", func() {
+					BeforeEach(func() {
+						bbs.LRPStartAuctionChan = make(chan models.LRPStartAuction)
+						bbs.LRPStartAuctionStopChan = make(chan bool)
+						bbs.LockChannel <- true
+					})
+
+					It("should start watching again", func() {
+						bbs.LRPStartAuctionChan <- auction
+						Eventually(runner.GetStartAuctionRequest).ShouldNot(BeZero())
+					})
+				})
+			})
+		})
+	})
+
 	Describe("the auction lifecycle", func() {
 		BeforeEach(func() {
 			runner = fake_auctionrunner.NewFakeAuctionRunner(0)
-			auctioneer = New(bbs, runner, 2, logger)
+			auctioneer = New(bbs, runner, 2, time.Second, logger)
+
+			go func() {
+				bbs.LockChannel <- true
+			}()
 
 			process = ifrit.Envoke(auctioneer)
 		})
 
-		AfterEach(func() {
+		AfterEach(func(done Done) {
+			//send a shut down signal
 			process.Signal(syscall.SIGTERM)
+			//which releases the lock, which we need to acknowledge by closing the channel sent to the release lock channel
+			close(<-bbs.ReleaseLockChannel)
+			//which (eventually) causes the process to exit
 			<-process.Wait()
+			//and should stop the auction
 			Ω(bbs.LRPStartAuctionStopChan).Should(BeClosed())
+
+			close(done)
 		})
 
 		Context("when a pending auction request arrives over ETCD", func() {
@@ -159,7 +266,11 @@ var _ = Describe("Auctioneer", func() {
 
 		BeforeEach(func() {
 			runner = fake_auctionrunner.NewFakeAuctionRunner(time.Second)
-			auctioneer = New(bbs, runner, 2, logger)
+			auctioneer = New(bbs, runner, 2, time.Second, logger)
+
+			go func() {
+				bbs.LockChannel <- true
+			}()
 
 			process = ifrit.Envoke(auctioneer)
 
@@ -179,7 +290,8 @@ var _ = Describe("Auctioneer", func() {
 
 		AfterEach(func() {
 			process.Signal(syscall.SIGTERM)
-			process.Wait()
+			close(<-bbs.ReleaseLockChannel)
+			<-process.Wait()
 		})
 
 		It("should only process maxConcurrent auctions at a time", func() {

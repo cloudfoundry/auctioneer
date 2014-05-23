@@ -68,6 +68,12 @@ var auctionRunTimeout = flag.Duration(
 	"How long the auction will wait to hear that the chosen winner has succesfully started the app",
 )
 
+var lockInterval = flag.Duration(
+	"lockInterval",
+	30*time.Second,
+	"Interval at which to maintain the auctioneer lock",
+)
+
 func main() {
 	flag.Parse()
 
@@ -94,7 +100,7 @@ func main() {
 func initializeAuctioneer(bbs Bbs.AuctioneerBBS, natsClient yagnats.NATSClient, logger *steno.Logger) *auctioneer.Auctioneer {
 	client := repnatsclient.New(natsClient, *auctionNATSTimeout, *auctionRunTimeout)
 	runner := auctionrunner.New(client)
-	return auctioneer.New(bbs, runner, *maxConcurrent, logger)
+	return auctioneer.New(bbs, runner, *maxConcurrent, *lockInterval, logger)
 }
 
 func initializeLogger() *steno.Logger {
