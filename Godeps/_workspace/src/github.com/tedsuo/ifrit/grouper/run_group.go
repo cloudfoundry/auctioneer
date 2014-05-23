@@ -1,11 +1,15 @@
-package ifrit
+package grouper
 
-import "os"
+import (
+	"os"
 
-type RunGroup map[string]Runner
+	"github.com/tedsuo/ifrit"
+)
+
+type RunGroup map[string]ifrit.Runner
 
 func (r RunGroup) Run(sig <-chan os.Signal, ready chan<- struct{}) error {
-	p := envokeGroup(r)
+	p := EnvokeGroup(r)
 
 	if ready != nil {
 		close(ready)

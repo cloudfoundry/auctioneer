@@ -95,13 +95,17 @@ func watchForAuctionLrpModificationsOnState(store storeadapter.StoreAdapter, sta
 				if !ok {
 					return
 				}
-				lrp, err := models.NewLRPStartAuctionFromJSON(event.Node.Value)
-				if err != nil {
-					continue
-				}
 
-				if lrp.State == state {
-					lrps <- lrp
+				switch event.Type {
+				case storeadapter.CreateEvent, storeadapter.UpdateEvent:
+					lrp, err := models.NewLRPStartAuctionFromJSON(event.Node.Value)
+					if err != nil {
+						continue
+					}
+
+					if lrp.State == state {
+						lrps <- lrp
+					}
 				}
 
 			case err, ok := <-errsInner:
