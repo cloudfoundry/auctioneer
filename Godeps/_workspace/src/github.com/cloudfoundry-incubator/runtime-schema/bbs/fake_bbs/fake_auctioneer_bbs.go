@@ -8,6 +8,8 @@ import (
 )
 
 type FakeAuctioneerBBS struct {
+	*sync.Mutex
+
 	LRPStartAuctionChan      chan models.LRPStartAuction
 	LRPStartAuctionStopChan  chan bool
 	LRPStartAuctionErrorChan chan error
@@ -16,26 +18,23 @@ type FakeAuctioneerBBS struct {
 	ReleaseLockChannel chan chan bool
 	LockError          error
 
-	claimedLRPStartAuctions   []models.LRPStartAuction
-	claimLRPStartAuctionError error
+	ClaimedLRPStartAuctions   []models.LRPStartAuction
+	ClaimLRPStartAuctionError error
 
-	resolvedLRPStartAuction     models.LRPStartAuction
-	resolveLRPStartAuctionError error
+	ResolvedLRPStartAuction     models.LRPStartAuction
+	ResolveLRPStartAuctionError error
 
-	reps []models.RepPresence
-
-	lock *sync.Mutex
+	Reps []models.RepPresence
 }
 
 func NewFakeAuctioneerBBS() *FakeAuctioneerBBS {
 	return &FakeAuctioneerBBS{
+		Mutex:                    &sync.Mutex{},
 		LRPStartAuctionChan:      make(chan models.LRPStartAuction),
 		LRPStartAuctionStopChan:  make(chan bool),
 		LRPStartAuctionErrorChan: make(chan error),
 		LockChannel:              make(chan bool),
 		ReleaseLockChannel:       make(chan chan bool),
-
-		lock: &sync.Mutex{},
 	}
 }
 
@@ -44,62 +43,42 @@ func (bbs *FakeAuctioneerBBS) MaintainAuctioneerLock(interval time.Duration, auc
 }
 
 func (bbs *FakeAuctioneerBBS) GetAllReps() ([]models.RepPresence, error) {
-	bbs.lock.Lock()
-	defer bbs.lock.Unlock()
-	return bbs.reps, nil
-}
-
-func (bbs *FakeAuctioneerBBS) SetAllReps(reps []models.RepPresence) {
-	bbs.lock.Lock()
-	defer bbs.lock.Unlock()
-
-	bbs.reps = reps
+	bbs.Lock()
+	defer bbs.Unlock()
+	return bbs.Reps, nil
 }
 
 func (bbs *FakeAuctioneerBBS) WatchForLRPStartAuction() (<-chan models.LRPStartAuction, chan<- bool, <-chan error) {
+	bbs.Lock()
+	defer bbs.Unlock()
+
 	return bbs.LRPStartAuctionChan, bbs.LRPStartAuctionStopChan, bbs.LRPStartAuctionErrorChan
 }
 
 func (bbs *FakeAuctioneerBBS) ClaimLRPStartAuction(auction models.LRPStartAuction) error {
-	bbs.lock.Lock()
-	defer bbs.lock.Unlock()
+	bbs.Lock()
+	defer bbs.Unlock()
 
-	bbs.claimedLRPStartAuctions = append(bbs.claimedLRPStartAuctions, auction)
-	return bbs.claimLRPStartAuctionError
-}
-
-func (bbs *FakeAuctioneerBBS) GetClaimedLRPStartAuctions() []models.LRPStartAuction {
-	bbs.lock.Lock()
-	defer bbs.lock.Unlock()
-
-	return bbs.claimedLRPStartAuctions
-}
-
-func (bbs *FakeAuctioneerBBS) SetClaimLRPStartAuctionError(err error) {
-	bbs.lock.Lock()
-	defer bbs.lock.Unlock()
-
-	bbs.claimLRPStartAuctionError = err
+	bbs.ClaimedLRPStartAuctions = append(bbs.ClaimedLRPStartAuctions, auction)
+	return bbs.ClaimLRPStartAuctionError
 }
 
 func (bbs *FakeAuctioneerBBS) ResolveLRPStartAuction(auction models.LRPStartAuction) error {
-	bbs.lock.Lock()
-	defer bbs.lock.Unlock()
+	bbs.Lock()
+	defer bbs.Unlock()
 
-	bbs.resolvedLRPStartAuction = auction
-	return bbs.resolveLRPStartAuctionError
+	bbs.ResolvedLRPStartAuction = auction
+	return bbs.ResolveLRPStartAuctionError
+}
+
+func (bbs *FakeAuctioneerBBS) GetClaimedLRPStartAuctions() []models.LRPStartAuction {
+	bbs.Lock()
+	defer bbs.Unlock()
+	return bbs.ClaimedLRPStartAuctions
 }
 
 func (bbs *FakeAuctioneerBBS) GetResolvedLRPStartAuction() models.LRPStartAuction {
-	bbs.lock.Lock()
-	defer bbs.lock.Unlock()
-
-	return bbs.resolvedLRPStartAuction
-}
-
-func (bbs *FakeAuctioneerBBS) SetResolveLRPStartAuctionError(err error) {
-	bbs.lock.Lock()
-	defer bbs.lock.Unlock()
-
-	bbs.resolveLRPStartAuctionError = err
+	bbs.Lock()
+	defer bbs.Unlock()
+	return bbs.ResolvedLRPStartAuction
 }
