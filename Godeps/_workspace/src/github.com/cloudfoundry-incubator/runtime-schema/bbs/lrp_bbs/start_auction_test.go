@@ -12,7 +12,7 @@ import (
 )
 
 var _ = Describe("Start Auction", func() {
-	var bbs *LongRunningProcessBBS
+	var bbs *LRPBBS
 
 	BeforeEach(func() {
 		bbs = New(etcdClient)

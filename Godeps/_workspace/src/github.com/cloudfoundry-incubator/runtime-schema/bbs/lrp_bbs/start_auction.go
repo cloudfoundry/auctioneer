@@ -8,7 +8,7 @@ import (
 	"github.com/cloudfoundry/storeadapter"
 )
 
-func (bbs *LongRunningProcessBBS) RequestLRPStartAuction(lrp models.LRPStartAuction) error {
+func (bbs *LRPBBS) RequestLRPStartAuction(lrp models.LRPStartAuction) error {
 	return shared.RetryIndefinitelyOnStoreTimeout(func() error {
 		lrp.State = models.LRPStartAuctionStatePending
 		return bbs.store.SetMulti([]storeadapter.StoreNode{
@@ -20,7 +20,7 @@ func (bbs *LongRunningProcessBBS) RequestLRPStartAuction(lrp models.LRPStartAuct
 	})
 }
 
-func (bbs *LongRunningProcessBBS) GetAllLRPStartAuctions() ([]models.LRPStartAuction, error) {
+func (bbs *LRPBBS) GetAllLRPStartAuctions() ([]models.LRPStartAuction, error) {
 	lrps := []models.LRPStartAuction{}
 
 	node, err := bbs.store.ListRecursively(shared.LRPStartAuctionSchemaRoot)
@@ -46,11 +46,11 @@ func (bbs *LongRunningProcessBBS) GetAllLRPStartAuctions() ([]models.LRPStartAuc
 	return lrps, nil
 }
 
-func (self *LongRunningProcessBBS) WatchForLRPStartAuction() (<-chan models.LRPStartAuction, chan<- bool, <-chan error) {
+func (self *LRPBBS) WatchForLRPStartAuction() (<-chan models.LRPStartAuction, chan<- bool, <-chan error) {
 	return watchForAuctionLrpModificationsOnState(self.store, models.LRPStartAuctionStatePending)
 }
 
-func (self *LongRunningProcessBBS) ClaimLRPStartAuction(lrp models.LRPStartAuction) error {
+func (self *LRPBBS) ClaimLRPStartAuction(lrp models.LRPStartAuction) error {
 	originalValue := lrp.ToJSON()
 
 	lrp.State = models.LRPStartAuctionStateClaimed
@@ -67,7 +67,7 @@ func (self *LongRunningProcessBBS) ClaimLRPStartAuction(lrp models.LRPStartAucti
 	})
 }
 
-func (s *LongRunningProcessBBS) ResolveLRPStartAuction(lrp models.LRPStartAuction) error {
+func (s *LRPBBS) ResolveLRPStartAuction(lrp models.LRPStartAuction) error {
 	err := shared.RetryIndefinitelyOnStoreTimeout(func() error {
 		return s.store.Delete(shared.LRPStartAuctionSchemaPath(lrp))
 	})
