@@ -51,11 +51,13 @@ var _ = Describe("Auctioneer", func() {
 			Stack: "lucid64",
 		}
 
-		bbs.SetAllReps([]models.RepPresence{
+		bbs.Lock()
+		bbs.Reps = []models.RepPresence{
 			firstRep,
 			secondRep,
 			thirdRep,
-		})
+		}
+		bbs.Unlock()
 
 		auction = models.LRPStartAuction{
 			ProcessGuid: "my-guid",
@@ -112,7 +114,9 @@ var _ = Describe("Auctioneer", func() {
 				})
 
 				It("should start watching again on the next lock tick", func() {
+					bbs.Lock()
 					bbs.LRPStartAuctionChan = make(chan models.LRPStartAuction)
+					bbs.Unlock()
 					bbs.LockChannel <- true
 					bbs.LRPStartAuctionChan <- auction
 					Eventually(runner.GetStartAuctionRequest).ShouldNot(BeZero())
@@ -228,7 +232,9 @@ var _ = Describe("Auctioneer", func() {
 
 			Context("when the claim fails", func() {
 				BeforeEach(func() {
-					bbs.SetClaimLRPStartAuctionError(errors.New("already claimed"))
+					bbs.Lock()
+					bbs.ClaimLRPStartAuctionError = errors.New("already claimed")
+					bbs.Unlock()
 				})
 
 				It("should not run the auction", func() {
