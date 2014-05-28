@@ -21,6 +21,8 @@ import (
 
 	"testing"
 	"time"
+
+	steno "github.com/cloudfoundry/gosteno"
 )
 
 var auctioneerPath string
@@ -60,7 +62,16 @@ var _ = BeforeSuite(func() {
 	natsRunner = natsrunner.NewNATSRunner(natsPort)
 
 	store = etcdRunner.Adapter()
-	bbs = Bbs.NewBBS(store, timeprovider.NewTimeProvider())
+
+	logSink := steno.NewTestingSink()
+
+	steno.Init(&steno.Config{
+		Sinks: []steno.Sink{logSink},
+	})
+
+	logger := steno.NewLogger("the-logger")
+	steno.EnterTestMode()
+	bbs = Bbs.NewBBS(store, timeprovider.NewTimeProvider(), logger)
 
 	runner = auctioneer_runner.New(
 		auctioneerPath,
@@ -94,7 +105,7 @@ func startSimulationRep(simulationRepPath, guid string, stack string, natsPort i
 	), GinkgoWriter, GinkgoWriter)
 	Ω(err).ShouldNot(HaveOccurred())
 
-	Eventually(session, 5).Should(gbytes.Say("listening for nats"))
+	Eventually(session, 5).Should(gbytes.Say("rep nats server"))
 
 	return session, presence
 }

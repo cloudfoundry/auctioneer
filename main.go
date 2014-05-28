@@ -152,5 +152,5 @@ func initializeBbs(logger *steno.Logger) Bbs.AuctioneerBBS {
 		logger.Fatalf("Error connecting to etcd: %s\n", err)
 	}
 
-	return Bbs.NewAuctioneerBBS(etcdAdapter, timeprovider.NewTimeProvider())
+	return Bbs.NewAuctioneerBBS(etcdAdapter, timeprovider.NewTimeProvider(), logger)
 }
