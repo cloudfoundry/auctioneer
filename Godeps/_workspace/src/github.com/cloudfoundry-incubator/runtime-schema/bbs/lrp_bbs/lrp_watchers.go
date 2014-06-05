@@ -6,131 +6,76 @@ import (
 	"github.com/cloudfoundry/storeadapter"
 )
 
-func (self *LRPBBS) WatchForDesiredLRPChanges() (<-chan models.DesiredLRPChange, chan<- bool, <-chan error) {
-	return watchForDesiredLRPChanges(self.store)
-}
+func (bbs *LRPBBS) WatchForDesiredLRPChanges() (<-chan models.DesiredLRPChange, chan<- bool, <-chan error) {
+	desired := make(chan models.DesiredLRPChange)
 
-//XXXX
-func (self *LRPBBS) WatchForActualLRPChanges() (<-chan models.ActualLRPChange, chan<- bool, <-chan error) {
-	return watchForActualLRPs(self.store)
-}
+	filter := func(event storeadapter.WatchEvent) (models.DesiredLRPChange, bool) {
+		var before *models.DesiredLRP
+		var after *models.DesiredLRP
 
-func watchForDesiredLRPChanges(store storeadapter.StoreAdapter) (<-chan models.DesiredLRPChange, chan<- bool, <-chan error) {
-	changes := make(chan models.DesiredLRPChange)
-	stopOuter := make(chan bool)
-	errsOuter := make(chan error)
-
-	events, stopInner, errsInner := store.Watch(shared.DesiredLRPSchemaRoot)
-
-	go func() {
-		defer close(changes)
-		defer close(errsOuter)
-
-		for {
-			select {
-			case <-stopOuter:
-				close(stopInner)
-				return
-
-			case event, ok := <-events:
-				if !ok {
-					return
-				}
-
-				var before *models.DesiredLRP
-				var after *models.DesiredLRP
-
-				if event.Node != nil {
-					aft, err := models.NewDesiredLRPFromJSON(event.Node.Value)
-					if err != nil {
-						continue
-					}
-
-					after = &aft
-				}
-
-				if event.PrevNode != nil {
-					bef, err := models.NewDesiredLRPFromJSON(event.PrevNode.Value)
-					if err != nil {
-						continue
-					}
-
-					before = &bef
-				}
-
-				changes <- models.DesiredLRPChange{
-					Before: before,
-					After:  after,
-				}
-
-			case err, ok := <-errsInner:
-				if ok {
-					errsOuter <- err
-				}
-				return
+		if event.Node != nil {
+			aft, err := models.NewDesiredLRPFromJSON(event.Node.Value)
+			if err != nil {
+				return models.DesiredLRPChange{}, false
 			}
-		}
-	}()
 
-	return changes, stopOuter, errsOuter
+			after = &aft
+		}
+
+		if event.PrevNode != nil {
+			bef, err := models.NewDesiredLRPFromJSON(event.PrevNode.Value)
+			if err != nil {
+				return models.DesiredLRPChange{}, false
+			}
+
+			before = &bef
+		}
+
+		return models.DesiredLRPChange{
+			Before: before,
+			After:  after,
+		}, true
+
+	}
+
+	stop, err := shared.WatchWithFilter(bbs.store, shared.DesiredLRPSchemaRoot, desired, filter)
+
+	return desired, stop, err
 }
 
-func watchForActualLRPs(store storeadapter.StoreAdapter) (<-chan models.ActualLRPChange, chan<- bool, <-chan error) {
-	changes := make(chan models.ActualLRPChange)
-	stopOuter := make(chan bool)
-	errsOuter := make(chan error)
+func (bbs *LRPBBS) WatchForActualLRPChanges() (<-chan models.ActualLRPChange, chan<- bool, <-chan error) {
+	actual := make(chan models.ActualLRPChange)
 
-	events, stopInner, errsInner := store.Watch(shared.ActualLRPSchemaRoot)
+	filter := func(event storeadapter.WatchEvent) (models.ActualLRPChange, bool) {
+		var before *models.ActualLRP
+		var after *models.ActualLRP
 
-	go func() {
-		defer close(changes)
-		defer close(errsOuter)
-
-		for {
-			select {
-			case <-stopOuter:
-				close(stopInner)
-				return
-
-			case event, ok := <-events:
-				if !ok {
-					return
-				}
-
-				var before *models.LRP
-				var after *models.LRP
-
-				if event.Node != nil {
-					aft, err := models.NewLRPFromJSON(event.Node.Value)
-					if err != nil {
-						continue
-					}
-
-					after = &aft
-				}
-
-				if event.PrevNode != nil {
-					bef, err := models.NewLRPFromJSON(event.PrevNode.Value)
-					if err != nil {
-						continue
-					}
-
-					before = &bef
-				}
-
-				changes <- models.ActualLRPChange{
-					Before: before,
-					After:  after,
-				}
-
-			case err, ok := <-errsInner:
-				if ok {
-					errsOuter <- err
-				}
-				return
+		if event.Node != nil {
+			aft, err := models.NewActualLRPFromJSON(event.Node.Value)
+			if err != nil {
+				return models.ActualLRPChange{}, false
 			}
-		}
-	}()
 
-	return changes, stopOuter, errsOuter
+			after = &aft
+		}
+
+		if event.PrevNode != nil {
+			bef, err := models.NewActualLRPFromJSON(event.PrevNode.Value)
+			if err != nil {
+				return models.ActualLRPChange{}, false
+			}
+
+			before = &bef
+		}
+
+		return models.ActualLRPChange{
+			Before: before,
+			After:  after,
+		}, true
+
+	}
+
+	stop, err := shared.WatchWithFilter(bbs.store, shared.ActualLRPSchemaRoot, actual, filter)
+
+	return actual, stop, err
 }

@@ -22,12 +22,16 @@
 			"Rev": "84a9d7c2760404c4fc078deeeb4943c63c1cbe65"
 		},
 		{
+			"ImportPath": "github.com/cloudfoundry-incubator/delta_force",
+			"Rev": "91a76fde5078345c3ca7a30de0cd9baaf5e05292"
+		},
+		{
 			"ImportPath": "github.com/cloudfoundry-incubator/runtime-schema/bbs",
-			"Rev": "2357a40e3b2744288cb9a1cbc32e1bd8e6760e8e"
+			"Rev": "342a3348e13e5bcbdaed88e0abfaf6e951f35e7e"
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry-incubator/runtime-schema/models",
-			"Rev": "2357a40e3b2744288cb9a1cbc32e1bd8e6760e8e"
+			"Rev": "342a3348e13e5bcbdaed88e0abfaf6e951f35e7e"
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry/gosteno",
@@ -36,15 +40,15 @@
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry/gunk/natsrunner",
-			"Rev": "7961fb4a446e96ef5a35fee37aa4b4945dca6745"
+			"Rev": "f81faeae3c1e229f1e3f0ad9d0dab98ba8daa242"
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry/gunk/timeprovider",
-			"Rev": "7961fb4a446e96ef5a35fee37aa4b4945dca6745"
+			"Rev": "f81faeae3c1e229f1e3f0ad9d0dab98ba8daa242"
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry/storeadapter",
-			"Rev": "4ab2c502399a8be4998fb8d76a2cc16654d135ee"
+			"Rev": "8d010407d220f029000b4f21687dd9e3b3b8b190"
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry/yagnats",
@@ -52,8 +56,8 @@
 		},
 		{
 			"ImportPath": "github.com/coreos/go-etcd/etcd",
-			"Comment": "v0.2.0-rc1-108-g4c69444",
-			"Rev": "4c694447f66ad846c7ab72d16993ebe6904f2d90"
+			"Comment": "v0.2.0-rc1-114-g7745cfd",
+			"Rev": "7745cfd7f8e619cc9e6be450238e6253a57a227f"
 		},
 		{
 			"ImportPath": "github.com/nu7hatch/gouuid",
@@ -61,16 +65,16 @@
 		},
 		{
 			"ImportPath": "github.com/onsi/ginkgo",
-			"Comment": "v1.0.0-2-g4cf6831",
-			"Rev": "4cf683101c36426dc975f4db4d7f01d9c071f31a"
+			"Comment": "v1.0.0-12-g8c58607",
+			"Rev": "8c586078cd1019084c081e889d007fba9c6f4198"
 		},
 		{
 			"ImportPath": "github.com/onsi/gomega",
-			"Rev": "05c2b322d514282430789eb9ff8efee6c904cc77"
+			"Rev": "bdbf788226cb7e227917ca92805c204112f30e19"
 		},
 		{
 			"ImportPath": "github.com/tedsuo/ifrit",
-			"Rev": "8f57c1dcd12fc1cf91eea3f7704e348f3023f834"
+			"Rev": "258629c650db33cf95a642651d051ded4ccb2e05"
 		}
 	]
 }

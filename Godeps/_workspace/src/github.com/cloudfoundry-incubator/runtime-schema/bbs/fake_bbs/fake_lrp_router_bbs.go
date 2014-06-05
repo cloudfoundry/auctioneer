@@ -12,15 +12,15 @@ type FakeLRPRouterBBS struct {
 	actualLRPErrChan    chan error
 
 	AllDesiredLRPs []models.DesiredLRP
-	AllActualLRPs  []models.LRP
+	AllActualLRPs  []models.ActualLRP
 
 	DesiredLRP models.DesiredLRP
-	ActualLRPs []models.LRP
+	ActualLRPs []models.ActualLRP
 
-	WhenGettingRunningActualLRPs func() ([]models.LRP, error)
+	WhenGettingRunningActualLRPs func() ([]models.ActualLRP, error)
 	WhenGettingAllDesiredLRPs    func() ([]models.DesiredLRP, error)
 
-	WhenGettingActualLRPsByProcessGuid func(string) ([]models.LRP, error)
+	WhenGettingActualLRPsByProcessGuid func(string) ([]models.ActualLRP, error)
 	WhenGettingDesiredLRPByProcessGuid func(string) (models.DesiredLRP, error)
 }
 
@@ -40,8 +40,16 @@ func (fakeBBS *FakeLRPRouterBBS) WatchForDesiredLRPChanges() (<-chan models.Desi
 	return fakeBBS.DesiredLRPChangeChan, fakeBBS.desiredLRPStopChan, fakeBBS.desiredLRPErrChan
 }
 
+func (fakeBBS *FakeLRPRouterBBS) SendWatchForDesiredLRPChangesError(err error) {
+	fakeBBS.desiredLRPErrChan <- err
+}
+
 func (fakeBBS *FakeLRPRouterBBS) WatchForActualLRPChanges() (<-chan models.ActualLRPChange, chan<- bool, <-chan error) {
 	return fakeBBS.ActualLRPChangeChan, fakeBBS.actualLRPStopChan, fakeBBS.actualLRPErrChan
+}
+
+func (fakeBBS *FakeLRPRouterBBS) SendWatchForActualLRPChangesError(err error) {
+	fakeBBS.actualLRPErrChan <- err
 }
 
 func (fakeBBS *FakeLRPRouterBBS) GetAllDesiredLRPs() ([]models.DesiredLRP, error) {
@@ -52,7 +60,7 @@ func (fakeBBS *FakeLRPRouterBBS) GetAllDesiredLRPs() ([]models.DesiredLRP, error
 	return fakeBBS.AllDesiredLRPs, nil
 }
 
-func (fakeBBS *FakeLRPRouterBBS) GetRunningActualLRPs() ([]models.LRP, error) {
+func (fakeBBS *FakeLRPRouterBBS) GetRunningActualLRPs() ([]models.ActualLRP, error) {
 	if fakeBBS.WhenGettingRunningActualLRPs != nil {
 		return fakeBBS.WhenGettingRunningActualLRPs()
 	}
@@ -68,7 +76,7 @@ func (fakeBBS *FakeLRPRouterBBS) GetDesiredLRPByProcessGuid(processGuid string) 
 	return fakeBBS.DesiredLRP, nil
 }
 
-func (fakeBBS *FakeLRPRouterBBS) GetRunningActualLRPsByProcessGuid(processGuid string) ([]models.LRP, error) {
+func (fakeBBS *FakeLRPRouterBBS) GetRunningActualLRPsByProcessGuid(processGuid string) ([]models.ActualLRP, error) {
 	if fakeBBS.WhenGettingActualLRPsByProcessGuid != nil {
 		return fakeBBS.WhenGettingActualLRPsByProcessGuid(processGuid)
 	}

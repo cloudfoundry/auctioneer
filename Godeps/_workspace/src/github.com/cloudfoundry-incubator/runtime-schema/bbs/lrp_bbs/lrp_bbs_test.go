@@ -1,7 +1,6 @@
 package lrp_bbs_test
 
 import (
-	. "github.com/cloudfoundry-incubator/runtime-schema/bbs/lrp_bbs"
 	"github.com/cloudfoundry-incubator/runtime-schema/models"
 	"github.com/cloudfoundry/storeadapter"
 	. "github.com/onsi/ginkgo"
@@ -9,13 +8,9 @@ import (
 )
 
 var _ = Describe("LRP", func() {
-	var bbs *LRPBBS
+	executorID := "some-executor-id"
 
-	BeforeEach(func() {
-		bbs = New(etcdClient)
-	})
-
-	Describe("DesireLRP", func() {
+	Describe("Adding and removing DesireLRP", func() {
 		var lrp models.DesiredLRP
 
 		BeforeEach(func() {
@@ -38,6 +33,28 @@ var _ = Describe("LRP", func() {
 			Ω(node.Value).Should(Equal(lrp.ToJSON()))
 		})
 
+		Context("when deleting the DesiredLRP", func() {
+			BeforeEach(func() {
+				err := bbs.DesireLRP(lrp)
+				Ω(err).ShouldNot(HaveOccurred())
+			})
+
+			It("should delete it", func() {
+				err := bbs.RemoveDesiredLRPByProcessGuid(lrp.ProcessGuid)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				_, err = etcdClient.Get("/v1/desired/some-process-guid")
+				Ω(err).Should(MatchError(storeadapter.ErrorKeyNotFound))
+			})
+
+			Context("when the desired LRP does not exist", func() {
+				It("should not error", func() {
+					err := bbs.RemoveDesiredLRPByProcessGuid("monkey")
+					Ω(err).ShouldNot(HaveOccurred())
+				})
+			})
+		})
+
 		Context("when the store is out of commission", func() {
 			itRetriesUntilStoreComesBack(func() error {
 				return bbs.DesireLRP(lrp)
@@ -46,10 +63,10 @@ var _ = Describe("LRP", func() {
 	})
 
 	Describe("Adding and removing actual LRPs", func() {
-		var lrp models.LRP
+		var lrp models.ActualLRP
 
 		BeforeEach(func() {
-			lrp = models.LRP{
+			lrp = models.ActualLRP{
 				ProcessGuid:  "some-process-guid",
 				InstanceGuid: "some-instance-guid",
 				Index:        1,
@@ -64,47 +81,51 @@ var _ = Describe("LRP", func() {
 
 		Describe("ReportActualLRPAsStarting", func() {
 			It("creates /v1/actual/<process-guid>/<index>/<instance-guid>", func() {
-				err := bbs.ReportActualLRPAsStarting(lrp)
+				err := bbs.ReportActualLRPAsStarting(lrp, executorID)
 				Ω(err).ShouldNot(HaveOccurred())
 
 				node, err := etcdClient.Get("/v1/actual/some-process-guid/1/some-instance-guid")
 				Ω(err).ShouldNot(HaveOccurred())
 
 				expectedLRP := lrp
-				expectedLRP.State = models.LRPStateStarting
+				expectedLRP.State = models.ActualLRPStateStarting
+				expectedLRP.Since = timeProvider.Time().UnixNano()
+				expectedLRP.ExecutorID = executorID
 				Ω(node.Value).Should(MatchJSON(expectedLRP.ToJSON()))
 			})
 
 			Context("when the store is out of commission", func() {
 				itRetriesUntilStoreComesBack(func() error {
-					return bbs.ReportActualLRPAsStarting(lrp)
+					return bbs.ReportActualLRPAsStarting(lrp, executorID)
 				})
 			})
 		})
 
 		Describe("ReportActualLRPAsRunning", func() {
 			It("creates /v1/actual/<process-guid>/<index>/<instance-guid>", func() {
-				err := bbs.ReportActualLRPAsRunning(lrp)
+				err := bbs.ReportActualLRPAsRunning(lrp, executorID)
 				Ω(err).ShouldNot(HaveOccurred())
 
 				node, err := etcdClient.Get("/v1/actual/some-process-guid/1/some-instance-guid")
 				Ω(err).ShouldNot(HaveOccurred())
 
 				expectedLRP := lrp
-				expectedLRP.State = models.LRPStateRunning
+				expectedLRP.State = models.ActualLRPStateRunning
+				expectedLRP.Since = timeProvider.Time().UnixNano()
+				expectedLRP.ExecutorID = executorID
 				Ω(node.Value).Should(MatchJSON(expectedLRP.ToJSON()))
 			})
 
 			Context("when the store is out of commission", func() {
 				itRetriesUntilStoreComesBack(func() error {
-					return bbs.ReportActualLRPAsRunning(lrp)
+					return bbs.ReportActualLRPAsRunning(lrp, executorID)
 				})
 			})
 		})
 
 		Describe("RemoveActualLRP", func() {
 			BeforeEach(func() {
-				bbs.ReportActualLRPAsStarting(lrp)
+				bbs.ReportActualLRPAsStarting(lrp, executorID)
 			})
 
 			It("should remove the LRP", func() {

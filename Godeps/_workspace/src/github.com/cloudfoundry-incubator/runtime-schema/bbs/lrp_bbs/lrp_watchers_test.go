@@ -1,7 +1,6 @@
 package lrp_bbs_test
 
 import (
-	. "github.com/cloudfoundry-incubator/runtime-schema/bbs/lrp_bbs"
 	"github.com/cloudfoundry-incubator/runtime-schema/bbs/shared"
 	"github.com/cloudfoundry-incubator/runtime-schema/models"
 
@@ -10,18 +9,11 @@ import (
 )
 
 var _ = Describe("LrpWatchers", func() {
-	var bbs *LRPBBS
-
-	BeforeEach(func() {
-		bbs = New(etcdClient)
-	})
-
 	Describe("WatchForDesiredLRPChanges", func() {
 		var (
-			events  <-chan models.DesiredLRPChange
-			stop    chan<- bool
-			errors  <-chan error
-			stopped bool
+			events <-chan models.DesiredLRPChange
+			stop   chan<- bool
+			errors <-chan error
 		)
 
 		lrp := models.DesiredLRP{
@@ -38,9 +30,7 @@ var _ = Describe("LrpWatchers", func() {
 		})
 
 		AfterEach(func() {
-			if !stopped {
-				stop <- true
-			}
+			stop <- true
 		})
 
 		It("sends an event down the pipe for creates", func() {
@@ -85,41 +75,27 @@ var _ = Describe("LrpWatchers", func() {
 				After:  nil,
 			})))
 		})
-
-		It("closes the events and errors channel when told to stop", func() {
-			stop <- true
-			stopped = true
-
-			err := bbs.DesireLRP(lrp)
-			Ω(err).ShouldNot(HaveOccurred())
-
-			Ω(events).Should(BeClosed())
-			Ω(errors).Should(BeClosed())
-		})
 	})
 
 	Describe("WatchForActualLRPChanges", func() {
 		var (
-			events  <-chan models.ActualLRPChange
-			stop    chan<- bool
-			errors  <-chan error
-			stopped bool
+			events <-chan models.ActualLRPChange
+			stop   chan<- bool
+			errors <-chan error
+			lrp    models.ActualLRP
 		)
 
-		lrp := models.LRP{ProcessGuid: "some-process-guid", State: models.LRPStateStarting}
-
 		BeforeEach(func() {
+			lrp = models.ActualLRP{ProcessGuid: "some-process-guid", State: models.ActualLRPStateStarting, Since: timeProvider.Time().UnixNano(), ExecutorID: "executor-id"}
 			events, stop, errors = bbs.WatchForActualLRPChanges()
 		})
 
 		AfterEach(func() {
-			if !stopped {
-				stop <- true
-			}
+			stop <- true
 		})
 
 		It("sends an event down the pipe for creates", func() {
-			err := bbs.ReportActualLRPAsStarting(lrp)
+			err := bbs.ReportActualLRPAsStarting(lrp, "executor-id")
 			Ω(err).ShouldNot(HaveOccurred())
 
 			Eventually(events).Should(Receive(Equal(models.ActualLRPChange{
@@ -129,15 +105,16 @@ var _ = Describe("LrpWatchers", func() {
 		})
 
 		It("sends an event down the pipe for updates", func() {
-			err := bbs.ReportActualLRPAsStarting(lrp)
+			err := bbs.ReportActualLRPAsStarting(lrp, "executor-id")
 			Ω(err).ShouldNot(HaveOccurred())
 
 			Eventually(events).Should(Receive())
 
 			changedLRP := lrp
-			changedLRP.State = models.LRPStateRunning
+			changedLRP.State = models.ActualLRPStateRunning
+			changedLRP.ExecutorID = "executor-id"
 
-			err = bbs.ReportActualLRPAsRunning(changedLRP)
+			err = bbs.ReportActualLRPAsRunning(changedLRP, "executor-id")
 			Ω(err).ShouldNot(HaveOccurred())
 
 			Eventually(events).Should(Receive(Equal(models.ActualLRPChange{
@@ -147,7 +124,7 @@ var _ = Describe("LrpWatchers", func() {
 		})
 
 		It("sends an event down the pipe for delete", func() {
-			err := bbs.ReportActualLRPAsStarting(lrp)
+			err := bbs.ReportActualLRPAsStarting(lrp, "executor-id")
 			Ω(err).ShouldNot(HaveOccurred())
 
 			Eventually(events).Should(Receive())
@@ -159,17 +136,6 @@ var _ = Describe("LrpWatchers", func() {
 				Before: &lrp,
 				After:  nil,
 			})))
-		})
-
-		It("closes the events and errors channel when told to stop", func() {
-			stop <- true
-			stopped = true
-
-			err := bbs.ReportActualLRPAsRunning(lrp)
-			Ω(err).ShouldNot(HaveOccurred())
-
-			Ω(events).Should(BeClosed())
-			Ω(errors).Should(BeClosed())
 		})
 	})
 

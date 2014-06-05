@@ -11,11 +11,38 @@ import (
 func (bbs *LRPBBS) RequestLRPStartAuction(lrp models.LRPStartAuction) error {
 	return shared.RetryIndefinitelyOnStoreTimeout(func() error {
 		lrp.State = models.LRPStartAuctionStatePending
+		lrp.UpdatedAt = bbs.timeProvider.Time().UnixNano()
+
 		return bbs.store.Create(storeadapter.StoreNode{
 			Key:   shared.LRPStartAuctionSchemaPath(lrp),
 			Value: lrp.ToJSON(),
 		})
 	})
+}
+
+func (bbs *LRPBBS) ClaimLRPStartAuction(lrp models.LRPStartAuction) error {
+	originalValue := lrp.ToJSON()
+
+	lrp.State = models.LRPStartAuctionStateClaimed
+	lrp.UpdatedAt = bbs.timeProvider.Time().UnixNano()
+	changedValue := lrp.ToJSON()
+
+	return shared.RetryIndefinitelyOnStoreTimeout(func() error {
+		return bbs.store.CompareAndSwap(storeadapter.StoreNode{
+			Key:   shared.LRPStartAuctionSchemaPath(lrp),
+			Value: originalValue,
+		}, storeadapter.StoreNode{
+			Key:   shared.LRPStartAuctionSchemaPath(lrp),
+			Value: changedValue,
+		})
+	})
+}
+
+func (s *LRPBBS) ResolveLRPStartAuction(lrp models.LRPStartAuction) error {
+	err := shared.RetryIndefinitelyOnStoreTimeout(func() error {
+		return s.store.Delete(shared.LRPStartAuctionSchemaPath(lrp))
+	})
+	return err
 }
 
 func (bbs *LRPBBS) GetAllLRPStartAuctions() ([]models.LRPStartAuction, error) {
@@ -44,76 +71,25 @@ func (bbs *LRPBBS) GetAllLRPStartAuctions() ([]models.LRPStartAuction, error) {
 	return lrps, nil
 }
 
-func (self *LRPBBS) WatchForLRPStartAuction() (<-chan models.LRPStartAuction, chan<- bool, <-chan error) {
-	return watchForAuctionLrpModificationsOnState(self.store, models.LRPStartAuctionStatePending)
-}
-
-func (self *LRPBBS) ClaimLRPStartAuction(lrp models.LRPStartAuction) error {
-	originalValue := lrp.ToJSON()
-
-	lrp.State = models.LRPStartAuctionStateClaimed
-	changedValue := lrp.ToJSON()
-
-	return shared.RetryIndefinitelyOnStoreTimeout(func() error {
-		return self.store.CompareAndSwap(storeadapter.StoreNode{
-			Key:   shared.LRPStartAuctionSchemaPath(lrp),
-			Value: originalValue,
-		}, storeadapter.StoreNode{
-			Key:   shared.LRPStartAuctionSchemaPath(lrp),
-			Value: changedValue,
-		})
-	})
-}
-
-func (s *LRPBBS) ResolveLRPStartAuction(lrp models.LRPStartAuction) error {
-	err := shared.RetryIndefinitelyOnStoreTimeout(func() error {
-		return s.store.Delete(shared.LRPStartAuctionSchemaPath(lrp))
-	})
-	return err
-}
-
-func watchForAuctionLrpModificationsOnState(store storeadapter.StoreAdapter, state models.LRPStartAuctionState) (<-chan models.LRPStartAuction, chan<- bool, <-chan error) {
+func (bbs *LRPBBS) WatchForLRPStartAuction() (<-chan models.LRPStartAuction, chan<- bool, <-chan error) {
 	lrps := make(chan models.LRPStartAuction)
-	stopOuter := make(chan bool)
-	errsOuter := make(chan error)
 
-	events, stopInner, errsInner := store.Watch(shared.LRPStartAuctionSchemaRoot)
+	filter := func(event storeadapter.WatchEvent) (models.LRPStartAuction, bool) {
+		switch event.Type {
+		case storeadapter.CreateEvent, storeadapter.UpdateEvent:
+			lrp, err := models.NewLRPStartAuctionFromJSON(event.Node.Value)
+			if err != nil {
+				return models.LRPStartAuction{}, false
+			}
 
-	go func() {
-		defer close(lrps)
-		defer close(errsOuter)
-
-		for {
-			select {
-			case <-stopOuter:
-				close(stopInner)
-				return
-
-			case event, ok := <-events:
-				if !ok {
-					return
-				}
-
-				switch event.Type {
-				case storeadapter.CreateEvent, storeadapter.UpdateEvent:
-					lrp, err := models.NewLRPStartAuctionFromJSON(event.Node.Value)
-					if err != nil {
-						continue
-					}
-
-					if lrp.State == state {
-						lrps <- lrp
-					}
-				}
-
-			case err, ok := <-errsInner:
-				if ok {
-					errsOuter <- err
-				}
-				return
+			if lrp.State == models.LRPStartAuctionStatePending {
+				return lrp, true
 			}
 		}
-	}()
+		return models.LRPStartAuction{}, false
+	}
 
-	return lrps, stopOuter, errsOuter
+	stop, errs := shared.WatchWithFilter(bbs.store, shared.LRPStartAuctionSchemaRoot, lrps, filter)
+
+	return lrps, stop, errs
 }
