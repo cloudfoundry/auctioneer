@@ -179,7 +179,7 @@ var _ = Describe("Auctioneer", func() {
 			//which releases the lock, which we need to acknowledge by closing the channel sent to the release lock channel
 			close(<-bbs.ReleaseLockChannel)
 			//which (eventually) causes the process to exit
-			<-process.Wait()
+			Eventually(process.Wait()).Should(Receive())
 			//and should stop the auction
 			Ω(bbs.LRPStartAuctionStopChan).Should(BeClosed())
 
