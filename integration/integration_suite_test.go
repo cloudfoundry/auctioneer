@@ -83,7 +83,7 @@ var _ = BeforeSuite(func() {
 var _ = BeforeEach(func() {
 	etcdRunner.Start()
 	natsRunner.Start()
-	runner.Start()
+	runner.Start(10)
 
 	dotNetRep, dotNetPresence = startSimulationRep(simulationRepPath, dotNetGuid, dotNetStack, natsPort)
 	lucidRep, lucidPresence = startSimulationRep(simulationRepPath, lucidGuid, lucidStack, natsPort)

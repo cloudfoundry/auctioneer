@@ -2,6 +2,7 @@ package auctioneer_runner
 
 import (
 	"os/exec"
+	"strconv"
 	"strings"
 	"time"
 
@@ -26,17 +27,18 @@ func New(auctioneerBin string, etcdCluster, natsCluster []string) *AuctioneerRun
 	}
 }
 
-func (r *AuctioneerRunner) Start() {
-	r.StartWithoutCheck()
+func (r *AuctioneerRunner) Start(maxRounds int) {
+	r.StartWithoutCheck(maxRounds)
 	Eventually(r.Session, 5*time.Second).Should(gbytes.Say("auctioneer.started"))
 }
 
-func (r *AuctioneerRunner) StartWithoutCheck() {
+func (r *AuctioneerRunner) StartWithoutCheck(maxRounds int) {
 	executorSession, err := gexec.Start(
 		exec.Command(
 			r.auctioneerBin,
 			"-etcdCluster", strings.Join(r.etcdCluster, ","),
 			"-natsAddresses", strings.Join(r.natsCluster, ","),
+			"-maxRounds", strconv.Itoa(maxRounds),
 		),
 		gexec.NewPrefixedWriter("\x1b[32m[o]\x1b[93m[auctioneer]\x1b[0m ", ginkgo.GinkgoWriter),
 		gexec.NewPrefixedWriter("\x1b[91m[e]\x1b[93m[auctioneer]\x1b[0m ", ginkgo.GinkgoWriter),
