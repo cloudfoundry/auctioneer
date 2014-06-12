@@ -104,7 +104,7 @@ func main() {
 }
 
 func initializeAuctioneer(bbs Bbs.AuctioneerBBS, natsClient yagnats.NATSClient, logger *steno.Logger) *auctioneer.Auctioneer {
-	client := repnatsclient.New(natsClient, *auctionNATSTimeout, *auctionRunTimeout)
+	client := repnatsclient.New(natsClient, *auctionNATSTimeout, *auctionRunTimeout, logger)
 	runner := auctionrunner.New(client)
 	return auctioneer.New(bbs, runner, *maxConcurrent, *maxRounds, *lockInterval, logger)
 }

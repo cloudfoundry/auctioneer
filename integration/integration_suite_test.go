@@ -22,7 +22,7 @@ import (
 	"testing"
 	"time"
 
-	steno "github.com/cloudfoundry/gosteno"
+	"github.com/cloudfoundry/gosteno"
 )
 
 var auctioneerPath string
@@ -41,6 +41,7 @@ var natsRunner *natsrunner.NATSRunner
 var store storeadapter.StoreAdapter
 var bbs *Bbs.BBS
 var repClient *repnatsclient.RepNatsClient
+var logger *gosteno.Logger
 
 func TestIntegration(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -63,14 +64,14 @@ var _ = BeforeSuite(func() {
 
 	store = etcdRunner.Adapter()
 
-	logSink := steno.NewTestingSink()
+	logSink := gosteno.NewTestingSink()
 
-	steno.Init(&steno.Config{
-		Sinks: []steno.Sink{logSink},
+	gosteno.Init(&gosteno.Config{
+		Sinks: []gosteno.Sink{logSink},
 	})
 
-	logger := steno.NewLogger("the-logger")
-	steno.EnterTestMode()
+	logger = gosteno.NewLogger("the-logger")
+	gosteno.EnterTestMode()
 	bbs = Bbs.NewBBS(store, timeprovider.NewTimeProvider(), logger)
 
 	runner = auctioneer_runner.New(
@@ -87,7 +88,7 @@ var _ = BeforeEach(func() {
 
 	dotNetRep, dotNetPresence = startSimulationRep(simulationRepPath, dotNetGuid, dotNetStack, natsPort)
 	lucidRep, lucidPresence = startSimulationRep(simulationRepPath, lucidGuid, lucidStack, natsPort)
-	repClient = repnatsclient.New(natsRunner.MessageBus, 500*time.Millisecond, 10*time.Second)
+	repClient = repnatsclient.New(natsRunner.MessageBus, 500*time.Millisecond, 10*time.Second, logger)
 })
 
 func startSimulationRep(simulationRepPath, guid string, stack string, natsPort int) (*gexec.Session, services_bbs.Presence) {
@@ -105,7 +106,7 @@ func startSimulationRep(simulationRepPath, guid string, stack string, natsPort i
 	), GinkgoWriter, GinkgoWriter)
 	Ω(err).ShouldNot(HaveOccurred())
 
-	Eventually(session, 5).Should(gbytes.Say("rep nats server"))
+	Eventually(session, 5).Should(gbytes.Say("rep node listening"))
 
 	return session, presence
 }
