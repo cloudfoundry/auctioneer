@@ -19,16 +19,18 @@ type Auctioneer struct {
 	bbs           Bbs.AuctioneerBBS
 	runner        auctiontypes.AuctionRunner
 	maxConcurrent int
+	maxRounds     int
 	logger        *steno.Logger
 	semaphore     chan bool
 	lockInterval  time.Duration
 }
 
-func New(bbs Bbs.AuctioneerBBS, runner auctiontypes.AuctionRunner, maxConcurrent int, lockInterval time.Duration, logger *steno.Logger) *Auctioneer {
+func New(bbs Bbs.AuctioneerBBS, runner auctiontypes.AuctionRunner, maxConcurrent int, maxRounds int, lockInterval time.Duration, logger *steno.Logger) *Auctioneer {
 	return &Auctioneer{
 		bbs:           bbs,
 		runner:        runner,
 		maxConcurrent: maxConcurrent,
+		maxRounds:     maxRounds,
 		logger:        logger,
 		semaphore:     make(chan bool, maxConcurrent),
 		lockInterval:  lockInterval,
@@ -143,10 +145,13 @@ func (a *Auctioneer) runAuction(auction models.LRPStartAuction) {
 		"auction": auction,
 	}, "auctioneer.run-auction.performing-auction")
 
+	rules := auctionrunner.DefaultRules
+	rules.MaxRounds = a.maxRounds
+
 	request := auctiontypes.AuctionRequest{
 		LRPStartAuction: auction,
 		RepGuids:        reps,
-		Rules:           auctionrunner.DefaultRules,
+		Rules:           rules,
 	}
 	_, err = a.runner.RunLRPStartAuction(request)
 

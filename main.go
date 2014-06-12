@@ -56,6 +56,12 @@ var maxConcurrent = flag.Int(
 	"Maximum number of concurrent auctions",
 )
 
+var maxRounds = flag.Int(
+	"maxRounds",
+	auctionrunner.DefaultRules.MaxRounds,
+	"Maximum number of rounds to run before declaring failure",
+)
+
 var auctionNATSTimeout = flag.Duration(
 	"natsAuctionTimeout",
 	time.Second,
@@ -100,7 +106,7 @@ func main() {
 func initializeAuctioneer(bbs Bbs.AuctioneerBBS, natsClient yagnats.NATSClient, logger *steno.Logger) *auctioneer.Auctioneer {
 	client := repnatsclient.New(natsClient, *auctionNATSTimeout, *auctionRunTimeout)
 	runner := auctionrunner.New(client)
-	return auctioneer.New(bbs, runner, *maxConcurrent, *lockInterval, logger)
+	return auctioneer.New(bbs, runner, *maxConcurrent, *maxRounds, *lockInterval, logger)
 }
 
 func initializeLogger() *steno.Logger {

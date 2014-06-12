@@ -7,7 +7,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/cloudfoundry-incubator/auction/auctionrunner"
 	"github.com/cloudfoundry-incubator/auction/auctionrunner/fake_auctionrunner"
 	. "github.com/cloudfoundry-incubator/auctioneer/auctioneer"
 	"github.com/cloudfoundry-incubator/runtime-schema/bbs/fake_bbs"
@@ -18,6 +17,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
+
+const MAX_AUCTION_ROUNDS_FOR_TEST = 10
 
 var _ = Describe("Auctioneer", func() {
 	var (
@@ -71,7 +72,7 @@ var _ = Describe("Auctioneer", func() {
 		var errors chan error
 		BeforeEach(func() {
 			runner = fake_auctionrunner.NewFakeAuctionRunner(0)
-			auctioneer = New(bbs, runner, 2, time.Second, logger)
+			auctioneer = New(bbs, runner, 2, MAX_AUCTION_ROUNDS_FOR_TEST, time.Second, logger)
 			signals = make(chan os.Signal)
 			ready = make(chan struct{})
 			errors = make(chan error)
@@ -164,7 +165,7 @@ var _ = Describe("Auctioneer", func() {
 	Describe("the auction lifecycle", func() {
 		BeforeEach(func() {
 			runner = fake_auctionrunner.NewFakeAuctionRunner(0)
-			auctioneer = New(bbs, runner, 2, time.Second, logger)
+			auctioneer = New(bbs, runner, 2, MAX_AUCTION_ROUNDS_FOR_TEST, time.Second, logger)
 
 			go func() {
 				bbs.LockChannel <- true
@@ -206,7 +207,9 @@ var _ = Describe("Auctioneer", func() {
 					Ω(request.RepGuids).Should(ContainElement(firstRep.RepID))
 					Ω(request.RepGuids).Should(ContainElement(thirdRep.RepID))
 					Ω(request.RepGuids).ShouldNot(ContainElement(secondRep.RepID))
-					Ω(request.Rules).Should(Equal(auctionrunner.DefaultRules))
+					Ω(request.Rules.Algorithm).Should(Equal("reserve_n_best"))
+					Ω(request.Rules.MaxBiddingPool).Should(Equal(0.2))
+					Ω(request.Rules.MaxRounds).Should(Equal(MAX_AUCTION_ROUNDS_FOR_TEST))
 				})
 
 				Context("when the auction succeeds", func() {
@@ -272,7 +275,7 @@ var _ = Describe("Auctioneer", func() {
 
 		BeforeEach(func() {
 			runner = fake_auctionrunner.NewFakeAuctionRunner(time.Second)
-			auctioneer = New(bbs, runner, 2, time.Second, logger)
+			auctioneer = New(bbs, runner, 2, MAX_AUCTION_ROUNDS_FOR_TEST, time.Second, logger)
 
 			go func() {
 				bbs.LockChannel <- true
