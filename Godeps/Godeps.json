@@ -7,19 +7,19 @@
 	"Deps": [
 		{
 			"ImportPath": "github.com/cloudfoundry-incubator/auction/auctionrunner",
-			"Rev": "b94695eeca83257052c8d729608aeafde4e7f993"
+			"Rev": "a23f7a7a27c26e2998b459d40a3ac9ee663f12ef"
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry-incubator/auction/auctiontypes",
-			"Rev": "b94695eeca83257052c8d729608aeafde4e7f993"
+			"Rev": "a23f7a7a27c26e2998b459d40a3ac9ee663f12ef"
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry-incubator/auction/communication/nats",
-			"Rev": "b94695eeca83257052c8d729608aeafde4e7f993"
+			"Rev": "a23f7a7a27c26e2998b459d40a3ac9ee663f12ef"
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry-incubator/auction/util",
-			"Rev": "b94695eeca83257052c8d729608aeafde4e7f993"
+			"Rev": "a23f7a7a27c26e2998b459d40a3ac9ee663f12ef"
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry-incubator/delta_force/delta_force",

@@ -123,7 +123,7 @@ func (a *Auctioneer) runAuction(auction models.LRPStartAuction) {
 	}
 	defer a.bbs.ResolveLRPStartAuction(auction)
 
-	//fetch reps
+	//fetch reps that match constraints that you can pre-determine
 	reps, err := a.getRepsForStack(auction.Stack)
 	if err != nil {
 		a.logger.Errord(map[string]interface{}{

@@ -1,7 +1,6 @@
 package integration_test
 
 import (
-	"github.com/cloudfoundry-incubator/auction/auctiontypes"
 	"github.com/cloudfoundry-incubator/runtime-schema/models"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -30,11 +29,11 @@ var _ = Describe("Integration", func() {
 		})
 
 		It("should start the app running on reps of the appropriate stack", func() {
-			Eventually(func() []auctiontypes.LRPAuctionInfo {
-				return repClient.LRPAuctionInfos(lucidGuid)
+			Eventually(func() interface{} {
+				return repClient.SimulatedInstances(lucidGuid)
 			}, 1).Should(HaveLen(2))
 
-			Ω(repClient.LRPAuctionInfos(dotNetGuid)).Should(BeEmpty())
+			Ω(repClient.SimulatedInstances(dotNetGuid)).Should(BeEmpty())
 		})
 	})
 })
