@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/cloudfoundry-incubator/auction/auctionrunner/fake_auctionrunner"
+	"github.com/cloudfoundry-incubator/auction/auctiontypes"
 	. "github.com/cloudfoundry-incubator/auctioneer/auctioneer"
 	"github.com/cloudfoundry-incubator/runtime-schema/bbs/fake_bbs"
 	"github.com/cloudfoundry-incubator/runtime-schema/models"
@@ -71,7 +72,7 @@ var _ = Describe("Auctioneer", func() {
 		var ready chan struct{}
 		var errors chan error
 		BeforeEach(func() {
-			runner = fake_auctionrunner.NewFakeAuctionRunner(0)
+			runner = &fake_auctionrunner.FakeAuctionRunner{}
 			auctioneer = New(bbs, runner, 2, MAX_AUCTION_ROUNDS_FOR_TEST, time.Second, logger)
 			signals = make(chan os.Signal)
 			ready = make(chan struct{})
@@ -101,7 +102,7 @@ var _ = Describe("Auctioneer", func() {
 
 			It("should start watching", func() {
 				bbs.LRPStartAuctionChan <- auction
-				Eventually(runner.GetStartAuctionRequest).ShouldNot(BeZero())
+				Eventually(runner.RunLRPStartAuctionCallCount).ShouldNot(BeZero())
 			})
 
 			It("should become ready", func() {
@@ -120,7 +121,7 @@ var _ = Describe("Auctioneer", func() {
 					bbs.Unlock()
 					bbs.LockChannel <- true
 					bbs.LRPStartAuctionChan <- auction
-					Eventually(runner.GetStartAuctionRequest).ShouldNot(BeZero())
+					Eventually(runner.RunLRPStartAuctionCallCount).ShouldNot(BeZero())
 				})
 			})
 
@@ -133,7 +134,7 @@ var _ = Describe("Auctioneer", func() {
 					bbs.LRPStartAuctionChan = make(chan models.LRPStartAuction)
 					bbs.LockChannel <- true
 					bbs.LRPStartAuctionChan <- auction
-					Eventually(runner.GetStartAuctionRequest).ShouldNot(BeZero())
+					Eventually(runner.RunLRPStartAuctionCallCount).ShouldNot(BeZero())
 				})
 			})
 
@@ -155,7 +156,7 @@ var _ = Describe("Auctioneer", func() {
 
 					It("should start watching again", func() {
 						bbs.LRPStartAuctionChan <- auction
-						Eventually(runner.GetStartAuctionRequest).ShouldNot(BeZero())
+						Eventually(runner.RunLRPStartAuctionCallCount).ShouldNot(BeZero())
 					})
 				})
 			})
@@ -164,7 +165,7 @@ var _ = Describe("Auctioneer", func() {
 
 	Describe("the auction lifecycle", func() {
 		BeforeEach(func() {
-			runner = fake_auctionrunner.NewFakeAuctionRunner(0)
+			runner = &fake_auctionrunner.FakeAuctionRunner{}
 			auctioneer = New(bbs, runner, 2, MAX_AUCTION_ROUNDS_FOR_TEST, time.Second, logger)
 
 			go func() {
@@ -199,9 +200,9 @@ var _ = Describe("Auctioneer", func() {
 
 			Context("when the claim succeeds", func() {
 				It("should run the auction with reps of the proper stack", func() {
-					Eventually(runner.GetStartAuctionRequest).ShouldNot(BeZero())
+					Eventually(runner.RunLRPStartAuctionCallCount).ShouldNot(BeZero())
 
-					request := runner.GetStartAuctionRequest()
+					request := runner.RunLRPStartAuctionArgsForCall(0)
 					Ω(request.LRPStartAuction).Should(Equal(auction))
 					Ω(request.RepGuids).Should(HaveLen(2))
 					Ω(request.RepGuids).Should(ContainElement(firstRep.RepID))
@@ -220,7 +221,7 @@ var _ = Describe("Auctioneer", func() {
 
 				Context("when the auction fails", func() {
 					BeforeEach(func() {
-						runner.SetStartAuctionError(errors.New("the auction failed"))
+						runner.RunLRPStartAuctionReturns(auctiontypes.StartAuctionResult{}, errors.New("the auction failed"))
 					})
 
 					It("should log that the auction failed and nontheless resolve the auction", func() {
@@ -241,7 +242,7 @@ var _ = Describe("Auctioneer", func() {
 				})
 
 				It("should not run the auction", func() {
-					Consistently(runner.GetStartAuctionRequest).Should(BeZero())
+					Consistently(runner.RunLRPStartAuctionCallCount).Should(BeZero())
 				})
 			})
 		})
@@ -260,7 +261,7 @@ var _ = Describe("Auctioneer", func() {
 				})
 
 				It("should not run the auction", func() {
-					Consistently(runner.GetStartAuctionRequest).Should(BeZero())
+					Consistently(runner.RunLRPStartAuctionCallCount).Should(BeZero())
 				})
 
 				It("should nonetheless resolve the auction in etcd", func() {
@@ -274,7 +275,12 @@ var _ = Describe("Auctioneer", func() {
 		var auction1, auction2, auction3 models.LRPStartAuction
 
 		BeforeEach(func() {
-			runner = fake_auctionrunner.NewFakeAuctionRunner(time.Second)
+			runner = &fake_auctionrunner.FakeAuctionRunner{}
+			runner.RunLRPStartAuctionStub = func(auctionRequest auctiontypes.StartAuctionRequest) (auctiontypes.StartAuctionResult, error) {
+				time.Sleep(time.Second)
+				return auctiontypes.StartAuctionResult{}, nil
+			}
+
 			auctioneer = New(bbs, runner, 2, MAX_AUCTION_ROUNDS_FOR_TEST, time.Second, logger)
 
 			go func() {

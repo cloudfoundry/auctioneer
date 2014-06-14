@@ -9,7 +9,7 @@ import (
 
 var AllBiddersFull = errors.New("all the bidders were full")
 
-var DefaultRules = auctiontypes.AuctionRules{
+var DefaultStartAuctionRules = auctiontypes.StartAuctionRules{
 	Algorithm:      "reserve_n_best",
 	MaxRounds:      100,
 	MaxBiddingPool: 0.2,
@@ -25,15 +25,15 @@ func New(client auctiontypes.RepPoolClient) *auctionRunner {
 	}
 }
 
-func (a *auctionRunner) RunLRPStartAuction(auctionRequest auctiontypes.AuctionRequest) (auctiontypes.AuctionResult, error) {
-	result := auctiontypes.AuctionResult{
+func (a *auctionRunner) RunLRPStartAuction(auctionRequest auctiontypes.StartAuctionRequest) (auctiontypes.StartAuctionResult, error) {
+	result := auctiontypes.StartAuctionResult{
 		LRPStartAuction: auctionRequest.LRPStartAuction,
 	}
 
 	t := time.Now()
 	switch auctionRequest.Rules.Algorithm {
-	case "all_rescore":
-		result.Winner, result.NumRounds, result.NumCommunications = allRescoreAuction(a.client, auctionRequest)
+	case "all_rebid":
+		result.Winner, result.NumRounds, result.NumCommunications = allRebidAuction(a.client, auctionRequest)
 	case "all_reserve":
 		result.Winner, result.NumRounds, result.NumCommunications = allReserveAuction(a.client, auctionRequest)
 	case "pick_among_best":
@@ -54,4 +54,17 @@ func (a *auctionRunner) RunLRPStartAuction(auctionRequest auctiontypes.AuctionRe
 	}
 
 	return result, nil
+}
+
+func (a *auctionRunner) RunLRPStopAuction(auctionRequest auctiontypes.StopAuctionRequest) (auctiontypes.StopAuctionResult, error) {
+	result := auctiontypes.StopAuctionResult{
+		LRPStopAuction: auctionRequest.LRPStopAuction,
+	}
+
+	var err error
+	t := time.Now()
+	result.Winner, result.NumCommunications, err = stopAuction(a.client, auctionRequest)
+	result.BiddingDuration = time.Since(t)
+
+	return result, err
 }

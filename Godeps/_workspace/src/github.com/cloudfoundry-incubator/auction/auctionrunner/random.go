@@ -10,13 +10,13 @@ Pick an arbitrary rep
 
 */
 
-func randomAuction(client auctiontypes.RepPoolClient, auctionRequest auctiontypes.AuctionRequest) (string, int, int) {
+func randomAuction(client auctiontypes.RepPoolClient, auctionRequest auctiontypes.StartAuctionRequest) (string, int, int) {
 	rounds, numCommunications := 1, 0
-	auctionInfo := auctiontypes.NewLRPAuctionInfo(auctionRequest.LRPStartAuction)
+	auctionInfo := auctiontypes.NewStartAuctionInfoFromLRPStartAuction(auctionRequest.LRPStartAuction)
 
 	for ; rounds <= auctionRequest.Rules.MaxRounds; rounds++ {
 		randomPick := auctionRequest.RepGuids.RandomSubsetByCount(1)[0]
-		result := client.ScoreThenTentativelyReserve([]string{randomPick}, auctionInfo)[0]
+		result := client.RebidThenTentativelyReserve([]string{randomPick}, auctionInfo)[0]
 		numCommunications += 1
 		if result.Error != "" {
 			continue

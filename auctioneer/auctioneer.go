@@ -145,10 +145,10 @@ func (a *Auctioneer) runAuction(auction models.LRPStartAuction) {
 		"auction": auction,
 	}, "auctioneer.run-auction.performing-auction")
 
-	rules := auctionrunner.DefaultRules
+	rules := auctionrunner.DefaultStartAuctionRules
 	rules.MaxRounds = a.maxRounds
 
-	request := auctiontypes.AuctionRequest{
+	request := auctiontypes.StartAuctionRequest{
 		LRPStartAuction: auction,
 		RepGuids:        reps,
 		Rules:           rules,

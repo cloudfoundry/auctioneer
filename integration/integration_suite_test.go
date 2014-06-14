@@ -86,9 +86,12 @@ var _ = BeforeEach(func() {
 	natsRunner.Start()
 	runner.Start(10)
 
+	var err error
+
 	dotNetRep, dotNetPresence = startSimulationRep(simulationRepPath, dotNetGuid, dotNetStack, natsPort)
 	lucidRep, lucidPresence = startSimulationRep(simulationRepPath, lucidGuid, lucidStack, natsPort)
-	repClient = repnatsclient.New(natsRunner.MessageBus, 500*time.Millisecond, 10*time.Second, logger)
+	repClient, err = repnatsclient.New(natsRunner.MessageBus, 500*time.Millisecond, 10*time.Second, logger)
+	Ω(err).ShouldNot(HaveOccurred())
 })
 
 func startSimulationRep(simulationRepPath, guid string, stack string, natsPort int) (*gexec.Session, services_bbs.Presence) {
@@ -101,7 +104,7 @@ func startSimulationRep(simulationRepPath, guid string, stack string, natsPort i
 
 	session, err := gexec.Start(exec.Command(
 		simulationRepPath,
-		"-guid", guid,
+		"-repGuid", guid,
 		"-natsAddrs", fmt.Sprintf("127.0.0.1:%d", natsPort),
 	), GinkgoWriter, GinkgoWriter)
 	Ω(err).ShouldNot(HaveOccurred())

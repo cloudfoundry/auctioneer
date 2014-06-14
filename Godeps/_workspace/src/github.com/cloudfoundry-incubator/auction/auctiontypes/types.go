@@ -7,54 +7,141 @@ import (
 	"github.com/cloudfoundry-incubator/runtime-schema/models"
 )
 
+//errors
 var InsufficientResources = errors.New("insufficient resources for instance")
+var NothingToStop = errors.New("found nothing to stop")
 
+//AuctionRunner
 type AuctionRunner interface {
-	RunLRPStartAuction(auctionRequest AuctionRequest) (AuctionResult, error)
+	RunLRPStartAuction(auctionRequest StartAuctionRequest) (StartAuctionResult, error)
+	RunLRPStopAuction(auctionRequest StopAuctionRequest) (StopAuctionResult, error)
 }
 
-type AuctionRequest struct {
-	LRPStartAuction models.LRPStartAuction `json:"a"`
-	RepGuids        RepGuids               `json:"rg"`
-	Rules           AuctionRules           `json:"r"`
+type StartAuctionRequest struct {
+	LRPStartAuction models.LRPStartAuction
+	RepGuids        RepGuids
+	Rules           StartAuctionRules
 }
 
-type AuctionResult struct {
-	LRPStartAuction   models.LRPStartAuction `json:"i"`
-	Winner            string                 `json:"w"`
-	NumRounds         int                    `json:"nr"`
-	NumCommunications int                    `json:"nc"`
-	BiddingDuration   time.Duration          `json:"bd"`
-	Duration          time.Duration          `json:"d"`
+type StartAuctionResult struct {
+	LRPStartAuction   models.LRPStartAuction
+	Winner            string
+	NumRounds         int
+	NumCommunications int
+	BiddingDuration   time.Duration
+	Duration          time.Duration
 }
 
-type AuctionRules struct {
-	Algorithm      string  `json:"alg"`
-	MaxRounds      int     `json:"mr"`
-	MaxBiddingPool float64 `json:"mb"`
+type StopAuctionRequest struct {
+	LRPStopAuction models.LRPStopAuction
+	RepGuids       RepGuids
+}
+
+type StopAuctionResult struct {
+	LRPStopAuction    models.LRPStopAuction
+	Winner            string
+	NumCommunications int
+	BiddingDuration   time.Duration
+	Duration          time.Duration
+}
+
+type StartAuctionRules struct {
+	Algorithm      string
+	MaxRounds      int
+	MaxBiddingPool float64
 }
 
 type RepGuids []string
 
-type ScoreResult struct {
-	Rep   string  `json:"r"`
-	Score float64 `json:"s"`
-	Error string  `json:"e"`
+type RepPoolClient interface {
+	BidForStartAuction(repGuids []string, startAuctionInfo StartAuctionInfo) StartAuctionBids
+	BidForStopAuction(repGuids []string, stopAuctionInfo StopAuctionInfo) StopAuctionBids
+	RebidThenTentativelyReserve(repGuids []string, startAuctionInfo StartAuctionInfo) StartAuctionBids
+	ReleaseReservation(repGuids []string, startAuctionInfo StartAuctionInfo)
+	Run(repGuid string, startAuctionInfo models.LRPStartAuction)
+	Stop(repGuid string, stopInstance models.StopLRPInstance)
 }
 
-type ScoreResults []ScoreResult
+type AuctionRepDelegate interface {
+	RemainingResources() (Resources, error)
+	TotalResources() (Resources, error)
+	NumInstancesForProcessGuid(processGuid string) (int, error)
+	InstanceGuidsForProcessGuidAndIndex(processGuid string, index int) ([]string, error)
+
+	Reserve(startAuctionInfo StartAuctionInfo) error
+	ReleaseReservation(startAuctionInfo StartAuctionInfo) error
+	Run(startAuction models.LRPStartAuction) error
+	Stop(stopInstance models.StopLRPInstance) error
+}
+
+//simulation-only interface
+type SimulationRepPoolClient interface {
+	RepPoolClient
+
+	TotalResources(repGuid string) Resources
+	SimulatedInstances(repGuid string) []SimulatedInstance
+	SetSimulatedInstances(repGuid string, instances []SimulatedInstance)
+	Reset(repGuid string)
+}
+
+//simulation-only interface
+type SimulationAuctionRepDelegate interface {
+	AuctionRepDelegate
+	SetSimulatedInstances(instances []SimulatedInstance)
+	SimulatedInstances() []SimulatedInstance
+}
+
+func NewStartAuctionInfoFromLRPStartAuction(auction models.LRPStartAuction) StartAuctionInfo {
+	return StartAuctionInfo{
+		ProcessGuid:  auction.ProcessGuid,
+		InstanceGuid: auction.InstanceGuid,
+		DiskMB:       auction.DiskMB,
+		MemoryMB:     auction.MemoryMB,
+		Index:        auction.Index,
+	}
+}
+
+func NewStopAuctionInfoFromLRPStopAuction(auction models.LRPStopAuction) StopAuctionInfo {
+	return StopAuctionInfo{
+		ProcessGuid: auction.ProcessGuid,
+		Index:       auction.Index,
+	}
+}
+
+type StartAuctionBid struct {
+	Rep   string
+	Bid   float64
+	Error string
+}
+
+type StartAuctionBids []StartAuctionBid
+
+type StopAuctionBid struct {
+	Rep           string
+	InstanceGuids []string
+	Bid           float64
+	Error         string
+}
+
+type StopAuctionBids []StopAuctionBid
 
 type Resources struct {
-	DiskMB     int `json:"d"`
-	MemoryMB   int `json:"m"`
-	Containers int `json:"c,omitempty"`
+	DiskMB     int
+	MemoryMB   int
+	Containers int
 }
 
-type LRPAuctionInfo struct {
-	AppGuid      string `json:"a"`
-	InstanceGuid string `json:"i"`
-	DiskMB       int    `json:"d"`
-	MemoryMB     int    `json:"m"`
+type StartAuctionInfo struct {
+	ProcessGuid  string
+	InstanceGuid string
+	DiskMB       int
+	MemoryMB     int
+	Index        int
+}
+
+type StopAuctionInfo struct {
+	ProcessGuid string
+	Index       int
 }
 
 type SimulatedInstance struct {
@@ -63,29 +150,4 @@ type SimulatedInstance struct {
 	Index        int
 	MemoryMB     int
 	DiskMB       int
-}
-
-func NewLRPAuctionInfo(info models.LRPStartAuction) LRPAuctionInfo {
-	return LRPAuctionInfo{
-		AppGuid:      info.ProcessGuid,
-		InstanceGuid: info.InstanceGuid,
-		DiskMB:       info.DiskMB,
-		MemoryMB:     info.MemoryMB,
-	}
-}
-
-type RepPoolClient interface {
-	Score(guids []string, instance LRPAuctionInfo) ScoreResults
-	ScoreThenTentativelyReserve(guids []string, instance LRPAuctionInfo) ScoreResults
-	ReleaseReservation(guids []string, instance LRPAuctionInfo)
-	Run(guid string, instance models.LRPStartAuction)
-}
-
-type TestRepPoolClient interface {
-	RepPoolClient
-
-	TotalResources(guid string) Resources
-	SimulatedInstances(guid string) []SimulatedInstance
-	SetSimulatedInstances(guid string, instances []SimulatedInstance)
-	Reset(guid string)
 }
