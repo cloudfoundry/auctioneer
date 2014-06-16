@@ -45,6 +45,7 @@ type ConvergerBBS interface {
 	//lrp
 	ConvergeLRPs()
 	ConvergeLRPStartAuctions(kickPendingDuration time.Duration, expireClaimedDuration time.Duration)
+	ConvergeLRPStopAuctions(kickPendingDuration time.Duration, expireClaimedDuration time.Duration)
 
 	//task
 	ConvergeTask(timeToClaim time.Duration, converganceInterval time.Duration)
@@ -64,6 +65,7 @@ type AppManagerBBS interface {
 	RemoveDesiredLRPByProcessGuid(guid string) error
 	GetActualLRPsByProcessGuid(string) ([]models.ActualLRP, error)
 	RequestLRPStartAuction(models.LRPStartAuction) error
+	RequestLRPStopAuction(models.LRPStopAuction) error
 	RequestStopLRPInstance(stopInstance models.StopLRPInstance) error
 	WatchForDesiredLRPChanges() (<-chan models.DesiredLRPChange, chan<- bool, <-chan error)
 
@@ -79,6 +81,9 @@ type AuctioneerBBS interface {
 	WatchForLRPStartAuction() (<-chan models.LRPStartAuction, chan<- bool, <-chan error)
 	ClaimLRPStartAuction(models.LRPStartAuction) error
 	ResolveLRPStartAuction(models.LRPStartAuction) error
+	WatchForLRPStopAuction() (<-chan models.LRPStopAuction, chan<- bool, <-chan error)
+	ClaimLRPStopAuction(models.LRPStopAuction) error
+	ResolveLRPStopAuction(models.LRPStopAuction) error
 
 	//lock
 	MaintainAuctioneerLock(interval time.Duration, auctioneerID string) (<-chan bool, chan<- chan bool, error)

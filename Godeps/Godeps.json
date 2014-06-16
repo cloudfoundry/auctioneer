@@ -23,15 +23,15 @@
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry-incubator/delta_force/delta_force",
-			"Rev": "7499a2b3e62c1eaa21cb0020154f5679f3736714"
+			"Rev": "de3c425f8ad5e6897c70aaf7b21c1170731fb60e"
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry-incubator/runtime-schema/bbs",
-			"Rev": "5219a9bf5721a3adc7a6f8f8e5439f7d3dc56411"
+			"Rev": "eb6db3bfb41bbd6795714a80ccd7302c0a21c86a"
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry-incubator/runtime-schema/models",
-			"Rev": "5219a9bf5721a3adc7a6f8f8e5439f7d3dc56411"
+			"Rev": "eb6db3bfb41bbd6795714a80ccd7302c0a21c86a"
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry/gosteno",
