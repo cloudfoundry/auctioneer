@@ -36,4 +36,55 @@ var _ = Describe("Integration", func() {
 			Ω(repClient.SimulatedInstances(dotNetGuid)).Should(BeEmpty())
 		})
 	})
+
+	Context("when a stop auction message arrives", func() {
+		BeforeEach(func() {
+			bbs.RequestLRPStartAuction(models.LRPStartAuction{
+				ProcessGuid:  "app-guid",
+				InstanceGuid: "duplicate-instance-guid-1",
+				DiskMB:       1,
+				MemoryMB:     1,
+				Stack:        lucidStack,
+				Index:        0,
+			})
+
+			Eventually(bbs.GetAllLRPStartAuctions).Should(HaveLen(0))
+
+			bbs.RequestLRPStartAuction(models.LRPStartAuction{
+				ProcessGuid:  "app-guid",
+				InstanceGuid: "duplicate-instance-guid-2",
+				DiskMB:       1,
+				MemoryMB:     1,
+				Stack:        lucidStack,
+				Index:        0,
+			})
+
+			Eventually(bbs.GetAllLRPStartAuctions).Should(HaveLen(0))
+
+			bbs.RequestLRPStartAuction(models.LRPStartAuction{
+				ProcessGuid:  "app-guid",
+				InstanceGuid: "duplicate-instance-guid-3",
+				DiskMB:       1,
+				MemoryMB:     1,
+				Stack:        lucidStack,
+				Index:        0,
+			})
+
+			Eventually(bbs.GetAllLRPStartAuctions).Should(HaveLen(0))
+
+			Ω(repClient.SimulatedInstances(lucidGuid)).Should(HaveLen(3))
+		})
+
+		It("should stop all but one instance of the app", func() {
+			bbs.RequestLRPStopAuction(models.LRPStopAuction{
+				ProcessGuid: "app-guid",
+				Index:       0,
+			})
+
+			Eventually(func() interface{} {
+				return repClient.SimulatedInstances(lucidGuid)
+			}, 1).Should(HaveLen(1))
+		})
+	})
+
 })

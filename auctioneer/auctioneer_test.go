@@ -23,15 +23,16 @@ const MAX_AUCTION_ROUNDS_FOR_TEST = 10
 
 var _ = Describe("Auctioneer", func() {
 	var (
-		bbs        *fake_bbs.FakeAuctioneerBBS
-		auctioneer *Auctioneer
-		runner     *fake_auctionrunner.FakeAuctionRunner
-		process    ifrit.Process
-		firstRep   models.RepPresence
-		secondRep  models.RepPresence
-		thirdRep   models.RepPresence
-		logger     *steno.Logger
-		auction    models.LRPStartAuction
+		bbs          *fake_bbs.FakeAuctioneerBBS
+		auctioneer   *Auctioneer
+		runner       *fake_auctionrunner.FakeAuctionRunner
+		process      ifrit.Process
+		firstRep     models.RepPresence
+		secondRep    models.RepPresence
+		thirdRep     models.RepPresence
+		logger       *steno.Logger
+		startAuction models.LRPStartAuction
+		stopAuction  models.LRPStopAuction
 	)
 
 	BeforeEach(func() {
@@ -61,9 +62,13 @@ var _ = Describe("Auctioneer", func() {
 		}
 		bbs.Unlock()
 
-		auction = models.LRPStartAuction{
+		startAuction = models.LRPStartAuction{
 			ProcessGuid: "my-guid",
 			Stack:       "lucid64",
+		}
+
+		stopAuction = models.LRPStopAuction{
+			ProcessGuid: "my-stop-guid",
 		}
 	})
 
@@ -71,6 +76,7 @@ var _ = Describe("Auctioneer", func() {
 		var signals chan os.Signal
 		var ready chan struct{}
 		var errors chan error
+
 		BeforeEach(func() {
 			runner = &fake_auctionrunner.FakeAuctionRunner{}
 			auctioneer = New(bbs, runner, 2, MAX_AUCTION_ROUNDS_FOR_TEST, time.Second, logger)
@@ -100,16 +106,21 @@ var _ = Describe("Auctioneer", func() {
 				bbs.LockChannel <- true
 			})
 
-			It("should start watching", func() {
-				bbs.LRPStartAuctionChan <- auction
+			It("should start watching for start auctions", func() {
+				bbs.LRPStartAuctionChan <- startAuction
 				Eventually(runner.RunLRPStartAuctionCallCount).ShouldNot(BeZero())
+			})
+
+			It("should start watching for stop auctions", func() {
+				bbs.LRPStopAuctionChan <- stopAuction
+				Eventually(runner.RunLRPStopAuctionCallCount).ShouldNot(BeZero())
 			})
 
 			It("should become ready", func() {
 				Eventually(ready).Should(BeClosed())
 			})
 
-			Context("if the watch channel is closed", func() {
+			Context("if the start watch channel is closed", func() {
 				BeforeEach(func() {
 					close(bbs.LRPStartAuctionChan)
 					time.Sleep(10 * time.Millisecond) //make sure this gets processed
@@ -120,12 +131,28 @@ var _ = Describe("Auctioneer", func() {
 					bbs.LRPStartAuctionChan = make(chan models.LRPStartAuction)
 					bbs.Unlock()
 					bbs.LockChannel <- true
-					bbs.LRPStartAuctionChan <- auction
+					bbs.LRPStartAuctionChan <- startAuction
 					Eventually(runner.RunLRPStartAuctionCallCount).ShouldNot(BeZero())
 				})
 			})
 
-			Context("if the watch errors", func() {
+			Context("if the stop watch channel is closed", func() {
+				BeforeEach(func() {
+					close(bbs.LRPStopAuctionChan)
+					time.Sleep(10 * time.Millisecond) //make sure this gets processed
+				})
+
+				It("should start watching again on the next lock tick", func() {
+					bbs.Lock()
+					bbs.LRPStopAuctionChan = make(chan models.LRPStopAuction)
+					bbs.Unlock()
+					bbs.LockChannel <- true
+					bbs.LRPStopAuctionChan <- stopAuction
+					Eventually(runner.RunLRPStopAuctionCallCount).ShouldNot(BeZero())
+				})
+			})
+
+			Context("if the start auction watch errors", func() {
 				BeforeEach(func() {
 					bbs.LRPStartAuctionErrorChan <- fmt.Errorf("boom")
 				})
@@ -133,8 +160,21 @@ var _ = Describe("Auctioneer", func() {
 				It("should start watching again on the next lock tick", func() {
 					bbs.LRPStartAuctionChan = make(chan models.LRPStartAuction)
 					bbs.LockChannel <- true
-					bbs.LRPStartAuctionChan <- auction
+					bbs.LRPStartAuctionChan <- startAuction
 					Eventually(runner.RunLRPStartAuctionCallCount).ShouldNot(BeZero())
+				})
+			})
+
+			Context("if the stop auction watch errors", func() {
+				BeforeEach(func() {
+					bbs.LRPStopAuctionErrorChan <- fmt.Errorf("boom")
+				})
+
+				It("should start watching again on the next lock tick", func() {
+					bbs.LRPStopAuctionChan = make(chan models.LRPStopAuction)
+					bbs.LockChannel <- true
+					bbs.LRPStopAuctionChan <- stopAuction
+					Eventually(runner.RunLRPStopAuctionCallCount).ShouldNot(BeZero())
 				})
 			})
 
@@ -151,19 +191,25 @@ var _ = Describe("Auctioneer", func() {
 					BeforeEach(func() {
 						bbs.LRPStartAuctionChan = make(chan models.LRPStartAuction)
 						bbs.LRPStartAuctionStopChan = make(chan bool)
+
+						bbs.LRPStopAuctionChan = make(chan models.LRPStopAuction)
+						bbs.LRPStopAuctionStopChan = make(chan bool)
+
 						bbs.LockChannel <- true
 					})
 
 					It("should start watching again", func() {
-						bbs.LRPStartAuctionChan <- auction
+						bbs.LRPStartAuctionChan <- startAuction
 						Eventually(runner.RunLRPStartAuctionCallCount).ShouldNot(BeZero())
+						bbs.LRPStopAuctionChan <- stopAuction
+						Eventually(runner.RunLRPStopAuctionCallCount).ShouldNot(BeZero())
 					})
 				})
 			})
 		})
 	})
 
-	Describe("the auction lifecycle", func() {
+	Describe("the start auction lifecycle", func() {
 		BeforeEach(func() {
 			runner = &fake_auctionrunner.FakeAuctionRunner{}
 			auctioneer = New(bbs, runner, 2, MAX_AUCTION_ROUNDS_FOR_TEST, time.Second, logger)
@@ -190,12 +236,12 @@ var _ = Describe("Auctioneer", func() {
 
 		Context("when a pending auction request arrives over ETCD", func() {
 			JustBeforeEach(func(done Done) {
-				bbs.LRPStartAuctionChan <- auction
+				bbs.LRPStartAuctionChan <- startAuction
 				close(done)
 			})
 
 			It("should attempt to claim the auction", func() {
-				Eventually(bbs.GetClaimedLRPStartAuctions).Should(Equal([]models.LRPStartAuction{auction}))
+				Eventually(bbs.GetClaimedLRPStartAuctions).Should(Equal([]models.LRPStartAuction{startAuction}))
 			})
 
 			Context("when the claim succeeds", func() {
@@ -203,7 +249,7 @@ var _ = Describe("Auctioneer", func() {
 					Eventually(runner.RunLRPStartAuctionCallCount).ShouldNot(BeZero())
 
 					request := runner.RunLRPStartAuctionArgsForCall(0)
-					Ω(request.LRPStartAuction).Should(Equal(auction))
+					Ω(request.LRPStartAuction).Should(Equal(startAuction))
 					Ω(request.RepGuids).Should(HaveLen(2))
 					Ω(request.RepGuids).Should(ContainElement(firstRep.RepID))
 					Ω(request.RepGuids).Should(ContainElement(thirdRep.RepID))
@@ -215,7 +261,7 @@ var _ = Describe("Auctioneer", func() {
 
 				Context("when the auction succeeds", func() {
 					It("should resolve the auction in etcd", func() {
-						Eventually(bbs.GetResolvedLRPStartAuction).Should(Equal(auction))
+						Eventually(bbs.GetResolvedLRPStartAuction).Should(Equal(startAuction))
 					})
 				})
 
@@ -225,11 +271,11 @@ var _ = Describe("Auctioneer", func() {
 					})
 
 					It("should log that the auction failed and nontheless resolve the auction", func() {
-						Eventually(bbs.GetResolvedLRPStartAuction).Should(Equal(auction))
+						Eventually(bbs.GetResolvedLRPStartAuction).Should(Equal(startAuction))
 
 						sink := steno.GetMeTheGlobalTestSink()
 						records := sink.Records()
-						Ω(records[len(records)-1].Message).Should(Equal("auctioneer.run-auction.auction-failed"))
+						Ω(records[len(records)-1].Message).Should(Equal("auctioneer.run-start-auction.auction-failed"))
 					})
 				})
 			})
@@ -250,13 +296,13 @@ var _ = Describe("Auctioneer", func() {
 		Describe("Sad cases", func() {
 			Context("when there are no reps that match the desired stack", func() {
 				BeforeEach(func(done Done) {
-					auction = models.LRPStartAuction{
+					startAuction = models.LRPStartAuction{
 						ProcessGuid: "my-guid",
 						Stack:       "monkey-bunnies",
 					}
-					bbs.LRPStartAuctionChan <- auction
+					bbs.LRPStartAuctionChan <- startAuction
 
-					Eventually(bbs.GetClaimedLRPStartAuctions).Should(Equal([]models.LRPStartAuction{auction}))
+					Eventually(bbs.GetClaimedLRPStartAuctions).Should(Equal([]models.LRPStartAuction{startAuction}))
 					close(done)
 				})
 
@@ -265,14 +311,14 @@ var _ = Describe("Auctioneer", func() {
 				})
 
 				It("should nonetheless resolve the auction in etcd", func() {
-					Eventually(bbs.GetResolvedLRPStartAuction).Should(Equal(auction))
+					Eventually(bbs.GetResolvedLRPStartAuction).Should(Equal(startAuction))
 				})
 			})
 		})
 	})
 
 	Describe("rate limiting many auctions", func() {
-		var auction1, auction2, auction3 models.LRPStartAuction
+		var startAuction1, startAuction2, startAuction3 models.LRPStartAuction
 
 		BeforeEach(func() {
 			runner = &fake_auctionrunner.FakeAuctionRunner{}
@@ -289,15 +335,15 @@ var _ = Describe("Auctioneer", func() {
 
 			process = ifrit.Envoke(auctioneer)
 
-			auction1 = models.LRPStartAuction{
+			startAuction1 = models.LRPStartAuction{
 				ProcessGuid: "my-guid-1",
 				Stack:       "lucid64",
 			}
-			auction2 = models.LRPStartAuction{
+			startAuction2 = models.LRPStartAuction{
 				ProcessGuid: "my-guid-2",
 				Stack:       "lucid64",
 			}
-			auction3 = models.LRPStartAuction{
+			startAuction3 = models.LRPStartAuction{
 				ProcessGuid: "my-guid-3",
 				Stack:       "lucid64",
 			}
@@ -310,14 +356,95 @@ var _ = Describe("Auctioneer", func() {
 		})
 
 		It("should only process maxConcurrent auctions at a time", func() {
-			bbs.LRPStartAuctionChan <- auction1
-			bbs.LRPStartAuctionChan <- auction2
-			bbs.LRPStartAuctionChan <- auction3
+			bbs.LRPStartAuctionChan <- startAuction1
+			bbs.LRPStartAuctionChan <- startAuction2
+			bbs.LRPStartAuctionChan <- startAuction3
 
 			Eventually(bbs.GetClaimedLRPStartAuctions).Should(HaveLen(2))
 			Consistently(bbs.GetClaimedLRPStartAuctions, 0.5).Should(HaveLen(2))
 
 			Eventually(bbs.GetClaimedLRPStartAuctions).Should(HaveLen(3))
+		})
+	})
+
+	Describe("the stop auction lifecycle", func() {
+		BeforeEach(func() {
+			runner = &fake_auctionrunner.FakeAuctionRunner{}
+			auctioneer = New(bbs, runner, 2, MAX_AUCTION_ROUNDS_FOR_TEST, time.Second, logger)
+
+			go func() {
+				bbs.LockChannel <- true
+			}()
+
+			process = ifrit.Envoke(auctioneer)
+		})
+
+		AfterEach(func(done Done) {
+			//send a shut down signal
+			process.Signal(syscall.SIGTERM)
+			//which releases the lock, which we need to acknowledge by closing the channel sent to the release lock channel
+			close(<-bbs.ReleaseLockChannel)
+			//which (eventually) causes the process to exit
+			Eventually(process.Wait()).Should(Receive())
+			//and should stop the auction
+			Ω(bbs.LRPStopAuctionStopChan).Should(BeClosed())
+
+			close(done)
+		})
+
+		Context("when a pending auction request arrives over ETCD", func() {
+			JustBeforeEach(func() {
+				bbs.LRPStopAuctionChan <- stopAuction
+			})
+
+			It("should attempt to claim the auction", func() {
+				Eventually(bbs.GetClaimedLRPStopAuctions).Should(Equal([]models.LRPStopAuction{stopAuction}))
+			})
+
+			Context("when the claim succeeds", func() {
+				It("should run the auction with reps of the proper stack", func() {
+					Eventually(runner.RunLRPStopAuctionCallCount).ShouldNot(BeZero())
+
+					request := runner.RunLRPStopAuctionArgsForCall(0)
+					Ω(request.LRPStopAuction).Should(Equal(stopAuction))
+					Ω(request.RepGuids).Should(HaveLen(3))
+					Ω(request.RepGuids).Should(ContainElement(firstRep.RepID))
+					Ω(request.RepGuids).Should(ContainElement(secondRep.RepID))
+					Ω(request.RepGuids).Should(ContainElement(thirdRep.RepID))
+				})
+
+				Context("when the auction succeeds", func() {
+					It("should resolve the auction in etcd", func() {
+						Eventually(bbs.GetResolvedLRPStopAuction).Should(Equal(stopAuction))
+					})
+				})
+
+				Context("when the auction fails", func() {
+					BeforeEach(func() {
+						runner.RunLRPStopAuctionReturns(auctiontypes.StopAuctionResult{}, errors.New("the auction failed"))
+					})
+
+					It("should log that the auction failed and nontheless resolve the auction", func() {
+						Eventually(bbs.GetResolvedLRPStopAuction).Should(Equal(stopAuction))
+
+						sink := steno.GetMeTheGlobalTestSink()
+						records := sink.Records()
+						Ω(records[len(records)-1].Message).Should(Equal("auctioneer.run-stop-auction.auction-failed"))
+					})
+				})
+			})
+
+			Context("when the claim fails", func() {
+				BeforeEach(func() {
+					bbs.Lock()
+					bbs.ClaimLRPStopAuctionError = errors.New("already claimed")
+					bbs.Unlock()
+				})
+
+				It("should not run the auction", func() {
+					Consistently(runner.RunLRPStopAuctionCallCount).Should(BeZero())
+				})
+			})
 		})
 	})
 })
