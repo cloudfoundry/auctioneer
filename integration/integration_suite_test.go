@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os/exec"
 
-	"github.com/cloudfoundry-incubator/auction/communication/nats/repnatsclient"
+	"github.com/cloudfoundry-incubator/auction/communication/nats/auction_nats_client"
 	"github.com/cloudfoundry-incubator/auctioneer/integration/auctioneer_runner"
 	Bbs "github.com/cloudfoundry-incubator/runtime-schema/bbs"
 	"github.com/cloudfoundry-incubator/runtime-schema/bbs/services_bbs"
@@ -40,7 +40,7 @@ var etcdRunner *etcdstorerunner.ETCDClusterRunner
 var natsRunner *natsrunner.NATSRunner
 var store storeadapter.StoreAdapter
 var bbs *Bbs.BBS
-var repClient *repnatsclient.RepNatsClient
+var repClient *auction_nats_client.AuctionNATSClient
 var logger *gosteno.Logger
 
 func TestIntegration(t *testing.T) {
@@ -90,7 +90,7 @@ var _ = BeforeEach(func() {
 
 	dotNetRep, dotNetPresence = startSimulationRep(simulationRepPath, dotNetGuid, dotNetStack, natsPort)
 	lucidRep, lucidPresence = startSimulationRep(simulationRepPath, lucidGuid, lucidStack, natsPort)
-	repClient, err = repnatsclient.New(natsRunner.MessageBus, 500*time.Millisecond, 10*time.Second, logger)
+	repClient, err = auction_nats_client.New(natsRunner.MessageBus, 500*time.Millisecond, 10*time.Second, logger)
 	Ω(err).ShouldNot(HaveOccurred())
 })
 

@@ -10,7 +10,7 @@ import (
 	steno "github.com/cloudfoundry/gosteno"
 
 	"github.com/cloudfoundry-incubator/auction/auctionrunner"
-	"github.com/cloudfoundry-incubator/auction/communication/nats/repnatsclient"
+	"github.com/cloudfoundry-incubator/auction/communication/nats/auction_nats_client"
 	"github.com/cloudfoundry-incubator/auctioneer/auctioneer"
 	"github.com/cloudfoundry/gunk/timeprovider"
 	"github.com/cloudfoundry/storeadapter/etcdstoreadapter"
@@ -104,7 +104,7 @@ func main() {
 }
 
 func initializeAuctioneer(bbs Bbs.AuctioneerBBS, natsClient yagnats.NATSClient, logger *steno.Logger) *auctioneer.Auctioneer {
-	client, err := repnatsclient.New(natsClient, *auctionNATSTimeout, *auctionRunTimeout, logger)
+	client, err := auction_nats_client.New(natsClient, *auctionNATSTimeout, *auctionRunTimeout, logger)
 	if err != nil {
 		logger.Fatalf("Error creating rep nats client: %s\n", err)
 	}
