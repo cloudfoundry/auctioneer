@@ -61,8 +61,6 @@ type TPSBBS interface {
 
 type AppManagerBBS interface {
 	//lrp
-	DesireLRP(models.DesiredLRP) error
-	RemoveDesiredLRPByProcessGuid(guid string) error
 	GetActualLRPsByProcessGuid(string) ([]models.ActualLRP, error)
 	RequestLRPStartAuction(models.LRPStartAuction) error
 	RequestLRPStopAuction(models.LRPStopAuction) error
@@ -71,6 +69,14 @@ type AppManagerBBS interface {
 
 	//services
 	GetAvailableFileServer() (string, error)
+}
+
+type NsyncBBS interface {
+	// lrp
+	DesireLRP(models.DesiredLRP) error
+	RemoveDesiredLRPByProcessGuid(guid string) error
+	GetAllDesiredLRPs() ([]models.DesiredLRP, error)
+	ChangeDesiredLRP(change models.DesiredLRPChange) error
 }
 
 type AuctioneerBBS interface {
@@ -140,6 +146,10 @@ func NewConvergerBBS(store storeadapter.StoreAdapter, timeProvider timeprovider.
 }
 
 func NewAppManagerBBS(store storeadapter.StoreAdapter, timeProvider timeprovider.TimeProvider, logger *steno.Logger) AppManagerBBS {
+	return NewBBS(store, timeProvider, logger)
+}
+
+func NewNsyncBBS(store storeadapter.StoreAdapter, timeProvider timeprovider.TimeProvider, logger *steno.Logger) NsyncBBS {
 	return NewBBS(store, timeProvider, logger)
 }
 
