@@ -255,7 +255,7 @@ var _ = Describe("Auctioneer", func() {
 					Ω(request.RepGuids).Should(ContainElement(thirdRep.RepID))
 					Ω(request.RepGuids).ShouldNot(ContainElement(secondRep.RepID))
 					Ω(request.Rules.Algorithm).Should(Equal("reserve_n_best"))
-					Ω(request.Rules.MaxBiddingPool).Should(Equal(0.2))
+					Ω(request.Rules.MaxBiddingPoolFraction).Should(Equal(0.2))
 					Ω(request.Rules.MaxRounds).Should(Equal(MAX_AUCTION_ROUNDS_FOR_TEST))
 				})
 
