@@ -1,10 +1,14 @@
 {
 	"ImportPath": "github.com/cloudfoundry-incubator/auctioneer",
-	"GoVersion": "go1.2.1",
+	"GoVersion": "go1.3",
 	"Packages": [
 		"./..."
 	],
 	"Deps": [
+		{
+			"ImportPath": "github.com/cloudfoundry-incubator/auction/auctionrep",
+			"Rev": "2b3c66e9ac8bf0494e9b5c5086a9fffdb1d9e541"
+		},
 		{
 			"ImportPath": "github.com/cloudfoundry-incubator/auction/auctionrunner",
 			"Rev": "2b3c66e9ac8bf0494e9b5c5086a9fffdb1d9e541"
@@ -18,20 +22,28 @@
 			"Rev": "2b3c66e9ac8bf0494e9b5c5086a9fffdb1d9e541"
 		},
 		{
+			"ImportPath": "github.com/cloudfoundry-incubator/auction/simulation/repnode",
+			"Rev": "2b3c66e9ac8bf0494e9b5c5086a9fffdb1d9e541"
+		},
+		{
+			"ImportPath": "github.com/cloudfoundry-incubator/auction/simulation/simulationrepdelegate",
+			"Rev": "2b3c66e9ac8bf0494e9b5c5086a9fffdb1d9e541"
+		},
+		{
 			"ImportPath": "github.com/cloudfoundry-incubator/auction/util",
 			"Rev": "2b3c66e9ac8bf0494e9b5c5086a9fffdb1d9e541"
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry-incubator/delta_force/delta_force",
-			"Rev": "19e060954176a3924079cc0ccafabe1307f27343"
+			"Rev": "8300c5546d32d8533295f666c1cd0941113fd7bb"
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry-incubator/runtime-schema/bbs",
-			"Rev": "cce188b6c789ac208f23f851014654a4b63b8ecc"
+			"Rev": "76cf51e7bd6fac83db8d8f9b355e5db836fe75ff"
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry-incubator/runtime-schema/models",
-			"Rev": "cce188b6c789ac208f23f851014654a4b63b8ecc"
+			"Rev": "76cf51e7bd6fac83db8d8f9b355e5db836fe75ff"
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry/gosteno",

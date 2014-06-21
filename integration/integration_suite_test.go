@@ -19,6 +19,8 @@ import (
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 
+	_ "github.com/cloudfoundry-incubator/auction/simulation/repnode"
+
 	"testing"
 	"time"
 
