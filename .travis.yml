@@ -1,6 +1,6 @@
 language: go
 
-install: go get github.com/cloudfoundry-incubator/auction
+install: go get github.com/cloudfoundry-incubator/auction/simulation/repnode
 
 go:
   - 1.3
