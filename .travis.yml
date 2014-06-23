@@ -1,6 +1,6 @@
 language: go
 
-install: echo "don't go get stuff"
+install: go get github.com/cloudfoundry-incubator/auction
 
 go:
   - 1.3
