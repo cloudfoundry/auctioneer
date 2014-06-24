@@ -23,42 +23,42 @@ const MAX_AUCTION_ROUNDS_FOR_TEST = 10
 
 var _ = Describe("Auctioneer", func() {
 	var (
-		bbs          *fake_bbs.FakeAuctioneerBBS
-		auctioneer   *Auctioneer
-		runner       *fake_auctionrunner.FakeAuctionRunner
-		process      ifrit.Process
-		firstRep     models.RepPresence
-		secondRep    models.RepPresence
-		thirdRep     models.RepPresence
-		logger       *steno.Logger
-		startAuction models.LRPStartAuction
-		stopAuction  models.LRPStopAuction
+		bbs            *fake_bbs.FakeAuctioneerBBS
+		auctioneer     *Auctioneer
+		runner         *fake_auctionrunner.FakeAuctionRunner
+		process        ifrit.Process
+		firstExecutor  models.ExecutorPresence
+		secondExecutor models.ExecutorPresence
+		thirdExecutor  models.ExecutorPresence
+		logger         *steno.Logger
+		startAuction   models.LRPStartAuction
+		stopAuction    models.LRPStopAuction
 	)
 
 	BeforeEach(func() {
 		logger = steno.NewLogger("auctioneer")
 		bbs = fake_bbs.NewFakeAuctioneerBBS()
 
-		firstRep = models.RepPresence{
-			RepID: "first-rep",
-			Stack: "lucid64",
+		firstExecutor = models.ExecutorPresence{
+			ExecutorID: "first-rep",
+			Stack:      "lucid64",
 		}
 
-		secondRep = models.RepPresence{
-			RepID: "second-rep",
-			Stack: ".Net",
+		secondExecutor = models.ExecutorPresence{
+			ExecutorID: "second-rep",
+			Stack:      ".Net",
 		}
 
-		thirdRep = models.RepPresence{
-			RepID: "third-rep",
-			Stack: "lucid64",
+		thirdExecutor = models.ExecutorPresence{
+			ExecutorID: "third-rep",
+			Stack:      "lucid64",
 		}
 
 		bbs.Lock()
-		bbs.Reps = []models.RepPresence{
-			firstRep,
-			secondRep,
-			thirdRep,
+		bbs.Executors = []models.ExecutorPresence{
+			firstExecutor,
+			secondExecutor,
+			thirdExecutor,
 		}
 		bbs.Unlock()
 
@@ -251,9 +251,9 @@ var _ = Describe("Auctioneer", func() {
 					request := runner.RunLRPStartAuctionArgsForCall(0)
 					Ω(request.LRPStartAuction).Should(Equal(startAuction))
 					Ω(request.RepGuids).Should(HaveLen(2))
-					Ω(request.RepGuids).Should(ContainElement(firstRep.RepID))
-					Ω(request.RepGuids).Should(ContainElement(thirdRep.RepID))
-					Ω(request.RepGuids).ShouldNot(ContainElement(secondRep.RepID))
+					Ω(request.RepGuids).Should(ContainElement(firstExecutor.ExecutorID))
+					Ω(request.RepGuids).Should(ContainElement(thirdExecutor.ExecutorID))
+					Ω(request.RepGuids).ShouldNot(ContainElement(secondExecutor.ExecutorID))
 					Ω(request.Rules.Algorithm).Should(Equal("reserve_n_best"))
 					Ω(request.Rules.MaxBiddingPoolFraction).Should(Equal(0.2))
 					Ω(request.Rules.MaxRounds).Should(Equal(MAX_AUCTION_ROUNDS_FOR_TEST))
@@ -408,9 +408,9 @@ var _ = Describe("Auctioneer", func() {
 					request := runner.RunLRPStopAuctionArgsForCall(0)
 					Ω(request.LRPStopAuction).Should(Equal(stopAuction))
 					Ω(request.RepGuids).Should(HaveLen(3))
-					Ω(request.RepGuids).Should(ContainElement(firstRep.RepID))
-					Ω(request.RepGuids).Should(ContainElement(secondRep.RepID))
-					Ω(request.RepGuids).Should(ContainElement(thirdRep.RepID))
+					Ω(request.RepGuids).Should(ContainElement(firstExecutor.ExecutorID))
+					Ω(request.RepGuids).Should(ContainElement(secondExecutor.ExecutorID))
+					Ω(request.RepGuids).Should(ContainElement(thirdExecutor.ExecutorID))
 				})
 
 				Context("when the auction succeeds", func() {

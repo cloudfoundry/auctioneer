@@ -95,9 +95,9 @@ var _ = BeforeEach(func() {
 })
 
 func startSimulationRep(simulationRepPath, guid string, stack string, natsPort int) (*gexec.Session, services_bbs.Presence) {
-	presence, status, err := bbs.MaintainRepPresence(time.Second, models.RepPresence{
-		RepID: guid,
-		Stack: stack,
+	presence, status, err := bbs.MaintainExecutorPresence(time.Second, models.ExecutorPresence{
+		ExecutorID: guid,
+		Stack:      stack,
 	})
 	Ω(err).ShouldNot(HaveOccurred())
 	test_helpers.NewStatusReporter(status).Locked()

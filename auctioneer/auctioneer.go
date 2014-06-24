@@ -158,19 +158,18 @@ func (a *Auctioneer) runStartAuction(startAuction models.LRPStartAuction) {
 	}
 	defer a.bbs.ResolveLRPStartAuction(startAuction)
 
-	//fetch reps that match constraints that you can pre-determine
-	reps, err := a.getRepsForStack(startAuction.Stack)
+	executorGuids, err := a.getExecutorsforStack(startAuction.Stack)
 	if err != nil {
 		a.logger.Errord(map[string]interface{}{
 			"start-auction": startAuction,
 			"error":         err.Error(),
-		}, "auctioneer.run-start-auction.failed-to-get-reps")
+		}, "auctioneer.run-start-auction.failed-to-get-executors")
 		return
 	}
-	if len(reps) == 0 {
+	if len(executorGuids) == 0 {
 		a.logger.Errord(map[string]interface{}{
 			"start-auction": startAuction,
-		}, "auctioneer.run-start-auction.no-available-reps-found")
+		}, "auctioneer.run-start-auction.no-available-executors-found")
 		return
 	}
 
@@ -184,7 +183,7 @@ func (a *Auctioneer) runStartAuction(startAuction models.LRPStartAuction) {
 
 	request := auctiontypes.StartAuctionRequest{
 		LRPStartAuction: startAuction,
-		RepGuids:        reps,
+		RepGuids:        executorGuids,
 		Rules:           rules,
 	}
 	_, err = a.runner.RunLRPStartAuction(request)
@@ -198,21 +197,21 @@ func (a *Auctioneer) runStartAuction(startAuction models.LRPStartAuction) {
 	}
 }
 
-func (a *Auctioneer) getRepsForStack(stack string) ([]string, error) {
-	reps, err := a.bbs.GetAllReps()
+func (a *Auctioneer) getExecutorsforStack(stack string) ([]string, error) {
+	executors, err := a.bbs.GetAllExecutors()
 	if err != nil {
 		return nil, err
 	}
 
-	filteredReps := []string{}
+	filteredExecutorGuids := []string{}
 
-	for _, rep := range reps {
-		if rep.Stack == stack {
-			filteredReps = append(filteredReps, rep.RepID)
+	for _, executor := range executors {
+		if executor.Stack == stack {
+			filteredExecutorGuids = append(filteredExecutorGuids, executor.ExecutorID)
 		}
 	}
 
-	return filteredReps, nil
+	return filteredExecutorGuids, nil
 }
 
 func (a *Auctioneer) runStopAuction(stopAuction models.LRPStopAuction) {
@@ -230,19 +229,18 @@ func (a *Auctioneer) runStopAuction(stopAuction models.LRPStopAuction) {
 	}
 	defer a.bbs.ResolveLRPStopAuction(stopAuction)
 
-	//fetch reps that match constraints that you can pre-determine
-	reps, err := a.getReps()
+	executorGuids, err := a.getExecutors()
 	if err != nil {
 		a.logger.Errord(map[string]interface{}{
 			"stop-auction": stopAuction,
 			"error":        err.Error(),
-		}, "auctioneer.run-stop-auction.failed-to-get-reps")
+		}, "auctioneer.run-stop-auction.failed-to-get-executors")
 		return
 	}
-	if len(reps) == 0 {
+	if len(executorGuids) == 0 {
 		a.logger.Errord(map[string]interface{}{
 			"stop-auction": stopAuction,
-		}, "auctioneer.run-stop-auction.no-available-reps-found")
+		}, "auctioneer.run-stop-auction.no-available-executors-found")
 		return
 	}
 
@@ -253,7 +251,7 @@ func (a *Auctioneer) runStopAuction(stopAuction models.LRPStopAuction) {
 
 	request := auctiontypes.StopAuctionRequest{
 		LRPStopAuction: stopAuction,
-		RepGuids:       reps,
+		RepGuids:       executorGuids,
 	}
 	_, err = a.runner.RunLRPStopAuction(request)
 
@@ -266,17 +264,17 @@ func (a *Auctioneer) runStopAuction(stopAuction models.LRPStopAuction) {
 	}
 }
 
-func (a *Auctioneer) getReps() ([]string, error) {
-	reps, err := a.bbs.GetAllReps()
+func (a *Auctioneer) getExecutors() ([]string, error) {
+	executors, err := a.bbs.GetAllExecutors()
 	if err != nil {
 		return nil, err
 	}
 
-	repGuids := []string{}
+	executorGuids := []string{}
 
-	for _, rep := range reps {
-		repGuids = append(repGuids, rep.RepID)
+	for _, executor := range executors {
+		executorGuids = append(executorGuids, executor.ExecutorID)
 	}
 
-	return repGuids, nil
+	return executorGuids, nil
 }
