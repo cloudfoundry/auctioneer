@@ -6,6 +6,14 @@ import (
 	. "github.com/onsi/gomega"
 )
 
+var dummyActions = []models.ExecutorAction{
+	{
+		Action: models.RunAction{
+			Script: "cat /tmp/file",
+		},
+	},
+}
+
 var _ = Describe("Integration", func() {
 	Context("when a start auction message arrives", func() {
 		BeforeEach(func() {
@@ -16,6 +24,7 @@ var _ = Describe("Integration", func() {
 				MemoryMB:     1,
 				Stack:        lucidStack,
 				Index:        0,
+				Actions:      dummyActions,
 			})
 
 			bbs.RequestLRPStartAuction(models.LRPStartAuction{
@@ -25,6 +34,7 @@ var _ = Describe("Integration", func() {
 				MemoryMB:     1,
 				Stack:        lucidStack,
 				Index:        1,
+				Actions:      dummyActions,
 			})
 		})
 
@@ -46,6 +56,7 @@ var _ = Describe("Integration", func() {
 				MemoryMB:     1,
 				Stack:        lucidStack,
 				Index:        0,
+				Actions:      dummyActions,
 			})
 
 			Eventually(bbs.GetAllLRPStartAuctions).Should(HaveLen(0))
@@ -57,6 +68,7 @@ var _ = Describe("Integration", func() {
 				MemoryMB:     1,
 				Stack:        lucidStack,
 				Index:        0,
+				Actions:      dummyActions,
 			})
 
 			Eventually(bbs.GetAllLRPStartAuctions).Should(HaveLen(0))
@@ -68,6 +80,7 @@ var _ = Describe("Integration", func() {
 				MemoryMB:     1,
 				Stack:        lucidStack,
 				Index:        0,
+				Actions:      dummyActions,
 			})
 
 			Eventually(bbs.GetAllLRPStartAuctions).Should(HaveLen(0))
