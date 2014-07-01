@@ -1,6 +1,7 @@
 package models_test
 
 import (
+	. "github.com/amitkgupta/match_array_or_slice"
 	. "github.com/cloudfoundry-incubator/runtime-schema/models"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -24,10 +25,8 @@ var _ = Describe("CircusTailorConfig", func() {
 				"-outputMetadataDir='/tmp/result'",
 			}
 
-			Ω(tailorConfig.Script()).Should(MatchRegexp("^/tmp/circus/tailor"))
-			for _, commandFlag := range commandFlags {
-				Ω(tailorConfig.Script()).To(ContainSubstring(commandFlag))
-			}
+			Ω(tailorConfig.Path()).Should(Equal("/tmp/circus/tailor"))
+			Ω(tailorConfig.Args()).Should(MatchArrayOrSlice(commandFlags))
 		})
 	})
 
@@ -50,10 +49,8 @@ var _ = Describe("CircusTailorConfig", func() {
 				"-outputMetadataDir='/some/result/dir'",
 			}
 
-			Ω(tailorConfig.Script()).Should(MatchRegexp("^/tmp/circus/tailor"))
-			for _, commandFlag := range commandFlags {
-				Ω(tailorConfig.Script()).To(ContainSubstring(commandFlag))
-			}
+			Ω(tailorConfig.Path()).Should(Equal("/tmp/circus/tailor"))
+			Ω(tailorConfig.Args()).Should(MatchArrayOrSlice(commandFlags))
 		})
 	})
 
