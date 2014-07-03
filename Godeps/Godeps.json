@@ -6,6 +6,19 @@
 	],
 	"Deps": [
 		{
+			"ImportPath": "github.com/GaryBoone/GoStats/stats",
+			"Rev": "1993eafbef57be29ee8f5eb9d26a22f20ff3c207"
+		},
+		{
+			"ImportPath": "github.com/ajstarks/svgo",
+			"Comment": "go.weekly.2012-01-27-83-gd36c649",
+			"Rev": "d36c6495cf99387c8e20b945176c4562c78e6f78"
+		},
+		{
+			"ImportPath": "github.com/cheggaaa/pb",
+			"Rev": "3544a53d32f49584597eb8fa0ed3b0873a7bf94a"
+		},
+		{
 			"ImportPath": "github.com/cloudfoundry-incubator/auction/auctionrunner",
 			"Rev": "98d1d894687f404142c5596af3ff7a6b3b8e4b20"
 		},
