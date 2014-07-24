@@ -8,11 +8,11 @@ import (
 	"github.com/cloudfoundry-incubator/auction/auctionrunner"
 	"github.com/cloudfoundry-incubator/auction/auctiontypes"
 	"github.com/nu7hatch/gouuid"
+	"github.com/pivotal-golang/lager"
 
 	Bbs "github.com/cloudfoundry-incubator/runtime-schema/bbs"
 
 	"github.com/cloudfoundry-incubator/runtime-schema/models"
-	steno "github.com/cloudfoundry/gosteno"
 )
 
 type Auctioneer struct {
@@ -20,18 +20,18 @@ type Auctioneer struct {
 	runner        auctiontypes.AuctionRunner
 	maxConcurrent int
 	maxRounds     int
-	logger        *steno.Logger
+	logger        lager.Logger
 	semaphore     chan bool
 	lockInterval  time.Duration
 }
 
-func New(bbs Bbs.AuctioneerBBS, runner auctiontypes.AuctionRunner, maxConcurrent int, maxRounds int, lockInterval time.Duration, logger *steno.Logger) *Auctioneer {
+func New(bbs Bbs.AuctioneerBBS, runner auctiontypes.AuctionRunner, maxConcurrent int, maxRounds int, lockInterval time.Duration, logger lager.Logger) *Auctioneer {
 	return &Auctioneer{
 		bbs:           bbs,
 		runner:        runner,
 		maxConcurrent: maxConcurrent,
 		maxRounds:     maxRounds,
-		logger:        logger,
+		logger:        logger.Session("auctioneer"),
 		semaphore:     make(chan bool, maxConcurrent),
 		lockInterval:  lockInterval,
 	}
@@ -59,15 +59,19 @@ func (a *Auctioneer) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 	for {
 		select {
 		case haveLock := <-haveLockChan:
+			a.logger.Info("lock-state", lager.Data{"have-lock": haveLock})
+
 			if haveLock {
 				if startAuctionChan == nil {
-					a.logger.Info("auctioneer.have-lock-starting-start-auction-watch")
 					startAuctionChan, cancelStartWatchChan, startErrorChan = a.bbs.WatchForLRPStartAuction()
+
+					a.logger.Info("watching-for-start-auctions")
 				}
 
 				if stopAuctionChan == nil {
-					a.logger.Info("auctioneer.have-lock-starting-stop-auction-watch")
 					stopAuctionChan, cancelStopWatchChan, stopErrorChan = a.bbs.WatchForLRPStopAuction()
+
+					a.logger.Info("watching-for-stop-auctions")
 				}
 
 				if ready != nil {
@@ -91,39 +95,45 @@ func (a *Auctioneer) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 				startAuctionChan = nil
 				continue
 			}
-			go a.runStartAuction(startAuction)
+
+			logger := a.logger.Session("start", lager.Data{
+				"start-auction": startAuction,
+			})
+
+			go a.runStartAuction(startAuction, logger)
 
 		case stopAuction, ok := <-stopAuctionChan:
 			if !ok {
 				stopAuctionChan = nil
 				continue
 			}
-			go a.runStopAuction(stopAuction)
+
+			logger := a.logger.Session("stop", lager.Data{
+				"stop-auction": stopAuction,
+			})
+
+			go a.runStopAuction(stopAuction, logger)
 
 		case err := <-startErrorChan:
-			a.logger.Errord(map[string]interface{}{
-				"error": err.Error(),
-			}, "auctioneer.start-auction-watch-failed")
+			a.logger.Error("watching-start-auctions-failed", err)
 			startAuctionChan = nil
 
 		case err := <-stopErrorChan:
-			a.logger.Errord(map[string]interface{}{
-				"error": err.Error(),
-			}, "auctioneer.stop-auction-watch-failed")
+			a.logger.Error("watching-stop-auctions-failed", err)
 			stopAuctionChan = nil
 
 		case sig := <-signals:
 			if a.shouldStop(sig) {
-				a.logger.Info("auctioneer.releasing-lock")
+				a.logger.Info("releasing-lock")
 				stoppedMaintainingLockChan := make(chan bool)
 				stopMaintainingLockChan <- stoppedMaintainingLockChan
 				<-stoppedMaintainingLockChan
 				if cancelStartWatchChan != nil {
-					a.logger.Info("auctioneer.stopping-start-watch")
+					a.logger.Info("stopping-start-watch")
 					close(cancelStartWatchChan)
 				}
 				if cancelStopWatchChan != nil {
-					a.logger.Info("auctioneer.stopping-stop-watch")
+					a.logger.Info("stopping-stop-watch")
 					close(cancelStopWatchChan)
 				}
 				return nil
@@ -138,45 +148,35 @@ func (a *Auctioneer) shouldStop(sig os.Signal) bool {
 	return sig == syscall.SIGINT || sig == syscall.SIGTERM
 }
 
-func (a *Auctioneer) runStartAuction(startAuction models.LRPStartAuction) {
+func (a *Auctioneer) runStartAuction(startAuction models.LRPStartAuction, logger lager.Logger) {
 	a.semaphore <- true
 	defer func() {
 		<-a.semaphore
 	}()
 
-	a.logger.Debugd(map[string]interface{}{
-		"start-auction": startAuction,
-	}, "auctioneer.run-start-auction.received-auction")
+	logger.Info("received")
 
 	//claim
 	err := a.bbs.ClaimLRPStartAuction(startAuction)
 	if err != nil {
-		a.logger.Debugd(map[string]interface{}{
-			"start-auction": startAuction,
-		}, "auctioneer.run-start-auction.failed-to-claim-auction")
+		logger.Debug("failed-to-claim", lager.Data{"error": err.Error()})
 		return
 	}
+
 	defer a.bbs.ResolveLRPStartAuction(startAuction)
 
 	executorGuids, err := a.getExecutorsforStack(startAuction.Stack)
 	if err != nil {
-		a.logger.Errord(map[string]interface{}{
-			"start-auction": startAuction,
-			"error":         err.Error(),
-		}, "auctioneer.run-start-auction.failed-to-get-executors")
+		logger.Error("failed-to-get-executors", err)
 		return
 	}
 	if len(executorGuids) == 0 {
-		a.logger.Errord(map[string]interface{}{
-			"start-auction": startAuction,
-		}, "auctioneer.run-start-auction.no-available-executors-found")
+		logger.Error("no-available-executors", nil)
 		return
 	}
 
 	//perform auction
-	a.logger.Infod(map[string]interface{}{
-		"start-auction": startAuction,
-	}, "auctioneer.run-start-auction.performing-auction")
+	logger.Info("performing")
 
 	rules := auctionrunner.DefaultStartAuctionRules
 	rules.MaxRounds = a.maxRounds
@@ -186,13 +186,10 @@ func (a *Auctioneer) runStartAuction(startAuction models.LRPStartAuction) {
 		RepGuids:        executorGuids,
 		Rules:           rules,
 	}
-	_, err = a.runner.RunLRPStartAuction(request)
 
+	_, err = a.runner.RunLRPStartAuction(request)
 	if err != nil {
-		a.logger.Errord(map[string]interface{}{
-			"start-auction": startAuction,
-			"error":         err.Error(),
-		}, "auctioneer.run-start-auction.auction-failed")
+		logger.Error("auction-failed", err)
 		return
 	}
 }
@@ -214,40 +211,31 @@ func (a *Auctioneer) getExecutorsforStack(stack string) ([]string, error) {
 	return filteredExecutorGuids, nil
 }
 
-func (a *Auctioneer) runStopAuction(stopAuction models.LRPStopAuction) {
-	a.logger.Debugd(map[string]interface{}{
-		"stop-auction": stopAuction,
-	}, "auctioneer.run-stop-auction.received-auction")
+func (a *Auctioneer) runStopAuction(stopAuction models.LRPStopAuction, logger lager.Logger) {
+	logger.Debug("received")
 
 	//claim
 	err := a.bbs.ClaimLRPStopAuction(stopAuction)
 	if err != nil {
-		a.logger.Debugd(map[string]interface{}{
-			"stop-auction": stopAuction,
-		}, "auctioneer.run-stop-auction.failed-to-claim-auction")
+		logger.Debug("failed-to-claim", lager.Data{"error": err.Error()})
 		return
 	}
+
 	defer a.bbs.ResolveLRPStopAuction(stopAuction)
 
 	executorGuids, err := a.getExecutors()
 	if err != nil {
-		a.logger.Errord(map[string]interface{}{
-			"stop-auction": stopAuction,
-			"error":        err.Error(),
-		}, "auctioneer.run-stop-auction.failed-to-get-executors")
+		logger.Error("failed-to-get-executors", err)
 		return
 	}
+
 	if len(executorGuids) == 0 {
-		a.logger.Errord(map[string]interface{}{
-			"stop-auction": stopAuction,
-		}, "auctioneer.run-stop-auction.no-available-executors-found")
+		logger.Error("no-available-executors", nil)
 		return
 	}
 
 	//perform auction
-	a.logger.Infod(map[string]interface{}{
-		"stop-auction": stopAuction,
-	}, "auctioneer.run-stop-auction.performing-auction")
+	logger.Info("perform")
 
 	request := auctiontypes.StopAuctionRequest{
 		LRPStopAuction: stopAuction,
@@ -256,10 +244,7 @@ func (a *Auctioneer) runStopAuction(stopAuction models.LRPStopAuction) {
 	_, err = a.runner.RunLRPStopAuction(request)
 
 	if err != nil {
-		a.logger.Errord(map[string]interface{}{
-			"stop-auction": stopAuction,
-			"error":        err.Error(),
-		}, "auctioneer.run-stop-auction.auction-failed")
+		logger.Error("auction-failed", err)
 		return
 	}
 }

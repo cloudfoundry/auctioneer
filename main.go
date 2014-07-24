@@ -6,8 +6,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cloudfoundry-incubator/cf-lager"
 	Bbs "github.com/cloudfoundry-incubator/runtime-schema/bbs"
 	steno "github.com/cloudfoundry/gosteno"
+	"github.com/pivotal-golang/lager"
 
 	"github.com/cloudfoundry-incubator/auction/auctionrunner"
 	"github.com/cloudfoundry-incubator/auction/communication/nats/auction_nats_client"
@@ -83,9 +85,9 @@ var lockInterval = flag.Duration(
 func main() {
 	flag.Parse()
 
-	logger := initializeLogger()
+	logger := cf_lager.New("auctioneer")
 	natsClient := initializeNatsClient(logger)
-	bbs := initializeBbs(logger)
+	bbs := initializeBbs(initializeStenoLogger())
 	auctioneer := initializeAuctioneer(bbs, natsClient, logger)
 
 	process := ifrit.Envoke(auctioneer)
@@ -95,24 +97,24 @@ func main() {
 
 	err := <-monitor.Wait()
 	if err != nil {
-		logger.Errord(map[string]interface{}{
-			"error": err.Error(),
-		}, "auctioneer.exited")
+		logger.Error("exited-with-failure", err)
 		os.Exit(1)
 	}
+
 	logger.Info("auctioneer.exited")
 }
 
-func initializeAuctioneer(bbs Bbs.AuctioneerBBS, natsClient yagnats.NATSClient, logger *steno.Logger) *auctioneer.Auctioneer {
+func initializeAuctioneer(bbs Bbs.AuctioneerBBS, natsClient yagnats.NATSClient, logger lager.Logger) *auctioneer.Auctioneer {
 	client, err := auction_nats_client.New(natsClient, *auctionNATSTimeout, *auctionRunTimeout, logger)
 	if err != nil {
-		logger.Fatalf("Error creating rep nats client: %s\n", err)
+		logger.Fatal("failed-to-create-auctioneer-nats-client", err)
 	}
+
 	runner := auctionrunner.New(client)
 	return auctioneer.New(bbs, runner, *maxConcurrent, *maxRounds, *lockInterval, logger)
 }
 
-func initializeLogger() *steno.Logger {
+func initializeStenoLogger() *steno.Logger {
 	stenoConfig := &steno.Config{
 		Sinks: []steno.Sink{
 			steno.NewIOSink(os.Stdout),
@@ -128,7 +130,7 @@ func initializeLogger() *steno.Logger {
 	return steno.NewLogger("Auctioneer")
 }
 
-func initializeNatsClient(logger *steno.Logger) yagnats.NATSClient {
+func initializeNatsClient(logger lager.Logger) yagnats.NATSClient {
 	natsClient := yagnats.NewClient()
 
 	natsMembers := []yagnats.ConnectionProvider{}
@@ -148,7 +150,7 @@ func initializeNatsClient(logger *steno.Logger) yagnats.NATSClient {
 	})
 
 	if err != nil {
-		logger.Fatalf("Error connecting to NATS: %s\n", err)
+		logger.Fatal("failed-to-connect-to-nats", err)
 	}
 
 	return natsClient

@@ -18,6 +18,8 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
+	"github.com/pivotal-golang/lager"
+	"github.com/pivotal-golang/lager/lagertest"
 
 	"testing"
 	"time"
@@ -41,7 +43,7 @@ var natsRunner *natsrunner.NATSRunner
 var store storeadapter.StoreAdapter
 var bbs *Bbs.BBS
 var repClient *auction_nats_client.AuctionNATSClient
-var logger *gosteno.Logger
+var logger lager.Logger
 
 func TestIntegration(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -70,9 +72,11 @@ var _ = BeforeSuite(func() {
 		Sinks: []gosteno.Sink{logSink},
 	})
 
-	logger = gosteno.NewLogger("the-logger")
+	logger = lagertest.NewTestLogger("test")
+
 	gosteno.EnterTestMode()
-	bbs = Bbs.NewBBS(store, timeprovider.NewTimeProvider(), logger)
+
+	bbs = Bbs.NewBBS(store, timeprovider.NewTimeProvider(), gosteno.NewLogger("the-logger"))
 
 	runner = auctioneer_runner.New(
 		auctioneerPath,

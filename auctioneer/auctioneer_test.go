@@ -12,11 +12,12 @@ import (
 	. "github.com/cloudfoundry-incubator/auctioneer/auctioneer"
 	"github.com/cloudfoundry-incubator/runtime-schema/bbs/fake_bbs"
 	"github.com/cloudfoundry-incubator/runtime-schema/models"
-	steno "github.com/cloudfoundry/gosteno"
+	"github.com/pivotal-golang/lager/lagertest"
 	"github.com/tedsuo/ifrit"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
 )
 
 const MAX_AUCTION_ROUNDS_FOR_TEST = 10
@@ -30,13 +31,13 @@ var _ = Describe("Auctioneer", func() {
 		firstExecutor  models.ExecutorPresence
 		secondExecutor models.ExecutorPresence
 		thirdExecutor  models.ExecutorPresence
-		logger         *steno.Logger
+		logger         *lagertest.TestLogger
 		startAuction   models.LRPStartAuction
 		stopAuction    models.LRPStopAuction
 	)
 
 	BeforeEach(func() {
-		logger = steno.NewLogger("auctioneer")
+		logger = lagertest.NewTestLogger("test")
 		bbs = fake_bbs.NewFakeAuctioneerBBS()
 
 		firstExecutor = models.ExecutorPresence{
@@ -273,9 +274,7 @@ var _ = Describe("Auctioneer", func() {
 					It("should log that the auction failed and nontheless resolve the auction", func() {
 						Eventually(bbs.GetResolvedLRPStartAuction).Should(Equal(startAuction))
 
-						sink := steno.GetMeTheGlobalTestSink()
-						records := sink.Records()
-						Ω(records[len(records)-1].Message).Should(Equal("auctioneer.run-start-auction.auction-failed"))
+						Ω(logger.TestSink.Buffer).Should(gbytes.Say("auction-failed"))
 					})
 				})
 			})
@@ -427,9 +426,7 @@ var _ = Describe("Auctioneer", func() {
 					It("should log that the auction failed and nontheless resolve the auction", func() {
 						Eventually(bbs.GetResolvedLRPStopAuction).Should(Equal(stopAuction))
 
-						sink := steno.GetMeTheGlobalTestSink()
-						records := sink.Records()
-						Ω(records[len(records)-1].Message).Should(Equal("auctioneer.run-stop-auction.auction-failed"))
+						Ω(logger.TestSink.Buffer).Should(gbytes.Say("auction-failed"))
 					})
 				})
 			})
