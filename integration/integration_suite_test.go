@@ -23,8 +23,6 @@ import (
 
 	"testing"
 	"time"
-
-	"github.com/cloudfoundry/gosteno"
 )
 
 var auctioneerPath string
@@ -66,17 +64,9 @@ var _ = BeforeSuite(func() {
 
 	store = etcdRunner.Adapter()
 
-	logSink := gosteno.NewTestingSink()
-
-	gosteno.Init(&gosteno.Config{
-		Sinks: []gosteno.Sink{logSink},
-	})
-
 	logger = lagertest.NewTestLogger("test")
 
-	gosteno.EnterTestMode()
-
-	bbs = Bbs.NewBBS(store, timeprovider.NewTimeProvider(), gosteno.NewLogger("the-logger"))
+	bbs = Bbs.NewBBS(store, timeprovider.NewTimeProvider(), logger)
 
 	runner = auctioneer_runner.New(
 		auctioneerPath,

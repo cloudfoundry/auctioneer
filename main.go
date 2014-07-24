@@ -8,7 +8,6 @@ import (
 
 	"github.com/cloudfoundry-incubator/cf-lager"
 	Bbs "github.com/cloudfoundry-incubator/runtime-schema/bbs"
-	steno "github.com/cloudfoundry/gosteno"
 	"github.com/pivotal-golang/lager"
 
 	"github.com/cloudfoundry-incubator/auction/auctionrunner"
@@ -87,7 +86,7 @@ func main() {
 
 	logger := cf_lager.New("auctioneer")
 	natsClient := initializeNatsClient(logger)
-	bbs := initializeBbs(initializeStenoLogger())
+	bbs := initializeBbs(logger)
 	auctioneer := initializeAuctioneer(bbs, natsClient, logger)
 
 	process := ifrit.Envoke(auctioneer)
@@ -112,22 +111,6 @@ func initializeAuctioneer(bbs Bbs.AuctioneerBBS, natsClient yagnats.NATSClient, 
 
 	runner := auctionrunner.New(client)
 	return auctioneer.New(bbs, runner, *maxConcurrent, *maxRounds, *lockInterval, logger)
-}
-
-func initializeStenoLogger() *steno.Logger {
-	stenoConfig := &steno.Config{
-		Sinks: []steno.Sink{
-			steno.NewIOSink(os.Stdout),
-		},
-	}
-
-	if *syslogName != "" {
-		stenoConfig.Sinks = append(stenoConfig.Sinks, steno.NewSyslogSink(*syslogName))
-	}
-
-	steno.Init(stenoConfig)
-
-	return steno.NewLogger("Auctioneer")
 }
 
 func initializeNatsClient(logger lager.Logger) yagnats.NATSClient {
@@ -156,7 +139,7 @@ func initializeNatsClient(logger lager.Logger) yagnats.NATSClient {
 	return natsClient
 }
 
-func initializeBbs(logger *steno.Logger) Bbs.AuctioneerBBS {
+func initializeBbs(logger lager.Logger) Bbs.AuctioneerBBS {
 	etcdAdapter := etcdstoreadapter.NewETCDStoreAdapter(
 		strings.Split(*etcdCluster, ","),
 		workerpool.NewWorkerPool(10),
@@ -164,7 +147,7 @@ func initializeBbs(logger *steno.Logger) Bbs.AuctioneerBBS {
 
 	err := etcdAdapter.Connect()
 	if err != nil {
-		logger.Fatalf("Error connecting to etcd: %s\n", err)
+		logger.Fatal("failed-to-connect-to-etcd", err)
 	}
 
 	return Bbs.NewAuctioneerBBS(etcdAdapter, timeprovider.NewTimeProvider(), logger)
