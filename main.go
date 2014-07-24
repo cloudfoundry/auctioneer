@@ -45,12 +45,6 @@ var natsPassword = flag.String(
 	"Password for nats user",
 )
 
-var syslogName = flag.String(
-	"syslogName",
-	"",
-	"syslog name",
-)
-
 var maxConcurrent = flag.Int(
 	"maxConcurrent",
 	20,
