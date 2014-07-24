@@ -109,7 +109,7 @@ func (s CircusTailorConfig) Args() []string {
 	argv := []string{}
 
 	s.FlagSet.VisitAll(func(flag *flag.Flag) {
-		argv = append(argv, fmt.Sprintf("-%s='%s'", flag.Name, *s.values[flag.Name]))
+		argv = append(argv, fmt.Sprintf("-%s=%s", flag.Name, *s.values[flag.Name]))
 	})
 
 	return argv

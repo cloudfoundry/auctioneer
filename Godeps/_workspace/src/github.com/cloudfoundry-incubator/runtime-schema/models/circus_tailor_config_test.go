@@ -1,7 +1,6 @@
 package models_test
 
 import (
-	. "github.com/amitkgupta/match_array_or_slice"
 	. "github.com/cloudfoundry-incubator/runtime-schema/models"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -17,16 +16,16 @@ var _ = Describe("CircusTailorConfig", func() {
 	Context("with defaults", func() {
 		It("generates a script for running its tailor", func() {
 			commandFlags := []string{
-				"-appDir='/app'",
-				"-buildpackOrder='ocaml-buildpack,haskell-buildpack,bash-buildpack'",
-				"-buildpacksDir='/tmp/buildpacks'",
-				"-buildArtifactsCacheDir='/tmp/cache'",
-				"-outputDropletDir='/tmp/droplet'",
-				"-outputMetadataDir='/tmp/result'",
+				"-appDir=/app",
+				"-buildpackOrder=ocaml-buildpack,haskell-buildpack,bash-buildpack",
+				"-buildpacksDir=/tmp/buildpacks",
+				"-buildArtifactsCacheDir=/tmp/cache",
+				"-outputDropletDir=/tmp/droplet",
+				"-outputMetadataDir=/tmp/result",
 			}
 
 			Ω(tailorConfig.Path()).Should(Equal("/tmp/circus/tailor"))
-			Ω(tailorConfig.Args()).Should(MatchArrayOrSlice(commandFlags))
+			Ω(tailorConfig.Args()).Should(ConsistOf(commandFlags))
 		})
 	})
 
@@ -41,16 +40,16 @@ var _ = Describe("CircusTailorConfig", func() {
 
 		It("generates a script for running its tailor", func() {
 			commandFlags := []string{
-				"-appDir='/some/app/dir'",
-				"-buildpackOrder='ocaml-buildpack,haskell-buildpack,bash-buildpack'",
-				"-buildpacksDir='/some/buildpacks/dir'",
-				"-buildArtifactsCacheDir='/some/cache/dir'",
-				"-outputDropletDir='/some/droplet/dir'",
-				"-outputMetadataDir='/some/result/dir'",
+				"-appDir=/some/app/dir",
+				"-buildpackOrder=ocaml-buildpack,haskell-buildpack,bash-buildpack",
+				"-buildpacksDir=/some/buildpacks/dir",
+				"-buildArtifactsCacheDir=/some/cache/dir",
+				"-outputDropletDir=/some/droplet/dir",
+				"-outputMetadataDir=/some/result/dir",
 			}
 
 			Ω(tailorConfig.Path()).Should(Equal("/tmp/circus/tailor"))
-			Ω(tailorConfig.Args()).Should(MatchArrayOrSlice(commandFlags))
+			Ω(tailorConfig.Args()).Should(ConsistOf(commandFlags))
 		})
 	})
 
