@@ -17,11 +17,18 @@ var _ = Describe("LRP", func() {
 			lrp = models.DesiredLRP{
 				ProcessGuid: "some-process-guid",
 				Instances:   5,
-				Source:      "http://example.com",
 				Stack:       "some-stack",
 				MemoryMB:    1024,
 				DiskMB:      512,
 				Routes:      []string{"route-1", "route-2"},
+				Actions: []models.ExecutorAction{
+					{
+						Action: models.DownloadAction{
+							From: "http://example.com",
+							To:   "/tmp/internet",
+						},
+					},
+				},
 			}
 		})
 
@@ -143,6 +150,26 @@ var _ = Describe("LRP", func() {
 				})
 			})
 		})
+
+		Describe("RemoveActualLRPForIndex", func() {
+			BeforeEach(func() {
+				bbs.ReportActualLRPAsStarting(lrp, executorID)
+			})
+
+			It("should remove the LRP", func() {
+				err := bbs.RemoveActualLRPForIndex(lrp.ProcessGuid, lrp.Index, lrp.InstanceGuid)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				_, err = etcdClient.Get("/v1/actual/some-process-guid/1/some-instance-guid")
+				Ω(err).Should(MatchError(storeadapter.ErrorKeyNotFound))
+			})
+
+			Context("when the store is out of commission", func() {
+				itRetriesUntilStoreComesBack(func() error {
+					return bbs.RemoveActualLRPForIndex(lrp.ProcessGuid, lrp.Index, lrp.InstanceGuid)
+				})
+			})
+		})
 	})
 
 	Describe("Changing desired LRPs", func() {
@@ -150,9 +177,16 @@ var _ = Describe("LRP", func() {
 
 		prevValue := models.DesiredLRP{
 			ProcessGuid: "some-guid",
-			Source:      "http://example.com",
 			Stack:       "some-stack",
 			Instances:   1,
+			Actions: []models.ExecutorAction{
+				{
+					Action: models.DownloadAction{
+						From: "http://example.com",
+						To:   "/tmp/internet",
+					},
+				},
+			},
 		}
 
 		Context("with a before and after", func() {

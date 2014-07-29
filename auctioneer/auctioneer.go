@@ -165,7 +165,7 @@ func (a *Auctioneer) runStartAuction(startAuction models.LRPStartAuction, logger
 
 	defer a.bbs.ResolveLRPStartAuction(startAuction)
 
-	executorGuids, err := a.getExecutorsforStack(startAuction.Stack)
+	executorGuids, err := a.getExecutorsforStack(startAuction.DesiredLRP.Stack)
 	if err != nil {
 		logger.Error("failed-to-get-executors", err)
 		return

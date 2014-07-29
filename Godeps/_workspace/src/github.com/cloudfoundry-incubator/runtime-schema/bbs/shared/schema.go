@@ -27,7 +27,7 @@ func FileServerSchemaPath(segments ...string) string {
 }
 
 func LRPStartAuctionSchemaPath(lrp models.LRPStartAuction) string {
-	return path.Join(LRPStartAuctionSchemaRoot, lrp.ProcessGuid, strconv.Itoa(lrp.Index))
+	return path.Join(LRPStartAuctionSchemaRoot, lrp.DesiredLRP.ProcessGuid, strconv.Itoa(lrp.Index))
 }
 
 func LRPStopAuctionSchemaPath(lrp models.LRPStopAuction) string {
@@ -42,8 +42,8 @@ func ActualLRPSchemaPathFromStopLRPInstance(stopInstance models.StopLRPInstance)
 	return path.Join(ActualLRPSchemaRoot, stopInstance.ProcessGuid, strconv.Itoa(stopInstance.Index), stopInstance.InstanceGuid)
 }
 
-func ActualLRPSchemaPath(lrp models.ActualLRP) string {
-	return path.Join(ActualLRPSchemaRoot, lrp.ProcessGuid, strconv.Itoa(lrp.Index), lrp.InstanceGuid)
+func ActualLRPSchemaPath(processGuid string, index int, instanceGuid string) string {
+	return path.Join(ActualLRPSchemaRoot, processGuid, strconv.Itoa(index), instanceGuid)
 }
 
 func DesiredLRPSchemaPath(lrp models.DesiredLRP) string {

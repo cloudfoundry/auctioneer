@@ -64,8 +64,10 @@ var _ = Describe("Auctioneer", func() {
 		bbs.Unlock()
 
 		startAuction = models.LRPStartAuction{
-			ProcessGuid: "my-guid",
-			Stack:       "lucid64",
+			DesiredLRP: models.DesiredLRP{
+				ProcessGuid: "my-guid",
+				Stack:       "lucid64",
+			},
 		}
 
 		stopAuction = models.LRPStopAuction{
@@ -296,8 +298,10 @@ var _ = Describe("Auctioneer", func() {
 			Context("when there are no reps that match the desired stack", func() {
 				BeforeEach(func(done Done) {
 					startAuction = models.LRPStartAuction{
-						ProcessGuid: "my-guid",
-						Stack:       "monkey-bunnies",
+						DesiredLRP: models.DesiredLRP{
+							ProcessGuid: "my-guid",
+							Stack:       "monkey-bunnies",
+						},
 					}
 					bbs.LRPStartAuctionChan <- startAuction
 
@@ -335,16 +339,22 @@ var _ = Describe("Auctioneer", func() {
 			process = ifrit.Envoke(auctioneer)
 
 			startAuction1 = models.LRPStartAuction{
-				ProcessGuid: "my-guid-1",
-				Stack:       "lucid64",
+				DesiredLRP: models.DesiredLRP{
+					ProcessGuid: "my-guid-1",
+					Stack:       "lucid64",
+				},
 			}
 			startAuction2 = models.LRPStartAuction{
-				ProcessGuid: "my-guid-2",
-				Stack:       "lucid64",
+				DesiredLRP: models.DesiredLRP{
+					ProcessGuid: "my-guid-2",
+					Stack:       "lucid64",
+				},
 			}
 			startAuction3 = models.LRPStartAuction{
-				ProcessGuid: "my-guid-3",
-				Stack:       "lucid64",
+				DesiredLRP: models.DesiredLRP{
+					ProcessGuid: "my-guid-3",
+					Stack:       "lucid64",
+				},
 			}
 		})
 
