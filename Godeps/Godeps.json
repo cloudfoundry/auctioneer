@@ -7,19 +7,19 @@
 	"Deps": [
 		{
 			"ImportPath": "github.com/cloudfoundry-incubator/auction/auctionrunner",
-			"Rev": "6b557c5533915fb6c721932974008c62524a8eca"
+			"Rev": "0327579e8a3d5960b90cb14667eb5ed14a9d36ea"
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry-incubator/auction/auctiontypes",
-			"Rev": "6b557c5533915fb6c721932974008c62524a8eca"
+			"Rev": "0327579e8a3d5960b90cb14667eb5ed14a9d36ea"
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry-incubator/auction/communication/nats",
-			"Rev": "6b557c5533915fb6c721932974008c62524a8eca"
+			"Rev": "0327579e8a3d5960b90cb14667eb5ed14a9d36ea"
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry-incubator/auction/util",
-			"Rev": "6b557c5533915fb6c721932974008c62524a8eca"
+			"Rev": "0327579e8a3d5960b90cb14667eb5ed14a9d36ea"
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry-incubator/cf-lager",
@@ -64,16 +64,16 @@
 		},
 		{
 			"ImportPath": "github.com/onsi/ginkgo",
-			"Comment": "v1.0.0-26-g34294d5",
-			"Rev": "34294d53b098180c6e983307c0439a6b30a16b43"
+			"Comment": "v1.0.0-28-g6481765",
+			"Rev": "6481765dda39cbaae281109e6945449642329197"
 		},
 		{
 			"ImportPath": "github.com/onsi/gomega",
-			"Rev": "28e5ce936abc528d8c6b5eb3dd5689e7e81e9272"
+			"Rev": "4699d5a664396173c7d9fcef9e88be297c7bae13"
 		},
 		{
 			"ImportPath": "github.com/pivotal-golang/lager",
-			"Rev": "e8822eb6379ecd32065776bd84139100cffa5563"
+			"Rev": "4a7f4216b220966ac3500c9ff297aeae68278a45"
 		},
 		{
 			"ImportPath": "github.com/tedsuo/ifrit",
