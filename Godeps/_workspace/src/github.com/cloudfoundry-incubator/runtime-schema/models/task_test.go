@@ -3,6 +3,7 @@ package models_test
 import (
 	"time"
 
+	"github.com/fraenkel/candiedyaml"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -41,7 +42,7 @@ var _ = Describe("Task", func() {
 		"created_at": 1393371971000000000,
 		"updated_at": 1393371971000000010,
 		"state": 1,
-		"type": "Staging",
+		"domain": "some-domain",
 		"annotation": "[{\"anything\": \"you want!\"}]... dude"
 	}`
 
@@ -74,7 +75,7 @@ var _ = Describe("Task", func() {
 			CreatedAt:       time.Date(2014, time.February, 25, 23, 46, 11, 00, time.UTC).UnixNano(),
 			UpdatedAt:       time.Date(2014, time.February, 25, 23, 46, 11, 10, time.UTC).UnixNano(),
 			State:           TaskStatePending,
-			Type:            TaskTypeStaging,
+			Domain:          "some-domain",
 			Annotation:      `[{"anything": "you want!"}]... dude`,
 		}
 	})
@@ -122,5 +123,25 @@ var _ = Describe("Task", func() {
 			})
 		}
 
+	})
+
+	Describe("StagingInfo", func() {
+		Context("when yaml", func() {
+			stagingYAML := `---
+detected_buildpack: yaml-buildpack
+start_command: yaml-ize -d`
+
+			It("exposes an extracted `detected_buildpack` property", func() {
+				var stagingInfo StagingInfo
+
+				err := candiedyaml.Unmarshal([]byte(stagingYAML), &stagingInfo)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				Ω(stagingInfo).Should(Equal(StagingInfo{
+					DetectedBuildpack:    "yaml-buildpack",
+					DetectedStartCommand: "yaml-ize -d",
+				}))
+			})
+		})
 	})
 })
