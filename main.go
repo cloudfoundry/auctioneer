@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cloudfoundry-incubator/cf-debug-server"
 	"github.com/cloudfoundry-incubator/cf-lager"
 	Bbs "github.com/cloudfoundry-incubator/runtime-schema/bbs"
 	"github.com/pivotal-golang/lager"
@@ -82,6 +83,8 @@ func main() {
 	natsClient := initializeNatsClient(logger)
 	bbs := initializeBbs(logger)
 	auctioneer := initializeAuctioneer(bbs, natsClient, logger)
+
+	cf_debug_server.Run()
 
 	process := ifrit.Envoke(auctioneer)
 	logger.Info("auctioneer.started")
