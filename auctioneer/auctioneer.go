@@ -117,10 +117,12 @@ func (a *Auctioneer) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 		case err := <-startErrorChan:
 			a.logger.Error("watching-start-auctions-failed", err)
 			startAuctionChan = nil
+			startErrorChan = nil
 
 		case err := <-stopErrorChan:
 			a.logger.Error("watching-stop-auctions-failed", err)
 			stopAuctionChan = nil
+			stopErrorChan = nil
 
 		case sig := <-signals:
 			if a.shouldStop(sig) {
@@ -128,14 +130,17 @@ func (a *Auctioneer) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 				stoppedMaintainingLockChan := make(chan bool)
 				stopMaintainingLockChan <- stoppedMaintainingLockChan
 				<-stoppedMaintainingLockChan
+
 				if cancelStartWatchChan != nil {
 					a.logger.Info("stopping-start-watch")
 					close(cancelStartWatchChan)
 				}
+
 				if cancelStopWatchChan != nil {
 					a.logger.Info("stopping-stop-watch")
 					close(cancelStopWatchChan)
 				}
+
 				return nil
 			}
 		}
