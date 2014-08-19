@@ -103,9 +103,9 @@ func main() {
 		{"auctioneer", auctioneer},
 	})
 
-	logger.Info("auctioneer.started")
-
 	monitor := ifrit.Envoke(sigmon.New(group))
+
+	logger.Info("started")
 
 	err = <-monitor.Wait()
 	if err != nil {
@@ -113,7 +113,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	logger.Info("auctioneer.exited")
+	logger.Info("exited")
 }
 
 func initializeAuctioneer(bbs Bbs.AuctioneerBBS, natsClient yagnats.NATSClient, logger lager.Logger) *auctioneer.Auctioneer {
