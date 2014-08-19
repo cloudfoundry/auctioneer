@@ -38,7 +38,7 @@ var natsPort, etcdPort int
 var runner *auctioneer_runner.AuctioneerRunner
 var etcdRunner *etcdstorerunner.ETCDClusterRunner
 var natsRunner *natsrunner.NATSRunner
-var store storeadapter.StoreAdapter
+var etcdClient storeadapter.StoreAdapter
 var bbs *Bbs.BBS
 var repClient *auction_nats_client.AuctionNATSClient
 var logger lager.Logger
@@ -62,11 +62,11 @@ var _ = BeforeSuite(func() {
 	etcdRunner = etcdstorerunner.NewETCDClusterRunner(etcdPort, 1)
 	natsRunner = natsrunner.NewNATSRunner(natsPort)
 
-	store = etcdRunner.Adapter()
+	etcdClient = etcdRunner.Adapter()
 
 	logger = lagertest.NewTestLogger("test")
 
-	bbs = Bbs.NewBBS(store, timeprovider.NewTimeProvider(), logger)
+	bbs = Bbs.NewBBS(etcdClient, timeprovider.NewTimeProvider(), logger)
 
 	runner = auctioneer_runner.New(
 		auctioneerPath,
@@ -78,7 +78,6 @@ var _ = BeforeSuite(func() {
 var _ = BeforeEach(func() {
 	etcdRunner.Start()
 	natsRunner.Start()
-	runner.Start(10)
 
 	var err error
 

@@ -39,6 +39,7 @@ func (r *AuctioneerRunner) StartWithoutCheck(maxRounds int) {
 			"-etcdCluster", strings.Join(r.etcdCluster, ","),
 			"-natsAddresses", strings.Join(r.natsCluster, ","),
 			"-maxRounds", strconv.Itoa(maxRounds),
+			"-lockInterval", "1s",
 		),
 		gexec.NewPrefixedWriter("\x1b[32m[o]\x1b[93m[auctioneer]\x1b[0m ", ginkgo.GinkgoWriter),
 		gexec.NewPrefixedWriter("\x1b[91m[e]\x1b[93m[auctioneer]\x1b[0m ", ginkgo.GinkgoWriter),
