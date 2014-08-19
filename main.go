@@ -98,14 +98,14 @@ func main() {
 		logger.Fatal("Couldn't generate uuid", err)
 	}
 
-	process := ifrit.Envoke(group_runner.New([]group_runner.Member{
+	group := group_runner.New([]group_runner.Member{
 		{"heartbeater", heartbeater.New(etcdClient, shared.LockSchemaPath("auctioneer_lock"), uuid.String(), *lockInterval, logger)},
 		{"auctioneer", auctioneer},
-	}))
+	})
 
 	logger.Info("auctioneer.started")
 
-	monitor := ifrit.Envoke(sigmon.New(process))
+	monitor := ifrit.Envoke(sigmon.New(group))
 
 	err = <-monitor.Wait()
 	if err != nil {
