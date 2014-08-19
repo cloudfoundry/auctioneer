@@ -37,6 +37,7 @@ var _ = Describe("Convergence of Tasks", func() {
 		timeProvider = faketimeprovider.New(time.Unix(1238, 0))
 
 		task = models.Task{
+			Domain:  "tests",
 			Guid:    "some-guid",
 			Stack:   "pancakes",
 			Actions: dummyActions,
@@ -153,25 +154,6 @@ var _ = Describe("Convergence of Tasks", func() {
 
 				Consistently(desiredEvents).ShouldNot(Receive())
 				Consistently(completedEvents).ShouldNot(Receive())
-			})
-
-			Context("when the run once has been claimed for > 30 seconds", func() {
-				It("should mark the Task as pending", func() {
-					timeProvider.IncrementBySeconds(convergenceIntervalInSeconds)
-					commenceWatching()
-
-					bbs.ConvergeTask(timeToClaim, convergenceInterval)
-
-					Consistently(completedEvents).ShouldNot(Receive())
-
-					var noticedOnce models.Task
-					Eventually(desiredEvents).Should(Receive(&noticedOnce))
-
-					Ω(noticedOnce.Guid).Should(Equal(task.Guid))
-					Ω(noticedOnce.State).Should(Equal(models.TaskStatePending))
-					Ω(noticedOnce.UpdatedAt).Should(Equal(timeProvider.Time().UnixNano()))
-					Ω(noticedOnce.ExecutorID).Should(BeEmpty())
-				})
 			})
 
 			Context("when the associated executor is missing", func() {

@@ -1,6 +1,6 @@
 {
 	"ImportPath": "github.com/cloudfoundry-incubator/auctioneer",
-	"GoVersion": "go1.3",
+	"GoVersion": "go1.3.1",
 	"Packages": [
 		"./..."
 	],
@@ -27,7 +27,7 @@
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry-incubator/cf-lager",
-			"Rev": "c88fc2b60504c2feb0a40435d505cf21d9cd58d3"
+			"Rev": "e28b8c12c6771eefcfef8654002dc513f42eb673"
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry-incubator/delta_force/delta_force",
@@ -35,27 +35,35 @@
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry-incubator/runtime-schema/bbs",
-			"Rev": "1173a9196e65cbc57d643242cbb0da9391bc1b08"
+			"Rev": "ab0a2903cc6204e2df53c7812bbdaa1d0305f1e2"
+		},
+		{
+			"ImportPath": "github.com/cloudfoundry-incubator/runtime-schema/heartbeater",
+			"Rev": "ab0a2903cc6204e2df53c7812bbdaa1d0305f1e2"
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry-incubator/runtime-schema/models",
-			"Rev": "1173a9196e65cbc57d643242cbb0da9391bc1b08"
+			"Rev": "ab0a2903cc6204e2df53c7812bbdaa1d0305f1e2"
+		},
+		{
+			"ImportPath": "github.com/cloudfoundry/gunk/group_runner",
+			"Rev": "d3d2d94e738fb19b5ae6504be161fd0eacc3f22d"
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry/gunk/natsrunner",
-			"Rev": "64cdd7421c0413dc87e5fca2b254efbb4e7dd9d0"
+			"Rev": "d3d2d94e738fb19b5ae6504be161fd0eacc3f22d"
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry/gunk/timeprovider",
-			"Rev": "64cdd7421c0413dc87e5fca2b254efbb4e7dd9d0"
+			"Rev": "d3d2d94e738fb19b5ae6504be161fd0eacc3f22d"
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry/storeadapter",
-			"Rev": "a697022fe6e9677a6bb5eae8544de042ba0d7365"
+			"Rev": "652efe1a1fcf3fdb5b08d7474594eb250be6009c"
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry/yagnats",
-			"Rev": "8e98f972ab3eabfb6d44065cd0b30f170d3db794"
+			"Rev": "07171a8863c377fb14a44dee402dff9e1282bc49"
 		},
 		{
 			"ImportPath": "github.com/coreos/go-etcd/etcd",
@@ -68,20 +76,21 @@
 		},
 		{
 			"ImportPath": "github.com/onsi/ginkgo",
-			"Comment": "v1.0.0-28-g6481765",
-			"Rev": "6481765dda39cbaae281109e6945449642329197"
+			"Comment": "v1.1.0-1-g32204a3",
+			"Rev": "32204a3eab0576cbea19f5ff8b27d3a928647ea6"
 		},
 		{
 			"ImportPath": "github.com/onsi/gomega",
-			"Rev": "4699d5a664396173c7d9fcef9e88be297c7bae13"
+			"Comment": "v1.0",
+			"Rev": "a78ae492d53aad5a7a232d0d0462c14c400e3ee7"
 		},
 		{
 			"ImportPath": "github.com/pivotal-golang/lager",
-			"Rev": "4a7f4216b220966ac3500c9ff297aeae68278a45"
+			"Rev": "ada65d2c262ba5474d357bf57bc0f8b8deaa9196"
 		},
 		{
 			"ImportPath": "github.com/tedsuo/ifrit",
-			"Rev": "435f9e78ed02262ec0d1e13a82b5a475c990714a"
+			"Rev": "6f0cbd69e732e9c44be9f3a92b6a398ede3ca611"
 		}
 	]
 }
