@@ -206,6 +206,7 @@ var _ = Describe("Integration", func() {
 			Ω(err).ShouldNot(HaveOccurred())
 
 			runner.StartWithoutCheck(10)
+			time.Sleep(time.Second)
 		})
 
 		Context("and it never gets the lock", func() {

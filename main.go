@@ -9,12 +9,17 @@ import (
 	"github.com/cloudfoundry-incubator/cf-debug-server"
 	"github.com/cloudfoundry-incubator/cf-lager"
 	Bbs "github.com/cloudfoundry-incubator/runtime-schema/bbs"
+	"github.com/cloudfoundry-incubator/runtime-schema/bbs/shared"
+	"github.com/cloudfoundry-incubator/runtime-schema/heartbeater"
+	"github.com/nu7hatch/gouuid"
 	"github.com/pivotal-golang/lager"
 
 	"github.com/cloudfoundry-incubator/auction/auctionrunner"
 	"github.com/cloudfoundry-incubator/auction/communication/nats/auction_nats_client"
 	"github.com/cloudfoundry-incubator/auctioneer/auctioneer"
+	"github.com/cloudfoundry/gunk/group_runner"
 	"github.com/cloudfoundry/gunk/timeprovider"
+	"github.com/cloudfoundry/storeadapter"
 	"github.com/cloudfoundry/storeadapter/etcdstoreadapter"
 	"github.com/cloudfoundry/storeadapter/workerpool"
 	"github.com/cloudfoundry/yagnats"
@@ -81,17 +86,28 @@ func main() {
 
 	logger := cf_lager.New("auctioneer")
 	natsClient := initializeNatsClient(logger)
-	bbs := initializeBbs(logger)
+	etcdClient := initializeStore(logger)
+	bbs := Bbs.NewAuctioneerBBS(etcdClient, timeprovider.NewTimeProvider(), logger)
+
 	auctioneer := initializeAuctioneer(bbs, natsClient, logger)
 
 	cf_debug_server.Run()
 
-	process := ifrit.Envoke(auctioneer)
+	uuid, err := uuid.NewV4()
+	if err != nil {
+		logger.Fatal("Couldn't generate uuid", err)
+	}
+
+	process := ifrit.Envoke(group_runner.New([]group_runner.Member{
+		{"heartbeater", heartbeater.New(etcdClient, shared.LockSchemaPath("auctioneer_lock"), uuid.String(), *lockInterval, logger)},
+		{"auctioneer", auctioneer},
+	}))
+
 	logger.Info("auctioneer.started")
 
 	monitor := ifrit.Envoke(sigmon.New(process))
 
-	err := <-monitor.Wait()
+	err = <-monitor.Wait()
 	if err != nil {
 		logger.Error("exited-with-failure", err)
 		os.Exit(1)
@@ -136,7 +152,7 @@ func initializeNatsClient(logger lager.Logger) yagnats.NATSClient {
 	return natsClient
 }
 
-func initializeBbs(logger lager.Logger) Bbs.AuctioneerBBS {
+func initializeStore(logger lager.Logger) storeadapter.StoreAdapter {
 	etcdAdapter := etcdstoreadapter.NewETCDStoreAdapter(
 		strings.Split(*etcdCluster, ","),
 		workerpool.NewWorkerPool(10),
@@ -147,5 +163,5 @@ func initializeBbs(logger lager.Logger) Bbs.AuctioneerBBS {
 		logger.Fatal("failed-to-connect-to-etcd", err)
 	}
 
-	return Bbs.NewAuctioneerBBS(etcdAdapter, timeprovider.NewTimeProvider(), logger)
+	return etcdAdapter
 }

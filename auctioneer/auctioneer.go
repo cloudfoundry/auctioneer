@@ -7,7 +7,6 @@ import (
 
 	"github.com/cloudfoundry-incubator/auction/auctionrunner"
 	"github.com/cloudfoundry-incubator/auction/auctiontypes"
-	"github.com/nu7hatch/gouuid"
 	"github.com/pivotal-golang/lager"
 
 	Bbs "github.com/cloudfoundry-incubator/runtime-schema/bbs"
@@ -38,16 +37,6 @@ func New(bbs Bbs.AuctioneerBBS, runner auctiontypes.AuctionRunner, maxConcurrent
 }
 
 func (a *Auctioneer) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
-	guid, err := uuid.NewV4()
-	if err != nil {
-		return err
-	}
-
-	haveLockChan, stopMaintainingLockChan, err := a.bbs.MaintainAuctioneerLock(a.lockInterval, guid.String())
-	if err != nil {
-		return err
-	}
-
 	var startAuctionChan <-chan models.LRPStartAuction
 	var startErrorChan <-chan error
 	var cancelStartWatchChan chan<- bool
@@ -57,39 +46,22 @@ func (a *Auctioneer) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 	var cancelStopWatchChan chan<- bool
 
 	for {
+		if startAuctionChan == nil {
+			startAuctionChan, cancelStartWatchChan, startErrorChan = a.bbs.WatchForLRPStartAuction()
+			a.logger.Info("watching-for-start-auctions")
+		}
+
+		if stopAuctionChan == nil {
+			stopAuctionChan, cancelStopWatchChan, stopErrorChan = a.bbs.WatchForLRPStopAuction()
+			a.logger.Info("watching-for-stop-auctions")
+		}
+
+		if ready != nil {
+			close(ready)
+			ready = nil
+		}
+
 		select {
-		case haveLock := <-haveLockChan:
-			a.logger.Info("lock-state", lager.Data{"have-lock": haveLock})
-
-			if haveLock {
-				if startAuctionChan == nil {
-					startAuctionChan, cancelStartWatchChan, startErrorChan = a.bbs.WatchForLRPStartAuction()
-
-					a.logger.Info("watching-for-start-auctions")
-				}
-
-				if stopAuctionChan == nil {
-					stopAuctionChan, cancelStopWatchChan, stopErrorChan = a.bbs.WatchForLRPStopAuction()
-
-					a.logger.Info("watching-for-stop-auctions")
-				}
-
-				if ready != nil {
-					close(ready)
-					ready = nil
-				}
-			} else {
-				if startAuctionChan != nil {
-					close(cancelStartWatchChan)
-					startAuctionChan, cancelStartWatchChan, startErrorChan = nil, nil, nil
-				}
-
-				if stopAuctionChan != nil {
-					close(cancelStopWatchChan)
-					stopAuctionChan, cancelStopWatchChan, stopErrorChan = nil, nil, nil
-				}
-			}
-
 		case startAuction, ok := <-startAuctionChan:
 			if !ok {
 				startAuctionChan = nil
@@ -99,7 +71,6 @@ func (a *Auctioneer) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 			logger := a.logger.Session("start", lager.Data{
 				"start-auction": startAuction,
 			})
-
 			go a.runStartAuction(startAuction, logger)
 
 		case stopAuction, ok := <-stopAuctionChan:
@@ -111,7 +82,6 @@ func (a *Auctioneer) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 			logger := a.logger.Session("stop", lager.Data{
 				"stop-auction": stopAuction,
 			})
-
 			go a.runStopAuction(stopAuction, logger)
 
 		case err := <-startErrorChan:
@@ -126,11 +96,6 @@ func (a *Auctioneer) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 
 		case sig := <-signals:
 			if a.shouldStop(sig) {
-				a.logger.Info("releasing-lock")
-				stoppedMaintainingLockChan := make(chan bool)
-				stopMaintainingLockChan <- stoppedMaintainingLockChan
-				<-stoppedMaintainingLockChan
-
 				if cancelStartWatchChan != nil {
 					a.logger.Info("stopping-start-watch")
 					close(cancelStartWatchChan)
