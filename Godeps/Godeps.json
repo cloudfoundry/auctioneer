@@ -35,15 +35,15 @@
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry-incubator/runtime-schema/bbs",
-			"Rev": "538875d73b153d53c129dbc7085206853785fdf9"
+			"Rev": "290ca505f2ecc164ba4651b1878a4676537544ee"
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry-incubator/runtime-schema/heartbeater",
-			"Rev": "538875d73b153d53c129dbc7085206853785fdf9"
+			"Rev": "290ca505f2ecc164ba4651b1878a4676537544ee"
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry-incubator/runtime-schema/models",
-			"Rev": "538875d73b153d53c129dbc7085206853785fdf9"
+			"Rev": "290ca505f2ecc164ba4651b1878a4676537544ee"
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry/gunk/group_runner",
