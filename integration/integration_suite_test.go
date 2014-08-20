@@ -2,24 +2,24 @@ package integration_test
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 
 	"github.com/cloudfoundry-incubator/auction/communication/nats/auction_nats_client"
 	"github.com/cloudfoundry-incubator/auctioneer/integration/auctioneer_runner"
 	Bbs "github.com/cloudfoundry-incubator/runtime-schema/bbs"
-	"github.com/cloudfoundry-incubator/runtime-schema/bbs/services_bbs"
 	"github.com/cloudfoundry-incubator/runtime-schema/models"
 	"github.com/cloudfoundry/gunk/natsrunner"
 	"github.com/cloudfoundry/gunk/timeprovider"
 	"github.com/cloudfoundry/storeadapter"
 	"github.com/cloudfoundry/storeadapter/storerunner/etcdstorerunner"
-	"github.com/cloudfoundry/storeadapter/test_helpers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	"github.com/pivotal-golang/lager"
 	"github.com/pivotal-golang/lager/lagertest"
+	"github.com/tedsuo/ifrit"
 
 	"testing"
 	"time"
@@ -31,7 +31,7 @@ var simulationRepPath string
 var dotNetRep, lucidRep *gexec.Session
 var dotNetGuid, lucidGuid = "guid-dot-net", "guid-lucid64"
 var dotNetStack, lucidStack = "dot-net", "lucid64"
-var dotNetPresence, lucidPresence services_bbs.Presence
+var dotNetPresence, lucidPresence ifrit.Process
 
 var natsPort, etcdPort int
 
@@ -87,13 +87,11 @@ var _ = BeforeEach(func() {
 	Ω(err).ShouldNot(HaveOccurred())
 })
 
-func startSimulationRep(simulationRepPath, guid string, stack string, natsPort int) (*gexec.Session, services_bbs.Presence) {
-	presence, status, err := bbs.MaintainExecutorPresence(time.Second, models.ExecutorPresence{
+func startSimulationRep(simulationRepPath, guid string, stack string, natsPort int) (*gexec.Session, ifrit.Process) {
+	heartbeater := ifrit.Envoke(bbs.NewExecutorHeartbeat(models.ExecutorPresence{
 		ExecutorID: guid,
 		Stack:      stack,
-	})
-	Ω(err).ShouldNot(HaveOccurred())
-	test_helpers.NewStatusReporter(status).Locked()
+	}, time.Second))
 
 	session, err := gexec.Start(exec.Command(
 		simulationRepPath,
@@ -104,7 +102,7 @@ func startSimulationRep(simulationRepPath, guid string, stack string, natsPort i
 
 	Eventually(session, 5).Should(gbytes.Say("rep node listening"))
 
-	return session, presence
+	return session, heartbeater
 }
 
 var _ = AfterEach(func() {
@@ -113,8 +111,12 @@ var _ = AfterEach(func() {
 	natsRunner.Stop()
 	dotNetRep.Kill().Wait()
 	lucidRep.Kill().Wait()
-	dotNetPresence.Remove()
-	lucidPresence.Remove()
+
+	dotNetPresence.Signal(os.Interrupt)
+	Eventually(dotNetPresence.Wait()).Should(Receive(BeNil()))
+
+	lucidPresence.Signal(os.Interrupt)
+	Eventually(lucidPresence.Wait()).Should(Receive(BeNil()))
 })
 
 var _ = AfterSuite(func() {
