@@ -66,12 +66,6 @@ var auctionNATSTimeout = flag.Duration(
 	"How long the auction will wait to hear back from a request/response nats message",
 )
 
-var auctionRunTimeout = flag.Duration(
-	"runAuctionTimeout",
-	10*time.Second,
-	"How long the auction will wait to hear that the chosen winner has succesfully started the app",
-)
-
 var lockInterval = flag.Duration(
 	"lockInterval",
 	lock_bbs.HEARTBEAT_INTERVAL,
@@ -107,7 +101,7 @@ func main() {
 }
 
 func initializeAuctioneer(bbs Bbs.AuctioneerBBS, natsClient yagnats.NATSClient, logger lager.Logger) *auctioneer.Auctioneer {
-	client, err := auction_nats_client.New(natsClient, *auctionNATSTimeout, *auctionRunTimeout, logger)
+	client, err := auction_nats_client.New(natsClient, *auctionNATSTimeout, logger)
 	if err != nil {
 		logger.Fatal("failed-to-create-auctioneer-nats-client", err)
 	}

@@ -83,7 +83,7 @@ var _ = BeforeEach(func() {
 
 	dotNetRep, dotNetPresence = startSimulationRep(simulationRepPath, dotNetGuid, dotNetStack, natsPort)
 	lucidRep, lucidPresence = startSimulationRep(simulationRepPath, lucidGuid, lucidStack, natsPort)
-	repClient, err = auction_nats_client.New(natsRunner.MessageBus, time.Second, time.Second, logger)
+	repClient, err = auction_nats_client.New(natsRunner.MessageBus, time.Second, logger)
 	Ω(err).ShouldNot(HaveOccurred())
 })
 
