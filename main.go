@@ -10,7 +10,6 @@ import (
 	"github.com/cloudfoundry-incubator/cf-lager"
 	Bbs "github.com/cloudfoundry-incubator/runtime-schema/bbs"
 	"github.com/cloudfoundry-incubator/runtime-schema/bbs/lock_bbs"
-	"github.com/nu7hatch/gouuid"
 	"github.com/pivotal-golang/lager"
 
 	"github.com/cloudfoundry-incubator/auction/auctionrunner"
@@ -90,13 +89,7 @@ func main() {
 
 	cf_debug_server.Run()
 
-	uuid, err := uuid.NewV4()
-	if err != nil {
-		logger.Fatal("Couldn't generate uuid", err)
-	}
-
 	group := group_runner.New([]group_runner.Member{
-		{"heartbeater", bbs.NewAuctioneerLock(uuid.String(), *lockInterval)},
 		{"auctioneer", auctioneer},
 	})
 
@@ -104,7 +97,7 @@ func main() {
 
 	logger.Info("started")
 
-	err = <-monitor.Wait()
+	err := <-monitor.Wait()
 	if err != nil {
 		logger.Error("exited-with-failure", err)
 		os.Exit(1)
