@@ -7,19 +7,19 @@
 	"Deps": [
 		{
 			"ImportPath": "github.com/cloudfoundry-incubator/auction/auctionrunner",
-			"Rev": "59f7fc3323e8013edcfa0e3d8beafda0e49d2362"
+			"Rev": "8c6d309927f0d29dc81c26c9c7e1ebf4884130a2"
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry-incubator/auction/auctiontypes",
-			"Rev": "59f7fc3323e8013edcfa0e3d8beafda0e49d2362"
+			"Rev": "8c6d309927f0d29dc81c26c9c7e1ebf4884130a2"
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry-incubator/auction/communication/nats",
-			"Rev": "59f7fc3323e8013edcfa0e3d8beafda0e49d2362"
+			"Rev": "8c6d309927f0d29dc81c26c9c7e1ebf4884130a2"
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry-incubator/auction/util",
-			"Rev": "59f7fc3323e8013edcfa0e3d8beafda0e49d2362"
+			"Rev": "8c6d309927f0d29dc81c26c9c7e1ebf4884130a2"
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry-incubator/cf-debug-server",

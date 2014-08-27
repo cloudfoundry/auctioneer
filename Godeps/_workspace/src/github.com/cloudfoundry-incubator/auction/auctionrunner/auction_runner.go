@@ -11,10 +11,11 @@ import (
 var AllBiddersFull = errors.New("all the bidders were full")
 
 var DefaultStartAuctionRules = auctiontypes.StartAuctionRules{
-	Algorithm:              "compare_to_percentile",
+	Algorithm:              "all_rebid",
 	MaxRounds:              100,
 	MaxBiddingPoolFraction: 0.2,
 	MinBiddingPool:         10,
+	ComparisonPercentile:   0.2,
 }
 
 type auctionRunner struct {

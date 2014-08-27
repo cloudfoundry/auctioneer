@@ -202,7 +202,7 @@ var _ = Describe("Auctioneer", func() {
 					Ω(request.RepGuids).Should(ContainElement(firstExecutor.ExecutorID))
 					Ω(request.RepGuids).Should(ContainElement(thirdExecutor.ExecutorID))
 					Ω(request.RepGuids).ShouldNot(ContainElement(secondExecutor.ExecutorID))
-					Ω(request.Rules.Algorithm).Should(Equal("compare_to_percentile"))
+					Ω(request.Rules.Algorithm).Should(Equal("all_rebid"))
 					Ω(request.Rules.MaxBiddingPoolFraction).Should(Equal(0.2))
 					Ω(request.Rules.MaxRounds).Should(Equal(MAX_AUCTION_ROUNDS_FOR_TEST))
 				})
