@@ -1,6 +1,7 @@
 package integration_test
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -48,13 +49,30 @@ func TestIntegration(t *testing.T) {
 	RunSpecs(t, "Integration Suite")
 }
 
-var _ = BeforeSuite(func() {
+type BuiltAssets struct {
+	AuctioneerPath    string
+	SimulationRepPath string
+}
+
+var _ = SynchronizedBeforeSuite(func() []byte {
 	var err error
-	auctioneerPath, err = gexec.Build("github.com/cloudfoundry-incubator/auctioneer", "-race")
+	assets := BuiltAssets{}
+	assets.AuctioneerPath, err = gexec.Build("github.com/cloudfoundry-incubator/auctioneer", "-race")
 	Ω(err).ShouldNot(HaveOccurred())
 
-	simulationRepPath, err = gexec.Build("github.com/cloudfoundry-incubator/auction/simulation/repnode")
+	assets.SimulationRepPath, err = gexec.Build("github.com/cloudfoundry-incubator/auction/simulation/repnode")
 	Ω(err).ShouldNot(HaveOccurred())
+
+	marshalledAssets, err := json.Marshal(assets)
+	Ω(err).ShouldNot(HaveOccurred())
+	return marshalledAssets
+}, func(marshalledAssets []byte) {
+	assets := BuiltAssets{}
+	err := json.Unmarshal(marshalledAssets, &assets)
+	Ω(err).ShouldNot(HaveOccurred())
+
+	auctioneerPath = assets.AuctioneerPath
+	simulationRepPath = assets.SimulationRepPath
 
 	etcdPort = 5001 + GinkgoParallelNode()
 	natsPort = 4001 + GinkgoParallelNode()
@@ -119,8 +137,7 @@ var _ = AfterEach(func() {
 	Eventually(lucidPresence.Wait()).Should(Receive(BeNil()))
 })
 
-var _ = AfterSuite(func() {
-	gexec.CleanupBuildArtifacts()
+var _ = SynchronizedAfterSuite(func() {
 	if etcdRunner != nil {
 		etcdRunner.Stop()
 	}
@@ -136,4 +153,6 @@ var _ = AfterSuite(func() {
 	if runner != nil {
 		runner.KillWithFire()
 	}
+}, func() {
+	gexec.CleanupBuildArtifacts()
 })
