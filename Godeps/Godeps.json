@@ -1,10 +1,11 @@
 {
 	"ImportPath": "github.com/cloudfoundry-incubator/auctioneer",
 	"GoVersion": "go1.3.1",
-	"Packages": [
-		"./..."
-	],
 	"Deps": [
+		{
+			"ImportPath": "code.google.com/p/gogoprotobuf/proto",
+			"Rev": "6c980277330804e94257ac7ef70a3adbe1641059"
+		},
 		{
 			"ImportPath": "github.com/cloudfoundry-incubator/auction/auctionrunner",
 			"Rev": "8c6d309927f0d29dc81c26c9c7e1ebf4884130a2"
@@ -46,11 +47,11 @@
 			"Rev": "f3bf350692eaed6efae7ee1074f99d35edc2ff67"
 		},
 		{
-			"ImportPath": "github.com/cloudfoundry/gunk/group_runner",
-			"Rev": "d3d2d94e738fb19b5ae6504be161fd0eacc3f22d"
+			"ImportPath": "github.com/cloudfoundry/dropsonde",
+			"Rev": "745db2c25d3ab992140b84324787377f1c9b618a"
 		},
 		{
-			"ImportPath": "github.com/cloudfoundry/gunk/natsrunner",
+			"ImportPath": "github.com/cloudfoundry/gunk/group_runner",
 			"Rev": "d3d2d94e738fb19b5ae6504be161fd0eacc3f22d"
 		},
 		{
@@ -73,16 +74,6 @@
 		{
 			"ImportPath": "github.com/nu7hatch/gouuid",
 			"Rev": "179d4d0c4d8d407a32af483c2354df1d2c91e6c3"
-		},
-		{
-			"ImportPath": "github.com/onsi/ginkgo",
-			"Comment": "v1.1.0-3-gd79a7e7",
-			"Rev": "d79a7e77e6d3738a0e83e9f6564a1aa1dfcbfeaa"
-		},
-		{
-			"ImportPath": "github.com/onsi/gomega",
-			"Comment": "v1.0",
-			"Rev": "a78ae492d53aad5a7a232d0d0462c14c400e3ee7"
 		},
 		{
 			"ImportPath": "github.com/pivotal-golang/lager",
