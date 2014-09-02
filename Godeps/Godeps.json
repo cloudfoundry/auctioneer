@@ -1,6 +1,9 @@
 {
 	"ImportPath": "github.com/cloudfoundry-incubator/auctioneer",
 	"GoVersion": "go1.3.1",
+	"Packages": [
+		"./..."
+	],
 	"Deps": [
 		{
 			"ImportPath": "code.google.com/p/gogoprotobuf/proto",
@@ -55,6 +58,10 @@
 			"Rev": "d3d2d94e738fb19b5ae6504be161fd0eacc3f22d"
 		},
 		{
+			"ImportPath": "github.com/cloudfoundry/gunk/natsrunner",
+			"Rev": "d3d2d94e738fb19b5ae6504be161fd0eacc3f22d"
+		},
+		{
 			"ImportPath": "github.com/cloudfoundry/gunk/timeprovider",
 			"Rev": "d3d2d94e738fb19b5ae6504be161fd0eacc3f22d"
 		},
@@ -74,6 +81,16 @@
 		{
 			"ImportPath": "github.com/nu7hatch/gouuid",
 			"Rev": "179d4d0c4d8d407a32af483c2354df1d2c91e6c3"
+		},
+		{
+			"ImportPath": "github.com/onsi/ginkgo",
+			"Comment": "v1.1.0-6-g527974d",
+			"Rev": "527974d5873391de9d8a25b761b5fc1382e9279e"
+		},
+		{
+			"ImportPath": "github.com/onsi/gomega",
+			"Comment": "v1.0",
+			"Rev": "a78ae492d53aad5a7a232d0d0462c14c400e3ee7"
 		},
 		{
 			"ImportPath": "github.com/pivotal-golang/lager",
