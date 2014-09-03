@@ -11,19 +11,19 @@
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry-incubator/auction/auctionrunner",
-			"Rev": "8c6d309927f0d29dc81c26c9c7e1ebf4884130a2"
+			"Rev": "0d3b594274569a7d77e7f02572c2f4fac0c250c1"
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry-incubator/auction/auctiontypes",
-			"Rev": "8c6d309927f0d29dc81c26c9c7e1ebf4884130a2"
+			"Rev": "0d3b594274569a7d77e7f02572c2f4fac0c250c1"
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry-incubator/auction/communication/nats",
-			"Rev": "8c6d309927f0d29dc81c26c9c7e1ebf4884130a2"
+			"Rev": "0d3b594274569a7d77e7f02572c2f4fac0c250c1"
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry-incubator/auction/util",
-			"Rev": "8c6d309927f0d29dc81c26c9c7e1ebf4884130a2"
+			"Rev": "0d3b594274569a7d77e7f02572c2f4fac0c250c1"
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry-incubator/cf-debug-server",
@@ -39,15 +39,15 @@
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry-incubator/runtime-schema/bbs",
-			"Rev": "f3bf350692eaed6efae7ee1074f99d35edc2ff67"
+			"Rev": "c08b36cbd586a7ef869c45bb669fd82b159f8504"
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry-incubator/runtime-schema/heartbeater",
-			"Rev": "f3bf350692eaed6efae7ee1074f99d35edc2ff67"
+			"Rev": "c08b36cbd586a7ef869c45bb669fd82b159f8504"
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry-incubator/runtime-schema/models",
-			"Rev": "f3bf350692eaed6efae7ee1074f99d35edc2ff67"
+			"Rev": "c08b36cbd586a7ef869c45bb669fd82b159f8504"
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry/dropsonde",
@@ -55,19 +55,19 @@
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry/gunk/group_runner",
-			"Rev": "d3d2d94e738fb19b5ae6504be161fd0eacc3f22d"
+			"Rev": "48b03ff5d4d966a0954af043646abe60a04f6934"
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry/gunk/natsrunner",
-			"Rev": "d3d2d94e738fb19b5ae6504be161fd0eacc3f22d"
+			"Rev": "48b03ff5d4d966a0954af043646abe60a04f6934"
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry/gunk/timeprovider",
-			"Rev": "d3d2d94e738fb19b5ae6504be161fd0eacc3f22d"
+			"Rev": "48b03ff5d4d966a0954af043646abe60a04f6934"
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry/storeadapter",
-			"Rev": "652efe1a1fcf3fdb5b08d7474594eb250be6009c"
+			"Rev": "e10c6142b2e0f06521f41dec4612ff468d79abf2"
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry/yagnats",
@@ -98,7 +98,7 @@
 		},
 		{
 			"ImportPath": "github.com/tedsuo/ifrit",
-			"Rev": "0addc90d7dcebcf87ef0fc89240c58bd1c475d8f"
+			"Rev": "8084b96f4d9e395019d2208322e062bbf3046378"
 		}
 	]
 }
