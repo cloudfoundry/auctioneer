@@ -3,26 +3,24 @@
 
 set -e -x
 
-FIRST_GOPATH=$PWD/Godeps/_workspace
-export GOPATH=$FIRST_GOPATH:$GOPATH
-
-mkdir -p $FIRST_GOPATH/bin
-export PATH=$FIRST_GOPATH/bin:$PATH
+export PATH=$GOPATH/bin:$PATH
 
 # lock down etcd to SHA in diego-release/src/etcd
 # since latest code is very broken
 # See: https://github.com/coreos/etcd/issues/986
-mkdir -p $FIRST_GOPATH/src/github.com/coreos/etcd
-pushd $FIRST_GOPATH/src/github.com/coreos/etcd
+mkdir -p $GOPATH/src/github.com/coreos/etcd
+pushd $GOPATH/src/github.com/coreos/etcd
   git clone https://github.com/coreos/etcd.git . || true
   git checkout 0a2384bf4daec35a814244dc4d885e14f18b5ef1
   go install .
 popd
-
 go get -u github.com/apcera/gnatsd
+
 go get github.com/dustin/goveralls
 go get code.google.com/p/go.tools/cmd/cover
 go install github.com/onsi/ginkgo/ginkgo
+
+go get -t -v ./...
 
 ginkgo -cover -r -failOnPending -randomizeAllSpecs -race -trace -skipPackage=integration "$@"
 ginkgo -failOnPending -randomizeAllSpecs -trace -race integration
