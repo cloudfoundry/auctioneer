@@ -6,6 +6,8 @@ set -e -x
 FIRST_GOPATH=`echo $GOPATH | cut -d':' -f1`
 export PATH=$FIRST_GOPATH/bin:$PATH
 
+go get -t -v ./...
+
 # lock down etcd to SHA in diego-release/src/etcd
 # since latest code is very broken
 # See: https://github.com/coreos/etcd/issues/986
@@ -22,7 +24,6 @@ go get github.com/dustin/goveralls
 go get code.google.com/p/go.tools/cmd/cover
 go install github.com/onsi/ginkgo/ginkgo
 
-go get -t -v ./...
 
 ginkgo -cover -r -failOnPending -randomizeAllSpecs -race -trace -skipPackage=integration "$@"
 ginkgo -failOnPending -randomizeAllSpecs -trace -race integration
