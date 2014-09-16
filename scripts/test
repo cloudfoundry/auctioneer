@@ -3,27 +3,25 @@
 
 set -e -x
 
-FIRST_GOPATH=`echo $GOPATH | cut -d':' -f1`
-export PATH=$FIRST_GOPATH/bin:$PATH
-
+# Get code and test-code depdendencies
 go get -t -v ./...
 
-# lock down etcd to SHA in diego-release/src/etcd
-# since latest code is very broken
-# See: https://github.com/coreos/etcd/issues/986
+# Get and install runtime and test-runtime depdendencies
+## Special note: lock down etcd since latest code is very broken
+## See: https://github.com/coreos/etcd/issues/986
+FIRST_GOPATH=`echo $GOPATH | cut -d':' -f1`
+export PATH=$FIRST_GOPATH/bin:$PATH
 mkdir -p $FIRST_GOPATH/src/github.com/coreos/etcd
 pushd $FIRST_GOPATH/src/github.com/coreos/etcd
   git clone https://github.com/coreos/etcd.git . || true
   git checkout 0a2384bf4daec35a814244dc4d885e14f18b5ef1
-  go get -v ./... || true
   go install .
 popd
 go get -u github.com/apcera/gnatsd
-
 go get github.com/dustin/goveralls
 go get code.google.com/p/go.tools/cmd/cover
 go install github.com/onsi/ginkgo/ginkgo
 
-
+# Run tests
 ginkgo -cover -r -failOnPending -randomizeAllSpecs -race -trace -skipPackage=integration "$@"
 ginkgo -failOnPending -randomizeAllSpecs -trace -race integration
