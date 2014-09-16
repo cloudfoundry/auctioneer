@@ -12,6 +12,7 @@ mkdir -p $GOPATH/src/github.com/coreos/etcd
 pushd $GOPATH/src/github.com/coreos/etcd
   git clone https://github.com/coreos/etcd.git . || true
   git checkout 0a2384bf4daec35a814244dc4d885e14f18b5ef1
+  go get -v ./...
   go install .
 popd
 go get -u github.com/apcera/gnatsd
