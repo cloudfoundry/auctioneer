@@ -1,0 +1,12 @@
+mode: atomic
+github.com/cloudfoundry-incubator/runtime-schema/bbs/bbs.go:157.117,159.2 1 1
+github.com/cloudfoundry-incubator/runtime-schema/bbs/bbs.go:161.129,163.2 1 1
+github.com/cloudfoundry-incubator/runtime-schema/bbs/bbs.go:165.121,167.2 1 1
+github.com/cloudfoundry-incubator/runtime-schema/bbs/bbs.go:169.131,171.2 1 1
+github.com/cloudfoundry-incubator/runtime-schema/bbs/bbs.go:173.123,175.2 1 1
+github.com/cloudfoundry-incubator/runtime-schema/bbs/bbs.go:177.125,179.2 1 1
+github.com/cloudfoundry-incubator/runtime-schema/bbs/bbs.go:181.131,183.2 1 1
+github.com/cloudfoundry-incubator/runtime-schema/bbs/bbs.go:185.135,187.2 1 1
+github.com/cloudfoundry-incubator/runtime-schema/bbs/bbs.go:189.117,191.2 1 1
+github.com/cloudfoundry-incubator/runtime-schema/bbs/bbs.go:193.125,195.2 1 1
+github.com/cloudfoundry-incubator/runtime-schema/bbs/bbs.go:197.112,206.2 1 11
