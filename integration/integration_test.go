@@ -52,7 +52,7 @@ var _ = Describe("Integration", func() {
 		It("should start the app running on reps of the appropriate stack", func() {
 			Eventually(func() interface{} {
 				return repClient.SimulatedInstances(lucidGuid)
-			}, 1).Should(HaveLen(2))
+			}).Should(HaveLen(2))
 
 			Ω(repClient.SimulatedInstances(dotNetGuid)).Should(BeEmpty())
 		})
@@ -116,7 +116,7 @@ var _ = Describe("Integration", func() {
 
 			Eventually(func() interface{} {
 				return repClient.SimulatedInstances(lucidGuid)
-			}, 1).Should(HaveLen(1))
+			}).Should(HaveLen(1))
 		})
 	})
 })
