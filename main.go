@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 	"time"
+	"net/url"
 
 	"github.com/cloudfoundry-incubator/cf-debug-server"
 	"github.com/cloudfoundry-incubator/cf-lager"
@@ -101,7 +102,7 @@ func main() {
 	logger.Info("exited")
 }
 
-func initializeAuctioneer(bbs Bbs.AuctioneerBBS, natsClient yagnats.NATSClient, logger lager.Logger) *auctioneer.Auctioneer {
+func initializeAuctioneer(bbs Bbs.AuctioneerBBS, natsClient yagnats.ApceraWrapperNATSClient, logger lager.Logger) *auctioneer.Auctioneer {
 	client, err := auction_nats_client.New(natsClient, *auctionNATSTimeout, logger)
 	if err != nil {
 		logger.Fatal("failed-to-create-auctioneer-nats-client", err)
@@ -111,25 +112,19 @@ func initializeAuctioneer(bbs Bbs.AuctioneerBBS, natsClient yagnats.NATSClient, 
 	return auctioneer.New(bbs, runner, *maxConcurrent, *maxRounds, *lockInterval, logger)
 }
 
-func initializeNatsClient(logger lager.Logger) yagnats.NATSClient {
-	natsClient := yagnats.NewClient()
-
-	natsMembers := []yagnats.ConnectionProvider{}
+func initializeNatsClient(logger lager.Logger) yagnats.ApceraWrapperNATSClient {
+	natsMembers := []string{}
 	for _, addr := range strings.Split(*natsAddresses, ",") {
-		natsMembers = append(
-			natsMembers,
-			&yagnats.ConnectionInfo{
-				Addr:     addr,
-				Username: *natsUsername,
-				Password: *natsPassword,
-			},
-		)
+		uri := url.URL{
+			Scheme: "nats",
+			User:   url.UserPassword(*natsUsername, *natsPassword),
+			Host:   addr,
+		}
+		natsMembers = append(natsMembers, uri.String())
 	}
+	natsClient := yagnats.NewApceraClientWrapper(natsMembers)
 
-	err := natsClient.Connect(&yagnats.ConnectionCluster{
-		Members: natsMembers,
-	})
-
+	err := natsClient.Connect()
 	if err != nil {
 		logger.Fatal("failed-to-connect-to-nats", err)
 	}
