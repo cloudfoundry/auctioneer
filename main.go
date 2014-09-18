@@ -2,10 +2,10 @@ package main
 
 import (
 	"flag"
+	"net/url"
 	"os"
 	"strings"
 	"time"
-	"net/url"
 
 	"github.com/cloudfoundry-incubator/cf-debug-server"
 	"github.com/cloudfoundry-incubator/cf-lager"
