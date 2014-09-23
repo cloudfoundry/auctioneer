@@ -18,6 +18,7 @@ import (
 	"github.com/cloudfoundry-incubator/auctioneer/auctioneer"
 	_ "github.com/cloudfoundry/dropsonde/autowire"
 	"github.com/cloudfoundry/gunk/group_runner"
+	"github.com/cloudfoundry/gunk/natsclientrunner"
 	"github.com/cloudfoundry/gunk/timeprovider"
 	"github.com/cloudfoundry/storeadapter/etcdstoreadapter"
 	"github.com/cloudfoundry/storeadapter/workerpool"
@@ -78,15 +79,22 @@ func main() {
 	flag.Parse()
 
 	logger := cf_lager.New("auctioneer")
-	natsClient := initializeNatsClient(logger)
+	natsClient := natsclientrunner.NewClient(*natsAddresses, *natsUsername, *natsPassword)
+	natsClientRunner := natsclientrunner.New(natsClient, logger)
+
 	bbs := initializeBBS(logger)
 
-	auctioneer := initializeAuctioneer(bbs, natsClient, logger)
+	// Delay using natsClient until after connection is made by natsClientRunner
+	var auctioneerRunner = ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
+		auctioneer := initializeAuctioneer(bbs, natsClient, logger)
+		return auctioneer.Run(signals, ready)
+	})
 
 	cf_debug_server.Run()
 
 	group := group_runner.New([]group_runner.Member{
-		{"auctioneer", auctioneer},
+		{"natsClient", natsClientRunner},
+		{"auctioneer", auctioneerRunner},
 	})
 
 	monitor := ifrit.Envoke(sigmon.New(group))
