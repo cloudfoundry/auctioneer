@@ -1,11 +1,15 @@
 package integration_test
 
 import (
+	"os"
+
 	"github.com/cloudfoundry-incubator/runtime-schema/models"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/tedsuo/ifrit"
 )
 
+var auctioneer ifrit.Process
 var dummyActions = []models.ExecutorAction{
 	{
 		Action: models.RunAction{
@@ -17,7 +21,12 @@ var dummyActions = []models.ExecutorAction{
 
 var _ = Describe("Integration", func() {
 	BeforeEach(func() {
-		runner.Start(10)
+		auctioneer = ifrit.Envoke(runner)
+	})
+
+	AfterEach(func() {
+		auctioneer.Signal(os.Kill)
+		Eventually(auctioneer.Wait()).Should(Receive())
 	})
 
 	Context("when a start auction message arrives", func() {

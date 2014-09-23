@@ -7,7 +7,6 @@ import (
 	"os/exec"
 
 	"github.com/cloudfoundry-incubator/auction/communication/nats/auction_nats_client"
-	"github.com/cloudfoundry-incubator/auctioneer/integration/auctioneer_runner"
 	Bbs "github.com/cloudfoundry-incubator/runtime-schema/bbs"
 	"github.com/cloudfoundry-incubator/runtime-schema/models"
 	"github.com/cloudfoundry/gunk/natsrunner"
@@ -21,6 +20,7 @@ import (
 	"github.com/pivotal-golang/lager"
 	"github.com/pivotal-golang/lager/lagertest"
 	"github.com/tedsuo/ifrit"
+	"github.com/tedsuo/ifrit/ginkgomon"
 
 	"testing"
 	"time"
@@ -36,7 +36,7 @@ var dotNetPresence, lucidPresence ifrit.Process
 
 var natsPort, etcdPort int
 
-var runner *auctioneer_runner.AuctioneerRunner
+var runner *ginkgomon.Runner
 var etcdRunner *etcdstorerunner.ETCDClusterRunner
 var natsRunner *natsrunner.NATSRunner
 var etcdClient storeadapter.StoreAdapter
@@ -89,15 +89,19 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	logger = lagertest.NewTestLogger("test")
 
 	bbs = Bbs.NewBBS(etcdClient, timeprovider.NewTimeProvider(), logger)
-
-	runner = auctioneer_runner.New(
-		auctioneerPath,
-		[]string{fmt.Sprintf("http://127.0.0.1:%d", etcdPort)},
-		[]string{fmt.Sprintf("127.0.0.1:%d", natsPort)},
-	)
 })
 
 var _ = BeforeEach(func() {
+	runner = ginkgomon.New(ginkgomon.Config{
+		Name: "auctioneer",
+		Command: exec.Command(
+			auctioneerPath,
+			"-etcdCluster", fmt.Sprintf("http://127.0.0.1:%d", etcdPort),
+			"-natsAddresses", fmt.Sprintf("127.0.0.1:%d", natsPort),
+		),
+		StartCheck: "auctioneer.started",
+	})
+
 	etcdRunner.Start()
 	natsRunner.Start()
 
@@ -128,7 +132,6 @@ func startSimulationRep(simulationRepPath, guid string, stack string, natsPort i
 }
 
 var _ = AfterEach(func() {
-	runner.KillWithFire()
 	etcdRunner.Stop()
 	natsRunner.Stop()
 	dotNetRep.Kill().Wait()
@@ -153,9 +156,6 @@ var _ = SynchronizedAfterSuite(func() {
 	}
 	if lucidRep != nil {
 		lucidRep.Kill().Wait()
-	}
-	if runner != nil {
-		runner.KillWithFire()
 	}
 }, func() {
 	gexec.CleanupBuildArtifacts()
