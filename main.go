@@ -79,8 +79,8 @@ func main() {
 	flag.Parse()
 
 	logger := cf_lager.New("auctioneer")
-	natsClient := natsclientrunner.NewClient(*natsAddresses, *natsUsername, *natsPassword)
-	natsClientRunner := natsclientrunner.New(natsClient, logger)
+	var natsClient yagnats.NATSConn
+	natsClientRunner := natsclientrunner.New(*natsAddresses, *natsUsername, *natsPassword, logger, &natsClient)
 
 	bbs := initializeBBS(logger)
 
@@ -110,7 +110,7 @@ func main() {
 	logger.Info("exited")
 }
 
-func initializeAuctioneer(bbs Bbs.AuctioneerBBS, natsClient yagnats.ApceraWrapperNATSClient, logger lager.Logger) *auctioneer.Auctioneer {
+func initializeAuctioneer(bbs Bbs.AuctioneerBBS, natsClient yagnats.NATSConn, logger lager.Logger) *auctioneer.Auctioneer {
 	client, err := auction_nats_client.New(natsClient, *auctionNATSTimeout, logger)
 	if err != nil {
 		logger.Fatal("failed-to-create-auctioneer-nats-client", err)
@@ -120,7 +120,7 @@ func initializeAuctioneer(bbs Bbs.AuctioneerBBS, natsClient yagnats.ApceraWrappe
 	return auctioneer.New(bbs, runner, *maxConcurrent, *maxRounds, *lockInterval, logger)
 }
 
-func initializeNatsClient(logger lager.Logger) yagnats.ApceraWrapperNATSClient {
+func initializeNatsClient(logger lager.Logger) yagnats.NATSConn {
 	natsMembers := []string{}
 	for _, addr := range strings.Split(*natsAddresses, ",") {
 		uri := url.URL{
@@ -130,9 +130,7 @@ func initializeNatsClient(logger lager.Logger) yagnats.ApceraWrapperNATSClient {
 		}
 		natsMembers = append(natsMembers, uri.String())
 	}
-	natsClient := yagnats.NewApceraClientWrapper(natsMembers)
-
-	err := natsClient.Connect()
+	natsClient, err := yagnats.Connect(natsMembers)
 	if err != nil {
 		logger.Fatal("failed-to-connect-to-nats", err)
 	}
