@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -118,24 +117,6 @@ func initializeAuctioneer(bbs Bbs.AuctioneerBBS, natsClient yagnats.NATSConn, lo
 
 	runner := auctionrunner.New(client)
 	return auctioneer.New(bbs, runner, *maxConcurrent, *maxRounds, *lockInterval, logger)
-}
-
-func initializeNatsClient(logger lager.Logger) yagnats.NATSConn {
-	natsMembers := []string{}
-	for _, addr := range strings.Split(*natsAddresses, ",") {
-		uri := url.URL{
-			Scheme: "nats",
-			User:   url.UserPassword(*natsUsername, *natsPassword),
-			Host:   addr,
-		}
-		natsMembers = append(natsMembers, uri.String())
-	}
-	natsClient, err := yagnats.Connect(natsMembers)
-	if err != nil {
-		logger.Fatal("failed-to-connect-to-nats", err)
-	}
-
-	return natsClient
 }
 
 func initializeBBS(logger lager.Logger) Bbs.AuctioneerBBS {
