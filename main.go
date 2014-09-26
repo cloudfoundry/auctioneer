@@ -16,13 +16,13 @@ import (
 	"github.com/cloudfoundry-incubator/auction/communication/nats/auction_nats_client"
 	"github.com/cloudfoundry-incubator/auctioneer/auctioneer"
 	_ "github.com/cloudfoundry/dropsonde/autowire"
-	"github.com/cloudfoundry/gunk/group_runner"
 	"github.com/cloudfoundry/gunk/natsclientrunner"
 	"github.com/cloudfoundry/gunk/timeprovider"
 	"github.com/cloudfoundry/storeadapter/etcdstoreadapter"
 	"github.com/cloudfoundry/storeadapter/workerpool"
 	"github.com/cloudfoundry/yagnats"
 	"github.com/tedsuo/ifrit"
+	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/sigmon"
 )
 
@@ -91,7 +91,7 @@ func main() {
 
 	cf_debug_server.Run()
 
-	group := group_runner.New([]group_runner.Member{
+	group := grouper.NewOrdered(os.Interrupt, grouper.Members{
 		{"natsClient", natsClientRunner},
 		{"auctioneer", auctioneerRunner},
 	})
