@@ -1,4 +1,4 @@
-package integration_test
+package main_test
 
 import (
 	"encoding/json"
@@ -44,13 +44,13 @@ var bbs *Bbs.BBS
 var repClient *auction_nats_client.AuctionNATSClient
 var logger lager.Logger
 
-func TestIntegration(t *testing.T) {
+func TestAuctioneer(t *testing.T) {
 	// these integration tests can take a bit, especially under load;
 	// 1 second is too harsh
 	SetDefaultEventuallyTimeout(10 * time.Second)
 
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Integration Suite")
+	RunSpecs(t, "Auctioneer Suite")
 }
 
 type BuiltAssets struct {

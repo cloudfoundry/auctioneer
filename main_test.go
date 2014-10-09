@@ -1,4 +1,4 @@
-package integration_test
+package main_test
 
 import (
 	"os"
@@ -20,7 +20,7 @@ var dummyActions = []models.ExecutorAction{
 	},
 }
 
-var _ = Describe("Integration", func() {
+var _ = Describe("Auctioneer", func() {
 	BeforeEach(func() {
 		auctioneer = ginkgomon.Invoke(runner)
 	})
