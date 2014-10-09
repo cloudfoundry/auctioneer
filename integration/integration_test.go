@@ -7,6 +7,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/tedsuo/ifrit"
+	"github.com/tedsuo/ifrit/ginkgomon"
 )
 
 var auctioneer ifrit.Process
@@ -21,7 +22,7 @@ var dummyActions = []models.ExecutorAction{
 
 var _ = Describe("Integration", func() {
 	BeforeEach(func() {
-		auctioneer = ifrit.Envoke(runner)
+		auctioneer = ginkgomon.Invoke(runner)
 	})
 
 	AfterEach(func() {
