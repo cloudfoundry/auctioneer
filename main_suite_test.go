@@ -9,7 +9,7 @@ import (
 	"github.com/cloudfoundry-incubator/auction/communication/nats/auction_nats_client"
 	Bbs "github.com/cloudfoundry-incubator/runtime-schema/bbs"
 	"github.com/cloudfoundry-incubator/runtime-schema/models"
-	"github.com/cloudfoundry/gunk/natsrunner"
+	"github.com/cloudfoundry/gunk/diegonats"
 	"github.com/cloudfoundry/gunk/timeprovider"
 	"github.com/cloudfoundry/storeadapter"
 	"github.com/cloudfoundry/storeadapter/storerunner/etcdstorerunner"
@@ -38,7 +38,7 @@ var natsPort, etcdPort int
 
 var runner *ginkgomon.Runner
 var etcdRunner *etcdstorerunner.ETCDClusterRunner
-var natsRunner *natsrunner.NATSRunner
+var natsRunner *diegonats.NATSRunner
 var etcdClient storeadapter.StoreAdapter
 var bbs *Bbs.BBS
 var repClient *auction_nats_client.AuctionNATSClient
@@ -82,7 +82,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	natsPort = 4001 + GinkgoParallelNode()
 
 	etcdRunner = etcdstorerunner.NewETCDClusterRunner(etcdPort, 1)
-	natsRunner = natsrunner.NewNATSRunner(natsPort)
+	natsRunner = diegonats.NewRunner(natsPort)
 
 	etcdClient = etcdRunner.Adapter()
 
@@ -109,7 +109,7 @@ var _ = BeforeEach(func() {
 
 	dotNetRep, dotNetPresence = startSimulationRep(simulationRepPath, dotNetGuid, dotNetStack, natsPort)
 	lucidRep, lucidPresence = startSimulationRep(simulationRepPath, lucidGuid, lucidStack, natsPort)
-	repClient, err = auction_nats_client.New(natsRunner.MessageBus, time.Second, logger)
+	repClient, err = auction_nats_client.New(natsRunner.Client, time.Second, logger)
 	Ω(err).ShouldNot(HaveOccurred())
 })
 

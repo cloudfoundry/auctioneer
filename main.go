@@ -16,11 +16,10 @@ import (
 	"github.com/cloudfoundry-incubator/auction/communication/nats/auction_nats_client"
 	"github.com/cloudfoundry-incubator/auctioneer/auctioneer"
 	_ "github.com/cloudfoundry/dropsonde/autowire"
-	"github.com/cloudfoundry/gunk/natsclientrunner"
+	"github.com/cloudfoundry/gunk/diegonats"
 	"github.com/cloudfoundry/gunk/timeprovider"
 	"github.com/cloudfoundry/storeadapter/etcdstoreadapter"
 	"github.com/cloudfoundry/storeadapter/workerpool"
-	"github.com/cloudfoundry/yagnats"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/sigmon"
@@ -78,8 +77,9 @@ func main() {
 	flag.Parse()
 
 	logger := cf_lager.New("auctioneer")
-	var natsClient yagnats.NATSConn
-	natsClientRunner := natsclientrunner.New(*natsAddresses, *natsUsername, *natsPassword, logger, &natsClient)
+
+	natsClient := diegonats.NewClient()
+	natsClientRunner := diegonats.NewClientRunner(*natsAddresses, *natsUsername, *natsPassword, logger, natsClient)
 
 	bbs := initializeBBS(logger)
 
@@ -109,7 +109,7 @@ func main() {
 	logger.Info("exited")
 }
 
-func initializeAuctioneer(bbs Bbs.AuctioneerBBS, natsClient yagnats.NATSConn, logger lager.Logger) *auctioneer.Auctioneer {
+func initializeAuctioneer(bbs Bbs.AuctioneerBBS, natsClient diegonats.NATSClient, logger lager.Logger) *auctioneer.Auctioneer {
 	client, err := auction_nats_client.New(natsClient, *auctionNATSTimeout, logger)
 	if err != nil {
 		logger.Fatal("failed-to-create-auctioneer-nats-client", err)
