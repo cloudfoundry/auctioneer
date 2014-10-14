@@ -38,7 +38,7 @@ var natsPort, etcdPort int
 
 var runner *ginkgomon.Runner
 var etcdRunner *etcdstorerunner.ETCDClusterRunner
-var natsRunner *diegonats.NATSRunner
+var gnatsdRunner ifrit.Process
 var etcdClient storeadapter.StoreAdapter
 var bbs *Bbs.BBS
 var repClient *auction_nats_client.AuctionNATSClient
@@ -82,8 +82,6 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	natsPort = 4001 + GinkgoParallelNode()
 
 	etcdRunner = etcdstorerunner.NewETCDClusterRunner(etcdPort, 1)
-	natsRunner = diegonats.NewRunner(natsPort)
-
 	etcdClient = etcdRunner.Adapter()
 
 	logger = lagertest.NewTestLogger("test")
@@ -102,14 +100,15 @@ var _ = BeforeEach(func() {
 		StartCheck: "auctioneer.started",
 	})
 
+	var natsClient diegonats.NATSClient
 	etcdRunner.Start()
-	natsRunner.Start()
+	gnatsdRunner, natsClient = diegonats.StartGnatsd(natsPort)
 
 	var err error
 
 	dotNetRep, dotNetPresence = startSimulationRep(simulationRepPath, dotNetGuid, dotNetStack, natsPort)
 	lucidRep, lucidPresence = startSimulationRep(simulationRepPath, lucidGuid, lucidStack, natsPort)
-	repClient, err = auction_nats_client.New(natsRunner.Client, time.Second, logger)
+	repClient, err = auction_nats_client.New(natsClient, time.Second, logger)
 	Ω(err).ShouldNot(HaveOccurred())
 })
 
@@ -133,7 +132,8 @@ func startSimulationRep(simulationRepPath, guid string, stack string, natsPort i
 
 var _ = AfterEach(func() {
 	etcdRunner.Stop()
-	natsRunner.Stop()
+	gnatsdRunner.Signal(os.Interrupt)
+	Eventually(gnatsdRunner.Wait(), 5).Should(Receive())
 	dotNetRep.Kill().Wait()
 	lucidRep.Kill().Wait()
 
@@ -147,9 +147,6 @@ var _ = AfterEach(func() {
 var _ = SynchronizedAfterSuite(func() {
 	if etcdRunner != nil {
 		etcdRunner.Stop()
-	}
-	if natsRunner != nil {
-		natsRunner.Stop()
 	}
 	if dotNetRep != nil {
 		dotNetRep.Kill().Wait()
