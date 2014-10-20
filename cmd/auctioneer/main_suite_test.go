@@ -61,7 +61,7 @@ type BuiltAssets struct {
 var _ = SynchronizedBeforeSuite(func() []byte {
 	var err error
 	assets := BuiltAssets{}
-	assets.AuctioneerPath, err = gexec.Build("github.com/cloudfoundry-incubator/auctioneer", "-race")
+	assets.AuctioneerPath, err = gexec.Build("github.com/cloudfoundry-incubator/auctioneer/cmd/auctioneer", "-race")
 	Ω(err).ShouldNot(HaveOccurred())
 
 	assets.SimulationRepPath, err = gexec.Build("github.com/cloudfoundry-incubator/auction/simulation/repnode")
