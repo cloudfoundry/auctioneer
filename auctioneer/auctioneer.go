@@ -11,7 +11,15 @@ import (
 
 	Bbs "github.com/cloudfoundry-incubator/runtime-schema/bbs"
 
+	"github.com/cloudfoundry-incubator/runtime-schema/metric"
 	"github.com/cloudfoundry-incubator/runtime-schema/models"
+)
+
+const (
+	startAuctionsStarted = metric.Counter("AuctioneerStartAuctionsStarted")
+	startAuctionsFailed  = metric.Counter("AuctioneerStartAuctionsFailed")
+	stopAuctionsStarted  = metric.Counter("AuctioneerStopAuctionsStarted")
+	stopAuctionsFailed   = metric.Counter("AuctioneerStopAuctionsFailed")
 )
 
 type Auctioneer struct {
@@ -147,6 +155,7 @@ func (a *Auctioneer) runStartAuction(startAuction models.LRPStartAuction, logger
 
 	//perform auction
 	logger.Info("performing")
+	startAuctionsStarted.Increment()
 
 	rules := auctionrunner.DefaultStartAuctionRules
 	rules.MaxRounds = a.maxRounds
@@ -160,6 +169,7 @@ func (a *Auctioneer) runStartAuction(startAuction models.LRPStartAuction, logger
 	_, err = a.runner.RunLRPStartAuction(request)
 	if err != nil {
 		logger.Error("auction-failed", err)
+		startAuctionsFailed.Increment()
 		return
 	}
 }
@@ -206,6 +216,7 @@ func (a *Auctioneer) runStopAuction(stopAuction models.LRPStopAuction, logger la
 
 	//perform auction
 	logger.Info("perform")
+	stopAuctionsStarted.Increment()
 
 	request := auctiontypes.StopAuctionRequest{
 		LRPStopAuction: stopAuction,
@@ -215,6 +226,7 @@ func (a *Auctioneer) runStopAuction(stopAuction models.LRPStopAuction, logger la
 
 	if err != nil {
 		logger.Error("auction-failed", err)
+		stopAuctionsFailed.Increment()
 		return
 	}
 }

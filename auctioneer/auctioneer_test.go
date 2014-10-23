@@ -12,6 +12,8 @@ import (
 	. "github.com/cloudfoundry-incubator/auctioneer/auctioneer"
 	"github.com/cloudfoundry-incubator/runtime-schema/bbs/fake_bbs"
 	"github.com/cloudfoundry-incubator/runtime-schema/models"
+	"github.com/cloudfoundry/dropsonde/autowire/metrics"
+	"github.com/cloudfoundry/dropsonde/metric_sender/fake"
 	"github.com/pivotal-golang/lager/lagertest"
 	"github.com/tedsuo/ifrit"
 
@@ -34,6 +36,7 @@ var _ = Describe("Auctioneer", func() {
 		logger         *lagertest.TestLogger
 		startAuction   models.LRPStartAuction
 		stopAuction    models.LRPStopAuction
+		metricSender   *fake.FakeMetricSender
 	)
 
 	BeforeEach(func() {
@@ -73,6 +76,9 @@ var _ = Describe("Auctioneer", func() {
 		stopAuction = models.LRPStopAuction{
 			ProcessGuid: "my-stop-guid",
 		}
+
+		metricSender = fake.NewFakeMetricSender()
+		metrics.Initialize(metricSender)
 	})
 
 	Describe("the lock lifecycle", func() {
@@ -168,7 +174,7 @@ var _ = Describe("Auctioneer", func() {
 		BeforeEach(func() {
 			runner = &fake_auctionrunner.FakeAuctionRunner{}
 			auctioneer = New(bbs, runner, 2, MAX_AUCTION_ROUNDS_FOR_TEST, time.Second, logger)
-			process = ifrit.Envoke(auctioneer)
+			process = ifrit.Invoke(auctioneer)
 		})
 
 		AfterEach(func(done Done) {
@@ -207,6 +213,12 @@ var _ = Describe("Auctioneer", func() {
 					Ω(request.Rules.MaxRounds).Should(Equal(MAX_AUCTION_ROUNDS_FOR_TEST))
 				})
 
+				It("should increment the start auctions started counter", func() {
+					Eventually(func() uint64 {
+						return metricSender.GetCounter("AuctioneerStartAuctionsStarted")
+					}).Should(Equal(uint64(1)))
+				})
+
 				Context("when the auction succeeds", func() {
 					It("should resolve the auction in etcd", func() {
 						Eventually(bbs.GetResolvedLRPStartAuction).Should(Equal(startAuction))
@@ -222,6 +234,12 @@ var _ = Describe("Auctioneer", func() {
 						Eventually(bbs.GetResolvedLRPStartAuction).Should(Equal(startAuction))
 
 						Ω(logger.TestSink.Buffer).Should(gbytes.Say("auction-failed"))
+					})
+
+					It("should increment the start auctions failed counter", func() {
+						Eventually(func() uint64 {
+							return metricSender.GetCounter("AuctioneerStartAuctionsFailed")
+						}).Should(Equal(uint64(1)))
 					})
 				})
 			})
@@ -277,7 +295,7 @@ var _ = Describe("Auctioneer", func() {
 
 			auctioneer = New(bbs, runner, 2, MAX_AUCTION_ROUNDS_FOR_TEST, time.Second, logger)
 
-			process = ifrit.Envoke(auctioneer)
+			process = ifrit.Invoke(auctioneer)
 
 			startAuction1 = models.LRPStartAuction{
 				DesiredLRP: models.DesiredLRP{
@@ -313,6 +331,7 @@ var _ = Describe("Auctioneer", func() {
 			Consistently(bbs.GetClaimedLRPStartAuctions, 0.5).Should(HaveLen(2))
 
 			Eventually(bbs.GetClaimedLRPStartAuctions).Should(HaveLen(3))
+			Eventually(runner.RunLRPStartAuctionCallCount, 2).Should(Equal(3))
 		})
 	})
 
@@ -320,7 +339,7 @@ var _ = Describe("Auctioneer", func() {
 		BeforeEach(func() {
 			runner = &fake_auctionrunner.FakeAuctionRunner{}
 			auctioneer = New(bbs, runner, 2, MAX_AUCTION_ROUNDS_FOR_TEST, time.Second, logger)
-			process = ifrit.Envoke(auctioneer)
+			process = ifrit.Invoke(auctioneer)
 		})
 
 		AfterEach(func(done Done) {
@@ -355,6 +374,12 @@ var _ = Describe("Auctioneer", func() {
 					Ω(request.RepGuids).Should(ContainElement(thirdExecutor.ExecutorID))
 				})
 
+				It("should increment the stop auctions started counter", func() {
+					Eventually(func() uint64 {
+						return metricSender.GetCounter("AuctioneerStopAuctionsStarted")
+					}).Should(Equal(uint64(1)))
+				})
+
 				Context("when the auction succeeds", func() {
 					It("should resolve the auction in etcd", func() {
 						Eventually(bbs.GetResolvedLRPStopAuction).Should(Equal(stopAuction))
@@ -370,6 +395,12 @@ var _ = Describe("Auctioneer", func() {
 						Eventually(bbs.GetResolvedLRPStopAuction).Should(Equal(stopAuction))
 
 						Ω(logger.TestSink.Buffer).Should(gbytes.Say("auction-failed"))
+					})
+
+					It("should increment the stop auctions failed counter", func() {
+						Eventually(func() uint64 {
+							return metricSender.GetCounter("AuctioneerStopAuctionsFailed")
+						}).Should(Equal(uint64(1)))
 					})
 				})
 			})

@@ -50,7 +50,7 @@ func TestAuctioneer(t *testing.T) {
 	SetDefaultEventuallyTimeout(10 * time.Second)
 
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Auctioneer Suite")
+	RunSpecs(t, "Auctioneer Cmd Suite")
 }
 
 type BuiltAssets struct {
