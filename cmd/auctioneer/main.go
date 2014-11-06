@@ -15,7 +15,7 @@ import (
 	"github.com/cloudfoundry-incubator/auction/auctionrunner"
 	"github.com/cloudfoundry-incubator/auction/communication/nats/auction_nats_client"
 	"github.com/cloudfoundry-incubator/auctioneer/auctioneer"
-	_ "github.com/cloudfoundry/dropsonde/autowire"
+	"github.com/cloudfoundry/dropsonde"
 	"github.com/cloudfoundry/gunk/diegonats"
 	"github.com/cloudfoundry/gunk/timeprovider"
 	"github.com/cloudfoundry/gunk/workpool"
@@ -73,10 +73,23 @@ var lockInterval = flag.Duration(
 	"Interval at which to maintain the auctioneer lock",
 )
 
+var dropsondeOrigin = flag.String(
+	"dropsondeOrigin",
+	"auctioneer",
+	"Origin identifier for dropsonde-emitted metrics.",
+)
+
+var dropsondeDestination = flag.String(
+	"dropsondeDestination",
+	"localhost:3457",
+	"Destination for dropsonde-emitted metrics.",
+)
+
 func main() {
 	flag.Parse()
-
 	logger := cf_lager.New("auctioneer")
+
+	initializeDropsonde(logger)
 
 	natsClient := diegonats.NewClient()
 	natsClientRunner := diegonats.NewClientRunner(*natsAddresses, *natsUsername, *natsPassword, logger, natsClient)
@@ -131,4 +144,11 @@ func initializeBBS(logger lager.Logger) Bbs.AuctioneerBBS {
 	}
 
 	return Bbs.NewAuctioneerBBS(etcdAdapter, timeprovider.NewTimeProvider(), logger)
+}
+
+func initializeDropsonde(logger lager.Logger) {
+	err := dropsonde.Initialize(*dropsondeOrigin, *dropsondeDestination)
+	if err != nil {
+		logger.Error("failed to initialize dropsonde: %v", err)
+	}
 }
