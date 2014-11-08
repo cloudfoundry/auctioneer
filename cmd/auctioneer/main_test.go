@@ -11,12 +11,10 @@ import (
 )
 
 var auctioneer ifrit.Process
-var dummyActions = []models.ExecutorAction{
-	{
-		Action: models.RunAction{
-			Path: "cat",
-			Args: []string{"/tmp/file"},
-		},
+var dummyAction = models.ExecutorAction{
+	Action: models.RunAction{
+		Path: "cat",
+		Args: []string{"/tmp/file"},
 	},
 }
 
@@ -38,7 +36,7 @@ var _ = Describe("Auctioneer", func() {
 					DiskMB:      1,
 					MemoryMB:    1,
 					Stack:       lucidStack,
-					Actions:     dummyActions,
+					Action:      &dummyAction,
 				},
 
 				InstanceGuid: "instance-guid-1",
@@ -51,7 +49,7 @@ var _ = Describe("Auctioneer", func() {
 					DiskMB:      1,
 					MemoryMB:    1,
 					Stack:       lucidStack,
-					Actions:     dummyActions,
+					Action:      &dummyAction,
 				},
 
 				InstanceGuid: "instance-guid-2",
@@ -76,7 +74,7 @@ var _ = Describe("Auctioneer", func() {
 					DiskMB:      1,
 					MemoryMB:    1,
 					Stack:       lucidStack,
-					Actions:     dummyActions,
+					Action:      &dummyAction,
 				},
 
 				InstanceGuid: "duplicate-instance-guid-1",
@@ -91,7 +89,7 @@ var _ = Describe("Auctioneer", func() {
 					DiskMB:      1,
 					MemoryMB:    1,
 					Stack:       lucidStack,
-					Actions:     dummyActions,
+					Action:      &dummyAction,
 				},
 
 				InstanceGuid: "duplicate-instance-guid-2",
@@ -106,7 +104,7 @@ var _ = Describe("Auctioneer", func() {
 					DiskMB:      1,
 					MemoryMB:    1,
 					Stack:       lucidStack,
-					Actions:     dummyActions,
+					Action:      &dummyAction,
 				},
 
 				InstanceGuid: "duplicate-instance-guid-3",
