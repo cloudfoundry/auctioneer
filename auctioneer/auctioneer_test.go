@@ -24,6 +24,13 @@ import (
 
 const MAX_AUCTION_ROUNDS_FOR_TEST = 10
 
+func RepAddressForExecutor(executor models.ExecutorPresence) auctiontypes.RepAddress {
+	return auctiontypes.RepAddress{
+		RepGuid: executor.ExecutorID,
+		Address: executor.RepAddress,
+	}
+}
+
 var _ = Describe("Auctioneer", func() {
 	var (
 		bbs          *fake_bbs.FakeAuctioneerBBS
@@ -47,19 +54,22 @@ var _ = Describe("Auctioneer", func() {
 		logger = lagertest.NewTestLogger("test")
 		bbs = fake_bbs.NewFakeAuctioneerBBS()
 
-		firstCell = models.CellPresence{
-			CellID: "first-rep",
-			Stack:  "lucid64",
+		firstCell = models.ExecutorPresence{
+			CellID:     "first-rep",
+			RepAddress: "first-rep-address",
+			Stack:      "lucid64",
 		}
 
-		secondCell = models.CellPresence{
-			CellID: "second-rep",
-			Stack:  ".Net",
+		secondCell = models.ExecutorPresence{
+			CellID:     "second-rep",
+			RepAddress: "second-rep-address",
+			Stack:      ".Net",
 		}
 
-		thirdCell = models.CellPresence{
-			CellID: "third-rep",
-			Stack:  "lucid64",
+		thidCell = models.ExecutorPresence{
+			CellID:     "third-rep",
+			RepAddress: "third-rep-address",
+			Stack:      "lucid64",
 		}
 
 		bbs.Lock()
@@ -93,7 +103,7 @@ var _ = Describe("Auctioneer", func() {
 
 		BeforeEach(func() {
 			runner = &fake_auctionrunner.FakeAuctionRunner{}
-			auctioneer = New(bbs, runner, 2, MAX_AUCTION_ROUNDS_FOR_TEST, time.Second, logger)
+			auctioneer = New(bbs, runner, 2, MAX_AUCTION_ROUNDS_FOR_TEST, logger)
 			signals = make(chan os.Signal)
 			ready = make(chan struct{})
 			errors = make(chan error)
@@ -178,7 +188,7 @@ var _ = Describe("Auctioneer", func() {
 	Describe("the start auction lifecycle", func() {
 		BeforeEach(func() {
 			runner = &fake_auctionrunner.FakeAuctionRunner{}
-			auctioneer = New(bbs, runner, 2, MAX_AUCTION_ROUNDS_FOR_TEST, time.Second, logger)
+			auctioneer = New(bbs, runner, 2, MAX_AUCTION_ROUNDS_FOR_TEST, logger)
 			process = ifrit.Invoke(auctioneer)
 		})
 
@@ -209,11 +219,8 @@ var _ = Describe("Auctioneer", func() {
 
 					request := runner.RunLRPStartAuctionArgsForCall(0)
 					Ω(request.LRPStartAuction).Should(Equal(startAuction))
-					Ω(request.RepGuids).Should(HaveLen(2))
-					Ω(request.RepGuids).Should(ContainElement(firstCell.CellID))
-					Ω(request.RepGuids).Should(ContainElement(thirdCell.CellID))
-					Ω(request.RepGuids).ShouldNot(ContainElement(secondCell.CellID))
-					Ω(request.Rules.Algorithm).Should(Equal("all_rebid"))
+					Ω(request.RepAddresses).Should(ConsistOf(RepAddressForExecutor(firstCell), RepAddressForExecutor(thidCell)))
+					Ω(request.Rules.Algorithm).Should(Equal("compare_to_percentile"))
 					Ω(request.Rules.MaxBiddingPoolFraction).Should(Equal(0.2))
 					Ω(request.Rules.MaxRounds).Should(Equal(MAX_AUCTION_ROUNDS_FOR_TEST))
 				})
@@ -299,7 +306,7 @@ var _ = Describe("Auctioneer", func() {
 				return auctiontypes.StartAuctionResult{}, nil
 			}
 
-			auctioneer = New(bbs, runner, 2, MAX_AUCTION_ROUNDS_FOR_TEST, time.Second, logger)
+			auctioneer = New(bbs, runner, 2, MAX_AUCTION_ROUNDS_FOR_TEST, logger)
 
 			process = ifrit.Invoke(auctioneer)
 
@@ -347,7 +354,7 @@ var _ = Describe("Auctioneer", func() {
 	Describe("the stop auction lifecycle", func() {
 		BeforeEach(func() {
 			runner = &fake_auctionrunner.FakeAuctionRunner{}
-			auctioneer = New(bbs, runner, 2, MAX_AUCTION_ROUNDS_FOR_TEST, time.Second, logger)
+			auctioneer = New(bbs, runner, 2, MAX_AUCTION_ROUNDS_FOR_TEST, logger)
 			process = ifrit.Invoke(auctioneer)
 		})
 
@@ -377,10 +384,11 @@ var _ = Describe("Auctioneer", func() {
 
 					request := runner.RunLRPStopAuctionArgsForCall(0)
 					Ω(request.LRPStopAuction).Should(Equal(stopAuction))
-					Ω(request.RepGuids).Should(HaveLen(3))
-					Ω(request.RepGuids).Should(ContainElement(firstCell.CellID))
-					Ω(request.RepGuids).Should(ContainElement(secondCell.CellID))
-					Ω(request.RepGuids).Should(ContainElement(thirdCell.CellID))
+					Ω(request.RepAddresses).Should(ConsistOf(
+						RepAddressForExecutor(firstCell),
+						RepAddressForExecutor(secondCell),
+						RepAddressForExecutor(thidCell),
+					))
 				})
 
 				It("should increment the stop auctions started counter", func() {

@@ -54,11 +54,8 @@ var _ = Describe("Auctioneer", func() {
 		})
 
 		It("should start the app running on reps of the appropriate stack", func() {
-			Eventually(func() interface{} {
-				return repClient.SimulatedInstances(lucidGuid)
-			}).Should(HaveLen(2))
-
-			Ω(repClient.SimulatedInstances(dotNetGuid)).Should(BeEmpty())
+			Eventually(lucidRep.AuctionRepDelegate.SimulatedInstances).Should(HaveLen(2))
+			Ω(dotNetRep.AuctionRepDelegate.SimulatedInstances()).Should(BeEmpty())
 		})
 	})
 
@@ -87,8 +84,7 @@ var _ = Describe("Auctioneer", func() {
 			})
 
 			Eventually(bbs.LRPStartAuctions).Should(HaveLen(0))
-
-			Ω(repClient.SimulatedInstances(lucidGuid)).Should(HaveLen(3))
+			Ω(lucidRep.AuctionRepDelegate.SimulatedInstances()).Should(HaveLen(3))
 		})
 
 		It("should stop all but one instance of the app", func() {
@@ -97,9 +93,7 @@ var _ = Describe("Auctioneer", func() {
 				Index:       0,
 			})
 
-			Eventually(func() interface{} {
-				return repClient.SimulatedInstances(lucidGuid)
-			}).Should(HaveLen(1))
+			Eventually(lucidRep.AuctionRepDelegate.SimulatedInstances).Should(HaveLen(1))
 		})
 	})
 })

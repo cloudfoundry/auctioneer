@@ -3,7 +3,6 @@ package auctioneer
 import (
 	"os"
 	"syscall"
-	"time"
 
 	"github.com/cloudfoundry-incubator/auction/auctionrunner"
 	"github.com/cloudfoundry-incubator/auction/auctiontypes"
@@ -23,24 +22,20 @@ const (
 )
 
 type Auctioneer struct {
-	bbs           Bbs.AuctioneerBBS
-	runner        auctiontypes.AuctionRunner
-	maxConcurrent int
-	maxRounds     int
-	logger        lager.Logger
-	semaphore     chan bool
-	lockInterval  time.Duration
+	bbs       Bbs.AuctioneerBBS
+	runner    auctiontypes.AuctionRunner
+	maxRounds int
+	logger    lager.Logger
+	semaphore chan bool
 }
 
-func New(bbs Bbs.AuctioneerBBS, runner auctiontypes.AuctionRunner, maxConcurrent int, maxRounds int, lockInterval time.Duration, logger lager.Logger) *Auctioneer {
+func New(bbs Bbs.AuctioneerBBS, runner auctiontypes.AuctionRunner, maxConcurrent int, maxRounds int, logger lager.Logger) *Auctioneer {
 	return &Auctioneer{
-		bbs:           bbs,
-		runner:        runner,
-		maxConcurrent: maxConcurrent,
-		maxRounds:     maxRounds,
-		logger:        logger.Session("auctioneer"),
-		semaphore:     make(chan bool, maxConcurrent),
-		lockInterval:  lockInterval,
+		bbs:       bbs,
+		runner:    runner,
+		maxRounds: maxRounds,
+		logger:    logger.Session("auctioneer"),
+		semaphore: make(chan bool, maxConcurrent),
 	}
 }
 
@@ -143,12 +138,12 @@ func (a *Auctioneer) runStartAuction(startAuction models.LRPStartAuction, logger
 
 	defer a.bbs.ResolveLRPStartAuction(startAuction)
 
-	cellGuids, err := a.getCellsforStack(startAuction.DesiredLRP.Stack)
+	cellAddresses, err := a.getCellsforStack(startAuction.DesiredLRP.Stack)
 	if err != nil {
 		logger.Error("failed-to-get-cells", err)
 		return
 	}
-	if len(cellGuids) == 0 {
+	if len(cellAddresses) == 0 {
 		logger.Error("no-available-cells", nil)
 		return
 	}
@@ -162,7 +157,7 @@ func (a *Auctioneer) runStartAuction(startAuction models.LRPStartAuction, logger
 
 	request := auctiontypes.StartAuctionRequest{
 		LRPStartAuction: startAuction,
-		RepGuids:        cellGuids,
+		RepAddresses:    cellAddresses,
 		Rules:           rules,
 	}
 
@@ -174,21 +169,24 @@ func (a *Auctioneer) runStartAuction(startAuction models.LRPStartAuction, logger
 	}
 }
 
-func (a *Auctioneer) getCellsforStack(stack string) ([]string, error) {
+func (a *Auctioneer) getCellsforStack(stack string) ([]auctiontypes.RepAddress, error) {
 	cells, err := a.bbs.Cells()
 	if err != nil {
 		return nil, err
 	}
 
-	filteredCellGuids := []string{}
+	filteredAddresses := []auctiontypes.RepAddress{}
 
 	for _, cell := range cells {
 		if cell.Stack == stack {
-			filteredCellGuids = append(filteredCellGuids, cell.CellID)
+			filteredAddresses = append(filteredAddresses, auctiontypes.RepAddress{
+				RepGuid: cell.CellID,
+				Address: cell.RepAddress,
+			})
 		}
 	}
 
-	return filteredCellGuids, nil
+	return filteredAddresses, nil
 }
 
 func (a *Auctioneer) runStopAuction(stopAuction models.LRPStopAuction, logger lager.Logger) {
@@ -203,13 +201,13 @@ func (a *Auctioneer) runStopAuction(stopAuction models.LRPStopAuction, logger la
 
 	defer a.bbs.ResolveLRPStopAuction(stopAuction)
 
-	cellGuids, err := a.getCells()
+	repAddresses, err := a.getRepAddresses()
 	if err != nil {
 		logger.Error("failed-to-get-cells", err)
 		return
 	}
 
-	if len(cellGuids) == 0 {
+	if len(repAddresses) == 0 {
 		logger.Error("no-available-cells", nil)
 		return
 	}
@@ -220,7 +218,7 @@ func (a *Auctioneer) runStopAuction(stopAuction models.LRPStopAuction, logger la
 
 	request := auctiontypes.StopAuctionRequest{
 		LRPStopAuction: stopAuction,
-		RepGuids:       cellGuids,
+		RepAddresses:   repAddresses,
 	}
 	_, err = a.runner.RunLRPStopAuction(request)
 
@@ -231,17 +229,20 @@ func (a *Auctioneer) runStopAuction(stopAuction models.LRPStopAuction, logger la
 	}
 }
 
-func (a *Auctioneer) getCells() ([]string, error) {
+func (a *Auctioneer) getRepAddresses() ([]auctiontypes.RepAddress, error) {
 	cells, err := a.bbs.Cells()
 	if err != nil {
 		return nil, err
 	}
 
-	cellGuids := []string{}
+	repAddresses := []auctiontypes.RepAddress{}
 
 	for _, cell := range cells {
-		cellGuids = append(cellGuids, cell.CellID)
+		repAddresses = append(repAddresses, auctiontypes.RepAddress{
+			RepGuid: executor.CellID,
+			Address: executor.RepAddress,
+		})
 	}
 
-	return cellGuids, nil
+	return repAddresses, nil
 }
