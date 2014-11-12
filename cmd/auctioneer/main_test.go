@@ -18,6 +18,16 @@ var dummyAction = models.ExecutorAction{
 	},
 }
 
+var exampleDesiredLRP = models.DesiredLRP{
+	ProcessGuid: "app-guid",
+	DiskMB:      1,
+	MemoryMB:    1,
+	Stack:       lucidStack,
+	Action:      dummyAction,
+	Domain:      "test",
+	Instances:   2,
+}
+
 var _ = Describe("Auctioneer", func() {
 	BeforeEach(func() {
 		auctioneer = ginkgomon.Invoke(runner)
@@ -30,31 +40,19 @@ var _ = Describe("Auctioneer", func() {
 
 	Context("when a start auction message arrives", func() {
 		BeforeEach(func() {
-			bbs.RequestLRPStartAuction(models.LRPStartAuction{
-				DesiredLRP: models.DesiredLRP{
-					ProcessGuid: "app-guid",
-					DiskMB:      1,
-					MemoryMB:    1,
-					Stack:       lucidStack,
-					Action:      &dummyAction,
-				},
-
+			err := bbs.RequestLRPStartAuction(models.LRPStartAuction{
+				DesiredLRP:   exampleDesiredLRP,
 				InstanceGuid: "instance-guid-1",
 				Index:        0,
 			})
+			Ω(err).ShouldNot(HaveOccurred())
 
-			bbs.RequestLRPStartAuction(models.LRPStartAuction{
-				DesiredLRP: models.DesiredLRP{
-					ProcessGuid: "app-guid",
-					DiskMB:      1,
-					MemoryMB:    1,
-					Stack:       lucidStack,
-					Action:      &dummyAction,
-				},
-
+			err = bbs.RequestLRPStartAuction(models.LRPStartAuction{
+				DesiredLRP:   exampleDesiredLRP,
 				InstanceGuid: "instance-guid-2",
 				Index:        1,
 			})
+			Ω(err).ShouldNot(HaveOccurred())
 		})
 
 		It("should start the app running on reps of the appropriate stack", func() {
@@ -69,14 +67,7 @@ var _ = Describe("Auctioneer", func() {
 	Context("when a stop auction message arrives", func() {
 		BeforeEach(func() {
 			bbs.RequestLRPStartAuction(models.LRPStartAuction{
-				DesiredLRP: models.DesiredLRP{
-					ProcessGuid: "app-guid",
-					DiskMB:      1,
-					MemoryMB:    1,
-					Stack:       lucidStack,
-					Action:      &dummyAction,
-				},
-
+				DesiredLRP:   exampleDesiredLRP,
 				InstanceGuid: "duplicate-instance-guid-1",
 				Index:        0,
 			})
@@ -84,14 +75,7 @@ var _ = Describe("Auctioneer", func() {
 			Eventually(bbs.GetAllLRPStartAuctions).Should(HaveLen(0))
 
 			bbs.RequestLRPStartAuction(models.LRPStartAuction{
-				DesiredLRP: models.DesiredLRP{
-					ProcessGuid: "app-guid",
-					DiskMB:      1,
-					MemoryMB:    1,
-					Stack:       lucidStack,
-					Action:      &dummyAction,
-				},
-
+				DesiredLRP:   exampleDesiredLRP,
 				InstanceGuid: "duplicate-instance-guid-2",
 				Index:        0,
 			})
@@ -99,14 +83,7 @@ var _ = Describe("Auctioneer", func() {
 			Eventually(bbs.GetAllLRPStartAuctions).Should(HaveLen(0))
 
 			bbs.RequestLRPStartAuction(models.LRPStartAuction{
-				DesiredLRP: models.DesiredLRP{
-					ProcessGuid: "app-guid",
-					DiskMB:      1,
-					MemoryMB:    1,
-					Stack:       lucidStack,
-					Action:      &dummyAction,
-				},
-
+				DesiredLRP:   exampleDesiredLRP,
 				InstanceGuid: "duplicate-instance-guid-3",
 				Index:        0,
 			})

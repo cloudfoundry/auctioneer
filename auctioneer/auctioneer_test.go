@@ -39,6 +39,12 @@ var _ = Describe("Auctioneer", func() {
 		metricSender   *fake.FakeMetricSender
 	)
 
+	action := models.ExecutorAction{
+		models.RunAction{
+			Path: "ls",
+		},
+	}
+
 	BeforeEach(func() {
 		logger = lagertest.NewTestLogger("test")
 		bbs = fake_bbs.NewFakeAuctioneerBBS()
@@ -70,6 +76,7 @@ var _ = Describe("Auctioneer", func() {
 			DesiredLRP: models.DesiredLRP{
 				ProcessGuid: "my-guid",
 				Stack:       "lucid64",
+				Action:      action,
 			},
 		}
 
@@ -264,6 +271,7 @@ var _ = Describe("Auctioneer", func() {
 						DesiredLRP: models.DesiredLRP{
 							ProcessGuid: "my-guid",
 							Stack:       "monkey-bunnies",
+							Action:      action,
 						},
 					}
 					bbs.LRPStartAuctionChan <- startAuction
@@ -301,18 +309,21 @@ var _ = Describe("Auctioneer", func() {
 				DesiredLRP: models.DesiredLRP{
 					ProcessGuid: "my-guid-1",
 					Stack:       "lucid64",
+					Action:      action,
 				},
 			}
 			startAuction2 = models.LRPStartAuction{
 				DesiredLRP: models.DesiredLRP{
 					ProcessGuid: "my-guid-2",
 					Stack:       "lucid64",
+					Action:      action,
 				},
 			}
 			startAuction3 = models.LRPStartAuction{
 				DesiredLRP: models.DesiredLRP{
 					ProcessGuid: "my-guid-3",
 					Stack:       "lucid64",
+					Action:      action,
 				},
 			}
 		})
