@@ -143,13 +143,13 @@ func (a *Auctioneer) runStartAuction(startAuction models.LRPStartAuction, logger
 
 	defer a.bbs.ResolveLRPStartAuction(startAuction)
 
-	executorGuids, err := a.getExecutorsforStack(startAuction.DesiredLRP.Stack)
+	cellGuids, err := a.getCellsforStack(startAuction.DesiredLRP.Stack)
 	if err != nil {
-		logger.Error("failed-to-get-executors", err)
+		logger.Error("failed-to-get-cells", err)
 		return
 	}
-	if len(executorGuids) == 0 {
-		logger.Error("no-available-executors", nil)
+	if len(cellGuids) == 0 {
+		logger.Error("no-available-cells", nil)
 		return
 	}
 
@@ -162,7 +162,7 @@ func (a *Auctioneer) runStartAuction(startAuction models.LRPStartAuction, logger
 
 	request := auctiontypes.StartAuctionRequest{
 		LRPStartAuction: startAuction,
-		RepGuids:        executorGuids,
+		RepGuids:        cellGuids,
 		Rules:           rules,
 	}
 
@@ -174,21 +174,21 @@ func (a *Auctioneer) runStartAuction(startAuction models.LRPStartAuction, logger
 	}
 }
 
-func (a *Auctioneer) getExecutorsforStack(stack string) ([]string, error) {
-	executors, err := a.bbs.GetAllExecutors()
+func (a *Auctioneer) getCellsforStack(stack string) ([]string, error) {
+	cells, err := a.bbs.GetAllCells()
 	if err != nil {
 		return nil, err
 	}
 
-	filteredExecutorGuids := []string{}
+	filteredCellGuids := []string{}
 
-	for _, executor := range executors {
-		if executor.Stack == stack {
-			filteredExecutorGuids = append(filteredExecutorGuids, executor.ExecutorID)
+	for _, cell := range cells {
+		if cell.Stack == stack {
+			filteredCellGuids = append(filteredCellGuids, cell.CellID)
 		}
 	}
 
-	return filteredExecutorGuids, nil
+	return filteredCellGuids, nil
 }
 
 func (a *Auctioneer) runStopAuction(stopAuction models.LRPStopAuction, logger lager.Logger) {
@@ -203,14 +203,14 @@ func (a *Auctioneer) runStopAuction(stopAuction models.LRPStopAuction, logger la
 
 	defer a.bbs.ResolveLRPStopAuction(stopAuction)
 
-	executorGuids, err := a.getExecutors()
+	cellGuids, err := a.getCells()
 	if err != nil {
-		logger.Error("failed-to-get-executors", err)
+		logger.Error("failed-to-get-cells", err)
 		return
 	}
 
-	if len(executorGuids) == 0 {
-		logger.Error("no-available-executors", nil)
+	if len(cellGuids) == 0 {
+		logger.Error("no-available-cells", nil)
 		return
 	}
 
@@ -220,7 +220,7 @@ func (a *Auctioneer) runStopAuction(stopAuction models.LRPStopAuction, logger la
 
 	request := auctiontypes.StopAuctionRequest{
 		LRPStopAuction: stopAuction,
-		RepGuids:       executorGuids,
+		RepGuids:       cellGuids,
 	}
 	_, err = a.runner.RunLRPStopAuction(request)
 
@@ -231,17 +231,17 @@ func (a *Auctioneer) runStopAuction(stopAuction models.LRPStopAuction, logger la
 	}
 }
 
-func (a *Auctioneer) getExecutors() ([]string, error) {
-	executors, err := a.bbs.GetAllExecutors()
+func (a *Auctioneer) getCells() ([]string, error) {
+	cells, err := a.bbs.GetAllCells()
 	if err != nil {
 		return nil, err
 	}
 
-	executorGuids := []string{}
+	cellGuids := []string{}
 
-	for _, executor := range executors {
-		executorGuids = append(executorGuids, executor.ExecutorID)
+	for _, cell := range cells {
+		cellGuids = append(cellGuids, cell.CellID)
 	}
 
-	return executorGuids, nil
+	return cellGuids, nil
 }

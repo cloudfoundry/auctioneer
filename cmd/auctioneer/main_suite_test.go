@@ -113,9 +113,9 @@ var _ = BeforeEach(func() {
 })
 
 func startSimulationRep(simulationRepPath, guid string, stack string, natsPort int) (*gexec.Session, ifrit.Process) {
-	heartbeater := ifrit.Envoke(bbs.NewExecutorHeartbeat(models.ExecutorPresence{
-		ExecutorID: guid,
-		Stack:      stack,
+	heartbeater := ifrit.Envoke(bbs.NewCellHeartbeat(models.CellPresence{
+		CellID: guid,
+		Stack:  stack,
 	}, time.Second))
 
 	session, err := gexec.Start(exec.Command(

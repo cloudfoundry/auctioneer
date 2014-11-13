@@ -26,17 +26,17 @@ const MAX_AUCTION_ROUNDS_FOR_TEST = 10
 
 var _ = Describe("Auctioneer", func() {
 	var (
-		bbs            *fake_bbs.FakeAuctioneerBBS
-		auctioneer     *Auctioneer
-		runner         *fake_auctionrunner.FakeAuctionRunner
-		process        ifrit.Process
-		firstExecutor  models.ExecutorPresence
-		secondExecutor models.ExecutorPresence
-		thirdExecutor  models.ExecutorPresence
-		logger         *lagertest.TestLogger
-		startAuction   models.LRPStartAuction
-		stopAuction    models.LRPStopAuction
-		metricSender   *fake.FakeMetricSender
+		bbs          *fake_bbs.FakeAuctioneerBBS
+		auctioneer   *Auctioneer
+		runner       *fake_auctionrunner.FakeAuctionRunner
+		process      ifrit.Process
+		firstCell    models.CellPresence
+		secondCell   models.CellPresence
+		thirdCell    models.CellPresence
+		logger       *lagertest.TestLogger
+		startAuction models.LRPStartAuction
+		stopAuction  models.LRPStopAuction
+		metricSender *fake.FakeMetricSender
 	)
 
 	action := models.ExecutorAction{
@@ -49,26 +49,26 @@ var _ = Describe("Auctioneer", func() {
 		logger = lagertest.NewTestLogger("test")
 		bbs = fake_bbs.NewFakeAuctioneerBBS()
 
-		firstExecutor = models.ExecutorPresence{
-			ExecutorID: "first-rep",
-			Stack:      "lucid64",
+		firstCell = models.CellPresence{
+			CellID: "first-rep",
+			Stack:  "lucid64",
 		}
 
-		secondExecutor = models.ExecutorPresence{
-			ExecutorID: "second-rep",
-			Stack:      ".Net",
+		secondCell = models.CellPresence{
+			CellID: "second-rep",
+			Stack:  ".Net",
 		}
 
-		thirdExecutor = models.ExecutorPresence{
-			ExecutorID: "third-rep",
-			Stack:      "lucid64",
+		thirdCell = models.CellPresence{
+			CellID: "third-rep",
+			Stack:  "lucid64",
 		}
 
 		bbs.Lock()
-		bbs.Executors = []models.ExecutorPresence{
-			firstExecutor,
-			secondExecutor,
-			thirdExecutor,
+		bbs.Cells = []models.CellPresence{
+			firstCell,
+			secondCell,
+			thirdCell,
 		}
 		bbs.Unlock()
 
@@ -212,9 +212,9 @@ var _ = Describe("Auctioneer", func() {
 					request := runner.RunLRPStartAuctionArgsForCall(0)
 					Ω(request.LRPStartAuction).Should(Equal(startAuction))
 					Ω(request.RepGuids).Should(HaveLen(2))
-					Ω(request.RepGuids).Should(ContainElement(firstExecutor.ExecutorID))
-					Ω(request.RepGuids).Should(ContainElement(thirdExecutor.ExecutorID))
-					Ω(request.RepGuids).ShouldNot(ContainElement(secondExecutor.ExecutorID))
+					Ω(request.RepGuids).Should(ContainElement(firstCell.CellID))
+					Ω(request.RepGuids).Should(ContainElement(thirdCell.CellID))
+					Ω(request.RepGuids).ShouldNot(ContainElement(secondCell.CellID))
 					Ω(request.Rules.Algorithm).Should(Equal("all_rebid"))
 					Ω(request.Rules.MaxBiddingPoolFraction).Should(Equal(0.2))
 					Ω(request.Rules.MaxRounds).Should(Equal(MAX_AUCTION_ROUNDS_FOR_TEST))
@@ -380,9 +380,9 @@ var _ = Describe("Auctioneer", func() {
 					request := runner.RunLRPStopAuctionArgsForCall(0)
 					Ω(request.LRPStopAuction).Should(Equal(stopAuction))
 					Ω(request.RepGuids).Should(HaveLen(3))
-					Ω(request.RepGuids).Should(ContainElement(firstExecutor.ExecutorID))
-					Ω(request.RepGuids).Should(ContainElement(secondExecutor.ExecutorID))
-					Ω(request.RepGuids).Should(ContainElement(thirdExecutor.ExecutorID))
+					Ω(request.RepGuids).Should(ContainElement(firstCell.CellID))
+					Ω(request.RepGuids).Should(ContainElement(secondCell.CellID))
+					Ω(request.RepGuids).Should(ContainElement(thirdCell.CellID))
 				})
 
 				It("should increment the stop auctions started counter", func() {
