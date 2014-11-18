@@ -65,7 +65,7 @@ var _ = Describe("Auctioneer", func() {
 		}
 
 		bbs.Lock()
-		bbs.Cells = []models.CellPresence{
+		bbs.CellsReturns = []models.CellPresence{
 			firstCell,
 			secondCell,
 			thirdCell,

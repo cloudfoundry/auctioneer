@@ -72,7 +72,7 @@ var _ = Describe("Auctioneer", func() {
 				Index:        0,
 			})
 
-			Eventually(bbs.GetAllLRPStartAuctions).Should(HaveLen(0))
+			Eventually(bbs.LRPStartAuctions).Should(HaveLen(0))
 
 			bbs.RequestLRPStartAuction(models.LRPStartAuction{
 				DesiredLRP:   exampleDesiredLRP,
@@ -80,7 +80,7 @@ var _ = Describe("Auctioneer", func() {
 				Index:        0,
 			})
 
-			Eventually(bbs.GetAllLRPStartAuctions).Should(HaveLen(0))
+			Eventually(bbs.LRPStartAuctions).Should(HaveLen(0))
 
 			bbs.RequestLRPStartAuction(models.LRPStartAuction{
 				DesiredLRP:   exampleDesiredLRP,
@@ -88,7 +88,7 @@ var _ = Describe("Auctioneer", func() {
 				Index:        0,
 			})
 
-			Eventually(bbs.GetAllLRPStartAuctions).Should(HaveLen(0))
+			Eventually(bbs.LRPStartAuctions).Should(HaveLen(0))
 
 			Ω(repClient.SimulatedInstances(lucidGuid)).Should(HaveLen(3))
 		})

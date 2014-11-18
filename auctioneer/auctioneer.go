@@ -175,7 +175,7 @@ func (a *Auctioneer) runStartAuction(startAuction models.LRPStartAuction, logger
 }
 
 func (a *Auctioneer) getCellsforStack(stack string) ([]string, error) {
-	cells, err := a.bbs.GetAllCells()
+	cells, err := a.bbs.Cells()
 	if err != nil {
 		return nil, err
 	}
@@ -232,7 +232,7 @@ func (a *Auctioneer) runStopAuction(stopAuction models.LRPStopAuction, logger la
 }
 
 func (a *Auctioneer) getCells() ([]string, error) {
-	cells, err := a.bbs.GetAllCells()
+	cells, err := a.bbs.Cells()
 	if err != nil {
 		return nil, err
 	}
