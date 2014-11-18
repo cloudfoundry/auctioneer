@@ -39,10 +39,8 @@ var _ = Describe("Auctioneer", func() {
 		metricSender *fake.FakeMetricSender
 	)
 
-	action := models.ExecutorAction{
-		models.RunAction{
-			Path: "ls",
-		},
+	action := &models.RunAction{
+		Path: "ls",
 	}
 
 	BeforeEach(func() {

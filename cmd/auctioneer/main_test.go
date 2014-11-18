@@ -11,11 +11,9 @@ import (
 )
 
 var auctioneer ifrit.Process
-var dummyAction = models.ExecutorAction{
-	Action: models.RunAction{
-		Path: "cat",
-		Args: []string{"/tmp/file"},
-	},
+var dummyAction = &models.RunAction{
+	Path: "cat",
+	Args: []string{"/tmp/file"},
 }
 
 var exampleDesiredLRP = models.DesiredLRP{
