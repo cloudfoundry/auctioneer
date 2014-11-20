@@ -7,7 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cloudfoundry-incubator/auction/communication/http/auction_http_client"
+	"github.com/cloudfoundry-incubator/auctioneer/auctioninbox"
+
+	"github.com/cloudfoundry-incubator/auctioneer/auctionrunnerdelegate"
 
 	"github.com/cloudfoundry-incubator/cf-debug-server"
 	"github.com/cloudfoundry-incubator/cf-lager"
@@ -15,12 +17,13 @@ import (
 	"github.com/pivotal-golang/lager"
 
 	"github.com/cloudfoundry-incubator/auction/auctionrunner"
-	"github.com/cloudfoundry-incubator/auctioneer/auctioneer"
+	"github.com/cloudfoundry-incubator/auction/auctiontypes"
 	"github.com/cloudfoundry/dropsonde"
 	"github.com/cloudfoundry/gunk/timeprovider"
 	"github.com/cloudfoundry/gunk/workpool"
 	"github.com/cloudfoundry/storeadapter/etcdstoreadapter"
 	"github.com/tedsuo/ifrit"
+	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/sigmon"
 )
 
@@ -30,22 +33,22 @@ var etcdCluster = flag.String(
 	"comma-separated list of etcd addresses (http://ip:port)",
 )
 
-var maxConcurrent = flag.Int(
-	"maxConcurrent",
-	2,
-	"Maximum number of concurrent auctions",
+var maxRetries = flag.Int(
+	"maxRetries",
+	5,
+	"Maximum number of retries to place an instance before declaring failure",
 )
 
-var maxRounds = flag.Int(
-	"maxRounds",
-	auctionrunner.DefaultStartAuctionRules.MaxRounds,
-	"Maximum number of rounds to run before declaring failure",
+var communicationTimeout = flag.Duration(
+	"communicationTimeout",
+	5*time.Second,
+	"How long the auction will wait to hear back from a cell",
 )
 
-var auctionTimeout = flag.Duration(
-	"auctionTimeout",
-	time.Second,
-	"How long the auction will wait to hear back from a rep",
+var communicationWorkPoolSize = flag.Int(
+	"communicationWorkPoolSize",
+	1000,
+	"Limits the number of simultaneous concurrent outbound connections with cells",
 )
 
 var dropsondeOrigin = flag.String(
@@ -66,11 +69,17 @@ func main() {
 	logger := cf_lager.New("auctioneer")
 	initializeDropsonde(logger)
 	bbs := initializeBBS(logger)
-	auctioneer := initializeAuctioneer(bbs, logger)
+	auctionRunner := initializeAuctionRunner(bbs, logger)
+	auctionInbox := initializeAuctionInbox(auctionRunner, bbs, logger)
 
 	cf_debug_server.Run()
 
-	monitor := ifrit.Envoke(sigmon.New(auctioneer))
+	group := grouper.NewOrdered(os.Interrupt, grouper.Members{
+		{"auction-runner", auctionRunner},
+		{"auction-inbox", auctionInbox},
+	})
+
+	monitor := ifrit.Invoke(sigmon.New(group))
 
 	logger.Info("started")
 
@@ -83,14 +92,18 @@ func main() {
 	logger.Info("exited")
 }
 
-func initializeAuctioneer(bbs Bbs.AuctioneerBBS, logger lager.Logger) *auctioneer.Auctioneer {
+func initializeAuctionRunner(bbs Bbs.AuctioneerBBS, logger lager.Logger) auctiontypes.AuctionRunner {
 	httpClient := &http.Client{
-		Timeout:   *auctionTimeout,
+		Timeout:   *communicationTimeout,
 		Transport: &http.Transport{},
 	}
-	client := auction_http_client.New(httpClient, logger)
-	runner := auctionrunner.New(client)
-	return auctioneer.New(bbs, runner, *maxConcurrent, *maxRounds, logger)
+
+	delegate := auctionrunnerdelegate.New(httpClient, bbs, logger)
+	return auctionrunner.New(delegate, timeprovider.NewTimeProvider(), *maxRetries, workpool.NewWorkPool(*communicationWorkPoolSize), logger)
+}
+
+func initializeAuctionInbox(runner auctiontypes.AuctionRunner, bbs Bbs.AuctioneerBBS, logger lager.Logger) *auctioninbox.AuctionInbox {
+	return auctioninbox.New(runner, bbs, logger)
 }
 
 func initializeBBS(logger lager.Logger) Bbs.AuctioneerBBS {

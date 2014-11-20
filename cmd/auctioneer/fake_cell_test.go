@@ -5,6 +5,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/cloudfoundry-incubator/auction/simulation/simulationrep"
+
 	"github.com/pivotal-golang/lager"
 
 	. "github.com/onsi/ginkgo"
@@ -12,29 +14,26 @@ import (
 
 	"github.com/cloudfoundry-incubator/auction/communication/http/routes"
 
-	"github.com/cloudfoundry-incubator/auction/auctionrep"
-
 	"github.com/cloudfoundry-incubator/auction/auctiontypes"
 	"github.com/cloudfoundry-incubator/auction/communication/http/auction_http_handlers"
-	"github.com/cloudfoundry-incubator/auction/simulation/simulationrepdelegate"
 	"github.com/cloudfoundry-incubator/runtime-schema/models"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/rata"
 )
 
-type FakeRep struct {
-	repGuid     string
+type FakeCell struct {
+	cellID      string
 	stack       string
 	server      *httptest.Server
 	heartbeater ifrit.Process
 
-	AuctionRepDelegate auctiontypes.SimulationAuctionRepDelegate
+	SimulationRep auctiontypes.SimulationCellRep
 }
 
-func SpinUpFakeRep(repGuid string, stack string) *FakeRep {
-	fakeRep := &FakeRep{
-		repGuid: repGuid,
-		stack:   stack,
+func SpinUpFakeCell(cellID string, stack string) *FakeCell {
+	fakeRep := &FakeCell{
+		cellID: cellID,
+		stack:  stack,
 	}
 
 	fakeRep.SpinUp()
@@ -42,32 +41,39 @@ func SpinUpFakeRep(repGuid string, stack string) *FakeRep {
 	return fakeRep
 }
 
-func (f *FakeRep) SpinUp() {
+func (f *FakeCell) LRPs() ([]auctiontypes.LRP, error) {
+	state, err := f.SimulationRep.State()
+	if err != nil {
+		return nil, err
+	}
+	return state.LRPs, nil
+}
+
+func (f *FakeCell) SpinUp() {
 	//make a test-friendly AuctionRepDelegate using the auction package's SimulationRepDelegate
-	f.AuctionRepDelegate = simulationrepdelegate.New(auctiontypes.Resources{
+	f.SimulationRep = simulationrep.New(f.stack, auctiontypes.Resources{
 		DiskMB:     100,
 		MemoryMB:   100,
 		Containers: 100,
 	})
-	rep := auctionrep.New(f.repGuid, f.AuctionRepDelegate)
 
-	//spin up an http auction rep server
-	logger := lager.NewLogger(f.repGuid)
+	//spin up an http auction server
+	logger := lager.NewLogger(f.cellID)
 	logger.RegisterSink(lager.NewWriterSink(GinkgoWriter, lager.INFO))
-	handlers := auction_http_handlers.New(rep, logger)
+	handlers := auction_http_handlers.New(f.SimulationRep, logger)
 	router, err := rata.NewRouter(routes.Routes, handlers)
 	Ω(err).ShouldNot(HaveOccurred())
 	f.server = httptest.NewServer(router)
 
 	//start hearbeating to ETCD (via global test bbs)
-	f.heartbeater = ifrit.Envoke(bbs.NewExecutorHeartbeat(models.ExecutorPresence{
-		ExecutorID: f.repGuid,
+	f.heartbeater = ifrit.Invoke(bbs.NewCellHeartbeat(models.CellPresence{
+		CellID:     f.cellID,
 		Stack:      f.stack,
 		RepAddress: f.server.URL,
 	}, time.Second))
 }
 
-func (f *FakeRep) Stop() {
+func (f *FakeCell) Stop() {
 	f.server.Close()
 	f.heartbeater.Signal(os.Interrupt)
 	Eventually(f.heartbeater.Wait()).Should(Receive(BeNil()))

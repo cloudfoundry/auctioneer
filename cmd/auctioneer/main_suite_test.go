@@ -2,6 +2,7 @@ package main_test
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 
 	Bbs "github.com/cloudfoundry-incubator/runtime-schema/bbs"
@@ -13,24 +14,20 @@ import (
 	"github.com/onsi/gomega/gexec"
 	"github.com/pivotal-golang/lager"
 	"github.com/pivotal-golang/lager/lagertest"
+	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/ginkgomon"
 
 	"testing"
 	"time"
 )
 
-/*
-
-TODO:
-Create fake inprocess reps that we configure and spin up/interrogate for these test.
-
-*/
+var auctioneer ifrit.Process
 
 var auctioneerPath string
 
 var dotNetStack = "dot-net"
 var lucidStack = "lucid64"
-var dotNetRep, lucidRep *FakeRep
+var dotNetCell, lucidCell *FakeCell
 
 var etcdPort int
 
@@ -78,15 +75,20 @@ var _ = BeforeEach(func() {
 
 	etcdRunner.Start()
 
-	dotNetRep = SpinUpFakeRep("dot-net-rep", dotNetStack)
-	lucidRep = SpinUpFakeRep("lucid-rep", lucidStack)
+	dotNetCell = SpinUpFakeCell("dot-net-cell", dotNetStack)
+	lucidCell = SpinUpFakeCell("lucid-cell", lucidStack)
+
+	auctioneer = ginkgomon.Invoke(runner)
 })
 
 var _ = AfterEach(func() {
+	auctioneer.Signal(os.Kill)
+	Eventually(auctioneer.Wait()).Should(Receive())
+
 	etcdRunner.Stop()
 
-	dotNetRep.Stop()
-	lucidRep.Stop()
+	dotNetCell.Stop()
+	lucidCell.Stop()
 })
 
 var _ = SynchronizedAfterSuite(func() {

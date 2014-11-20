@@ -1,16 +1,11 @@
 package main_test
 
 import (
-	"os"
-
 	"github.com/cloudfoundry-incubator/runtime-schema/models"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/tedsuo/ifrit"
-	"github.com/tedsuo/ifrit/ginkgomon"
 )
 
-var auctioneer ifrit.Process
 var dummyAction = &models.RunAction{
 	Path: "cat",
 	Args: []string{"/tmp/file"},
@@ -27,15 +22,6 @@ var exampleDesiredLRP = models.DesiredLRP{
 }
 
 var _ = Describe("Auctioneer", func() {
-	BeforeEach(func() {
-		auctioneer = ginkgomon.Invoke(runner)
-	})
-
-	AfterEach(func() {
-		auctioneer.Signal(os.Kill)
-		Eventually(auctioneer.Wait()).Should(Receive())
-	})
-
 	Context("when a start auction message arrives", func() {
 		BeforeEach(func() {
 			err := bbs.RequestLRPStartAuction(models.LRPStartAuction{
@@ -54,8 +40,8 @@ var _ = Describe("Auctioneer", func() {
 		})
 
 		It("should start the app running on reps of the appropriate stack", func() {
-			Eventually(lucidRep.AuctionRepDelegate.SimulatedInstances).Should(HaveLen(2))
-			Ω(dotNetRep.AuctionRepDelegate.SimulatedInstances()).Should(BeEmpty())
+			Eventually(lucidCell.LRPs).Should(HaveLen(2))
+			Ω(dotNetCell.LRPs()).Should(BeEmpty())
 		})
 	})
 
@@ -84,7 +70,7 @@ var _ = Describe("Auctioneer", func() {
 			})
 
 			Eventually(bbs.LRPStartAuctions).Should(HaveLen(0))
-			Ω(lucidRep.AuctionRepDelegate.SimulatedInstances()).Should(HaveLen(3))
+			Ω(lucidCell.LRPs()).Should(HaveLen(3))
 		})
 
 		It("should stop all but one instance of the app", func() {
@@ -93,7 +79,7 @@ var _ = Describe("Auctioneer", func() {
 				Index:       0,
 			})
 
-			Eventually(lucidRep.AuctionRepDelegate.SimulatedInstances).Should(HaveLen(1))
+			Eventually(lucidCell.LRPs).Should(HaveLen(1))
 		})
 	})
 })
