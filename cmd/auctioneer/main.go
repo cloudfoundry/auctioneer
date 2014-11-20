@@ -43,7 +43,7 @@ var maxRetries = flag.Int(
 
 var communicationTimeout = flag.Duration(
 	"communicationTimeout",
-	5*time.Second,
+	10*time.Second,
 	"How long the auction will wait to hear back from a cell",
 )
 
