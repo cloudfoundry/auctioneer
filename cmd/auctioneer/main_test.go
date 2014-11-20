@@ -1,7 +1,9 @@
 package main_test
 
 import (
+	"github.com/cloudfoundry-incubator/runtime-schema/bbs/shared"
 	"github.com/cloudfoundry-incubator/runtime-schema/models"
+	"github.com/cloudfoundry/storeadapter"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -80,6 +82,20 @@ var _ = Describe("Auctioneer", func() {
 			})
 
 			Eventually(lucidCell.LRPs).Should(HaveLen(1))
+		})
+	})
+
+	Context("when the auctioneer loses the lock", func() {
+		BeforeEach(func() {
+			err := etcdClient.Update(storeadapter.StoreNode{
+				Key:   shared.LockSchemaPath("auctioneer_lock"),
+				Value: []byte("something-else"),
+			})
+			Ω(err).ShouldNot(HaveOccurred())
+		})
+
+		It("exits with an error", func() {
+			Eventually(runner.ExitCode, 3).Should(Equal(1))
 		})
 	})
 })

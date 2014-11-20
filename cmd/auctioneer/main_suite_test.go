@@ -69,6 +69,7 @@ var _ = BeforeEach(func() {
 		Command: exec.Command(
 			auctioneerPath,
 			"-etcdCluster", fmt.Sprintf("http://127.0.0.1:%d", etcdPort),
+			"-heartbeatInterval=1s",
 		),
 		StartCheck: "auctioneer.started",
 	})

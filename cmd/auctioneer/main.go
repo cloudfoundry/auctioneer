@@ -8,12 +8,14 @@ import (
 	"time"
 
 	"github.com/cloudfoundry-incubator/auctioneer/auctioninbox"
+	"github.com/nu7hatch/gouuid"
 
 	"github.com/cloudfoundry-incubator/auctioneer/auctionrunnerdelegate"
 
 	"github.com/cloudfoundry-incubator/cf-debug-server"
 	"github.com/cloudfoundry-incubator/cf-lager"
 	Bbs "github.com/cloudfoundry-incubator/runtime-schema/bbs"
+	"github.com/cloudfoundry-incubator/runtime-schema/bbs/lock_bbs"
 	"github.com/pivotal-golang/lager"
 
 	"github.com/cloudfoundry-incubator/auction/auctionrunner"
@@ -63,6 +65,12 @@ var dropsondeDestination = flag.String(
 	"Destination for dropsonde-emitted metrics.",
 )
 
+var heartbeatInterval = flag.Duration(
+	"heartbeatInterval",
+	lock_bbs.HEARTBEAT_INTERVAL,
+	"the interval between heartbeats to the lock",
+)
+
 func main() {
 	flag.Parse()
 
@@ -72,9 +80,16 @@ func main() {
 	auctionRunner := initializeAuctionRunner(bbs, logger)
 	auctionInbox := initializeAuctionInbox(auctionRunner, bbs, logger)
 
+	uuid, err := uuid.NewV4()
+	if err != nil {
+		logger.Fatal("Couldn't generate uuid", err)
+	}
+	heartbeater := bbs.NewAuctioneerLock(uuid.String(), *heartbeatInterval)
+
 	cf_debug_server.Run()
 
 	group := grouper.NewOrdered(os.Interrupt, grouper.Members{
+		{"heartbeater", heartbeater},
 		{"auction-runner", auctionRunner},
 		{"auction-inbox", auctionInbox},
 	})
@@ -83,7 +98,7 @@ func main() {
 
 	logger.Info("started")
 
-	err := <-monitor.Wait()
+	err = <-monitor.Wait()
 	if err != nil {
 		logger.Error("exited-with-failure", err)
 		os.Exit(1)
