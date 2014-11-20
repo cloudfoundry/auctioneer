@@ -5,6 +5,8 @@ import (
 	"net/http"
 
 	"github.com/cloudfoundry-incubator/auction/auctiontypes"
+	"github.com/cloudfoundry/dropsonde/metric_sender/fake"
+	"github.com/cloudfoundry/dropsonde/metrics"
 
 	"github.com/onsi/gomega/ghttp"
 
@@ -21,8 +23,12 @@ import (
 var _ = Describe("Auction Runner Delegate", func() {
 	var delegate *AuctionRunnerDelegate
 	var bbs *fake_bbs.FakeAuctioneerBBS
+	var metricSender *fake.FakeMetricSender
 
 	BeforeEach(func() {
+		metricSender = fake.NewFakeMetricSender()
+		metrics.Initialize(metricSender)
+
 		bbs = &fake_bbs.FakeAuctioneerBBS{}
 		delegate = New(&http.Client{}, bbs, lagertest.NewTestLogger("delegate"))
 	})
@@ -87,7 +93,7 @@ var _ = Describe("Auction Runner Delegate", func() {
 	})
 
 	Describe("when batches are distributed", func() {
-		It("should mark all associated auctions as resolved", func() {
+		BeforeEach(func() {
 			delegate.DistributedBatch(auctiontypes.AuctionResults{
 				SuccessfulStarts: []auctiontypes.StartAuction{
 					{LRPStartAuction: models.LRPStartAuction{
@@ -103,6 +109,9 @@ var _ = Describe("Auction Runner Delegate", func() {
 					{LRPStartAuction: models.LRPStartAuction{
 						InstanceGuid: "failed-start",
 					}},
+					{LRPStartAuction: models.LRPStartAuction{
+						InstanceGuid: "other-failed-start",
+					}},
 				},
 
 				FailedStops: []auctiontypes.StopAuction{
@@ -111,21 +120,29 @@ var _ = Describe("Auction Runner Delegate", func() {
 					}},
 				},
 			})
+		})
 
-			Ω(bbs.ResolveLRPStartAuctionCallCount()).Should(Equal(2))
+		It("should mark all associated auctions as resolved", func() {
+			Ω(bbs.ResolveLRPStartAuctionCallCount()).Should(Equal(3))
 			Ω(bbs.ResolveLRPStopAuctionCallCount()).Should(Equal(2))
 
 			resolvedStarts := []string{
 				bbs.ResolveLRPStartAuctionArgsForCall(0).InstanceGuid,
 				bbs.ResolveLRPStartAuctionArgsForCall(1).InstanceGuid,
+				bbs.ResolveLRPStartAuctionArgsForCall(2).InstanceGuid,
 			}
-			Ω(resolvedStarts).Should(ConsistOf([]string{"successful-start", "failed-start"}))
+			Ω(resolvedStarts).Should(ConsistOf([]string{"successful-start", "failed-start", "other-failed-start"}))
 
 			resolvedStops := []string{
 				bbs.ResolveLRPStopAuctionArgsForCall(0).ProcessGuid,
 				bbs.ResolveLRPStopAuctionArgsForCall(1).ProcessGuid,
 			}
 			Ω(resolvedStops).Should(ConsistOf([]string{"successful-stop", "failed-stop"}))
+		})
+
+		It("should increment fail metrics for the failed auctions", func() {
+			Ω(metricSender.GetCounter("AuctioneerStartAuctionsFailed")).Should(BeNumerically("==", 2))
+			Ω(metricSender.GetCounter("AuctioneerStopAuctionsFailed")).Should(BeNumerically("==", 1))
 		})
 	})
 })

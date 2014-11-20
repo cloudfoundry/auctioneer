@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/cloudfoundry-incubator/auction/communication/http/auction_http_client"
+	"github.com/cloudfoundry-incubator/auctioneer"
 
 	"github.com/cloudfoundry-incubator/auction/auctiontypes"
 	"github.com/cloudfoundry-incubator/runtime-schema/bbs"
@@ -43,12 +44,14 @@ func (a *AuctionRunnerDelegate) DistributedBatch(results auctiontypes.AuctionRes
 		a.bbs.ResolveLRPStartAuction(start.LRPStartAuction)
 	}
 	for _, start := range results.FailedStarts {
+		auctioneer.StartAuctionsFailed.Increment()
 		a.bbs.ResolveLRPStartAuction(start.LRPStartAuction)
 	}
 	for _, stop := range results.SuccessfulStops {
 		a.bbs.ResolveLRPStopAuction(stop.LRPStopAuction)
 	}
 	for _, stop := range results.FailedStops {
+		auctioneer.StopAuctionsFailed.Increment()
 		a.bbs.ResolveLRPStopAuction(stop.LRPStopAuction)
 	}
 }

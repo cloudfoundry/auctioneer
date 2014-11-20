@@ -1,4 +1,4 @@
-package auctioneer_test
+package auctioninbox_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestAuctioneer(t *testing.T) {
+func TestAuctioninbox(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Auctioneer Suite")
+	RunSpecs(t, "Auctioninbox Suite")
 }
