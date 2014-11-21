@@ -3,7 +3,6 @@ package auctioninbox_test
 import (
 	"errors"
 	"fmt"
-	"os"
 
 	"github.com/cloudfoundry-incubator/auction/auctiontypes/fakes"
 	. "github.com/cloudfoundry-incubator/auctioneer/auctioninbox"
@@ -13,6 +12,7 @@ import (
 	"github.com/cloudfoundry/dropsonde/metrics"
 	"github.com/pivotal-golang/lager/lagertest"
 	"github.com/tedsuo/ifrit"
+	"github.com/tedsuo/ifrit/ginkgomon"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -62,12 +62,11 @@ var _ = Describe("AuctionInbox", func() {
 		}
 
 		inbox = New(runner, bbs, lagertest.NewTestLogger("inbox"))
-		process = ifrit.Invoke(inbox)
+		process = ginkgomon.Invoke(inbox)
 	})
 
 	AfterEach(func() {
-		process.Signal(os.Interrupt)
-		Eventually(process.Wait()).Should(Receive())
+		ginkgomon.Interrupt(process)
 		Ω(cancelStartWatchChan).Should(BeClosed())
 		Ω(cancelStopWatchChan).Should(BeClosed())
 	})
@@ -103,9 +102,7 @@ var _ = Describe("AuctionInbox", func() {
 			It("should not tell the runner", func() {
 				Eventually(bbs.ClaimLRPStartAuctionCallCount).Should(Equal(1))
 				Consistently(runner.AddLRPStartAuctionCallCount).Should(Equal(0))
-			})
 
-			It("should increment the start auctions failed counter", func() {
 				Eventually(func() uint64 {
 					return metricSender.GetCounter("AuctioneerStartAuctionsFailed")
 				}).Should(Equal(uint64(1)))
@@ -144,9 +141,7 @@ var _ = Describe("AuctionInbox", func() {
 			It("should not tell the runner", func() {
 				Eventually(bbs.ClaimLRPStopAuctionCallCount).Should(Equal(1))
 				Consistently(runner.AddLRPStopAuctionCallCount).Should(Equal(0))
-			})
 
-			It("should increment the stop auctions failed counter", func() {
 				Eventually(func() uint64 {
 					return metricSender.GetCounter("AuctioneerStopAuctionsFailed")
 				}).Should(Equal(uint64(1)))
@@ -157,9 +152,9 @@ var _ = Describe("AuctionInbox", func() {
 	Context("if the start watch channel is closed", func() {
 		var newStartAuctionChan chan models.LRPStartAuction
 		BeforeEach(func() {
-			close(startAuctionChan)
 			newStartAuctionChan = make(chan models.LRPStartAuction)
 			bbs.WatchForLRPStartAuctionReturns(newStartAuctionChan, cancelStartWatchChan, startErrorChan)
+			close(startAuctionChan)
 		})
 
 		It("should start watching again on the next lock tick", func() {
@@ -171,9 +166,9 @@ var _ = Describe("AuctionInbox", func() {
 	Context("if the stop watch channel is closed", func() {
 		var newStopAuctionChan chan models.LRPStopAuction
 		BeforeEach(func() {
-			close(stopAuctionChan)
 			newStopAuctionChan = make(chan models.LRPStopAuction)
 			bbs.WatchForLRPStopAuctionReturns(newStopAuctionChan, cancelStopWatchChan, stopErrorChan)
+			close(stopAuctionChan)
 		})
 
 		It("should start watching again on the next lock tick", func() {
