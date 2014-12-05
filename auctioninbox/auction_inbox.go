@@ -25,22 +25,22 @@ func New(runner auctiontypes.AuctionRunner, bbs bbs.AuctioneerBBS, logger lager.
 }
 
 func (a *AuctionInbox) Run(signals <-chan os.Signal, ready chan<- struct{}) error {
-	var startAuctionChan <-chan models.LRPStartAuction
-	var startErrorChan <-chan error
-	var cancelStartWatchChan chan<- bool
+	var lrpStartAuctionChan <-chan models.LRPStartAuction
+	var lrpStartErrorChan <-chan error
+	var cancelLRPStartWatchChan chan<- bool
 
-	var stopAuctionChan <-chan models.LRPStopAuction
-	var stopErrorChan <-chan error
-	var cancelStopWatchChan chan<- bool
+	var lrpStopAuctionChan <-chan models.LRPStopAuction
+	var lrpStopErrorChan <-chan error
+	var cancelLRPStopWatchChan chan<- bool
 
 	for {
-		if startAuctionChan == nil {
-			startAuctionChan, cancelStartWatchChan, startErrorChan = a.bbs.WatchForLRPStartAuction()
+		if lrpStartAuctionChan == nil {
+			lrpStartAuctionChan, cancelLRPStartWatchChan, lrpStartErrorChan = a.bbs.WatchForLRPStartAuction()
 			a.logger.Info("watching-for-start-auctions")
 		}
 
-		if stopAuctionChan == nil {
-			stopAuctionChan, cancelStopWatchChan, stopErrorChan = a.bbs.WatchForLRPStopAuction()
+		if lrpStopAuctionChan == nil {
+			lrpStopAuctionChan, cancelLRPStopWatchChan, lrpStopErrorChan = a.bbs.WatchForLRPStopAuction()
 			a.logger.Info("watching-for-stop-auctions")
 		}
 
@@ -50,9 +50,9 @@ func (a *AuctionInbox) Run(signals <-chan os.Signal, ready chan<- struct{}) erro
 		}
 
 		select {
-		case startAuction, ok := <-startAuctionChan:
+		case startAuction, ok := <-lrpStartAuctionChan:
 			if !ok {
-				startAuctionChan = nil
+				lrpStartAuctionChan = nil
 				continue
 			}
 
@@ -61,20 +61,20 @@ func (a *AuctionInbox) Run(signals <-chan os.Signal, ready chan<- struct{}) erro
 			})
 			logger.Info("received")
 			go func() {
-				auctioneer.StartAuctionsStarted.Increment()
+				auctioneer.LRPStartAuctionsStarted.Increment()
 				err := a.bbs.ClaimLRPStartAuction(startAuction)
 				if err != nil {
 					logger.Error("failed-to-claim", err)
-					auctioneer.StartAuctionsFailed.Increment()
+					auctioneer.LRPStartAuctionsFailed.Increment()
 					return
 				}
 				a.runner.AddLRPStartAuction(startAuction)
 				logger.Info("submitted")
 			}()
 
-		case stopAuction, ok := <-stopAuctionChan:
+		case stopAuction, ok := <-lrpStopAuctionChan:
 			if !ok {
-				stopAuctionChan = nil
+				lrpStopAuctionChan = nil
 				continue
 			}
 
@@ -83,36 +83,36 @@ func (a *AuctionInbox) Run(signals <-chan os.Signal, ready chan<- struct{}) erro
 			})
 			logger.Info("received")
 			go func() {
-				auctioneer.StopAuctionsStarted.Increment()
+				auctioneer.LRPStopAuctionsStarted.Increment()
 				err := a.bbs.ClaimLRPStopAuction(stopAuction)
 				if err != nil {
 					logger.Error("failed-to-claim", err)
-					auctioneer.StopAuctionsFailed.Increment()
+					auctioneer.LRPStopAuctionsFailed.Increment()
 					return
 				}
 				a.runner.AddLRPStopAuction(stopAuction)
 				logger.Info("submitted")
 			}()
 
-		case err := <-startErrorChan:
+		case err := <-lrpStartErrorChan:
 			a.logger.Error("watching-start-auctions-failed", err)
-			startAuctionChan = nil
-			startErrorChan = nil
+			lrpStartAuctionChan = nil
+			lrpStartErrorChan = nil
 
-		case err := <-stopErrorChan:
+		case err := <-lrpStopErrorChan:
 			a.logger.Error("watching-stop-auctions-failed", err)
-			stopAuctionChan = nil
-			stopErrorChan = nil
+			lrpStopAuctionChan = nil
+			lrpStopErrorChan = nil
 
 		case <-signals:
-			if cancelStartWatchChan != nil {
+			if cancelLRPStartWatchChan != nil {
 				a.logger.Info("stopping-start-watch")
-				close(cancelStartWatchChan)
+				close(cancelLRPStartWatchChan)
 			}
 
-			if cancelStopWatchChan != nil {
+			if cancelLRPStopWatchChan != nil {
 				a.logger.Info("stopping-stop-watch")
-				close(cancelStopWatchChan)
+				close(cancelLRPStopWatchChan)
 			}
 
 			return nil

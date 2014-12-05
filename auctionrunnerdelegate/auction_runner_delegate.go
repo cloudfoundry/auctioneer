@@ -40,18 +40,18 @@ func (a *AuctionRunnerDelegate) FetchCellReps() (map[string]auctiontypes.CellRep
 }
 
 func (a *AuctionRunnerDelegate) DistributedBatch(results auctiontypes.AuctionResults) {
-	for _, start := range results.SuccessfulStarts {
+	for _, start := range results.SuccessfulLRPStarts {
 		a.bbs.ResolveLRPStartAuction(start.LRPStartAuction)
 	}
-	for _, start := range results.FailedStarts {
-		auctioneer.StartAuctionsFailed.Increment()
+	for _, start := range results.FailedLRPStarts {
+		auctioneer.LRPStartAuctionsFailed.Increment()
 		a.bbs.ResolveLRPStartAuction(start.LRPStartAuction)
 	}
-	for _, stop := range results.SuccessfulStops {
+	for _, stop := range results.SuccessfulLRPStops {
 		a.bbs.ResolveLRPStopAuction(stop.LRPStopAuction)
 	}
-	for _, stop := range results.FailedStops {
-		auctioneer.StopAuctionsFailed.Increment()
+	for _, stop := range results.FailedLRPStops {
+		auctioneer.LRPStopAuctionsFailed.Increment()
 		a.bbs.ResolveLRPStopAuction(stop.LRPStopAuction)
 	}
 }

@@ -95,17 +95,17 @@ var _ = Describe("Auction Runner Delegate", func() {
 	Describe("when batches are distributed", func() {
 		BeforeEach(func() {
 			delegate.DistributedBatch(auctiontypes.AuctionResults{
-				SuccessfulStarts: []auctiontypes.StartAuction{
+				SuccessfulLRPStarts: []auctiontypes.LRPStartAuction{
 					{LRPStartAuction: models.LRPStartAuction{
 						InstanceGuid: "successful-start",
 					}},
 				},
-				SuccessfulStops: []auctiontypes.StopAuction{
+				SuccessfulLRPStops: []auctiontypes.LRPStopAuction{
 					{LRPStopAuction: models.LRPStopAuction{
 						ProcessGuid: "successful-stop",
 					}},
 				},
-				FailedStarts: []auctiontypes.StartAuction{
+				FailedLRPStarts: []auctiontypes.LRPStartAuction{
 					{LRPStartAuction: models.LRPStartAuction{
 						InstanceGuid: "failed-start",
 					}},
@@ -114,7 +114,7 @@ var _ = Describe("Auction Runner Delegate", func() {
 					}},
 				},
 
-				FailedStops: []auctiontypes.StopAuction{
+				FailedLRPStops: []auctiontypes.LRPStopAuction{
 					{LRPStopAuction: models.LRPStopAuction{
 						ProcessGuid: "failed-stop",
 					}},
