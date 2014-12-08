@@ -7,4 +7,6 @@ const (
 	LRPStartAuctionsFailed  = metric.Counter("AuctioneerStartAuctionsFailed")
 	LRPStopAuctionsStarted  = metric.Counter("AuctioneerStopAuctionsStarted")
 	LRPStopAuctionsFailed   = metric.Counter("AuctioneerStopAuctionsFailed")
+	TaskAuctionsStarted     = metric.Counter("AuctioneerTaskAuctionsStarted")
+	TaskAuctionsFailed      = metric.Counter("AuctioneerTaskAuctionsFailed")
 )

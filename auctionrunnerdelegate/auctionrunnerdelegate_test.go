@@ -105,6 +105,11 @@ var _ = Describe("Auction Runner Delegate", func() {
 						ProcessGuid: "successful-stop",
 					}},
 				},
+				SuccessfulTasks: []auctiontypes.TaskAuction{
+					{Task: models.Task{
+						TaskGuid: "successful-task",
+					}},
+				},
 				FailedLRPStarts: []auctiontypes.LRPStartAuction{
 					{LRPStartAuction: models.LRPStartAuction{
 						InstanceGuid: "failed-start",
@@ -113,10 +118,14 @@ var _ = Describe("Auction Runner Delegate", func() {
 						InstanceGuid: "other-failed-start",
 					}},
 				},
-
 				FailedLRPStops: []auctiontypes.LRPStopAuction{
 					{LRPStopAuction: models.LRPStopAuction{
 						ProcessGuid: "failed-stop",
+					}},
+				},
+				FailedTasks: []auctiontypes.TaskAuction{
+					{Task: models.Task{
+						TaskGuid: "failed-task",
 					}},
 				},
 			})
@@ -143,6 +152,7 @@ var _ = Describe("Auction Runner Delegate", func() {
 		It("should increment fail metrics for the failed auctions", func() {
 			Ω(metricSender.GetCounter("AuctioneerStartAuctionsFailed")).Should(BeNumerically("==", 2))
 			Ω(metricSender.GetCounter("AuctioneerStopAuctionsFailed")).Should(BeNumerically("==", 1))
+			Ω(metricSender.GetCounter("AuctioneerTaskAuctionsFailed")).Should(BeNumerically("==", 1))
 		})
 	})
 })

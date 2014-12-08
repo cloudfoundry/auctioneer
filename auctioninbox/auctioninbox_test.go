@@ -33,8 +33,13 @@ var _ = Describe("AuctionInbox", func() {
 	var stopErrorChan chan error
 	var cancelStopWatchChan chan bool
 
+	var taskChan chan models.Task
+	var taskErrorChan chan error
+	var cancelTaskWatchChan chan bool
+
 	var startAuction models.LRPStartAuction
 	var stopAuction models.LRPStopAuction
+	var task models.Task
 
 	BeforeEach(func() {
 		runner = &fakes.FakeAuctionRunner{}
@@ -50,8 +55,13 @@ var _ = Describe("AuctionInbox", func() {
 		stopErrorChan = make(chan error)
 		cancelStopWatchChan = make(chan bool)
 
+		taskChan = make(chan models.Task)
+		taskErrorChan = make(chan error)
+		cancelTaskWatchChan = make(chan bool)
+
 		bbs.WatchForLRPStartAuctionReturns(startAuctionChan, cancelStartWatchChan, startErrorChan)
 		bbs.WatchForLRPStopAuctionReturns(stopAuctionChan, cancelStopWatchChan, stopErrorChan)
+		bbs.WatchForDesiredTaskReturns(taskChan, cancelTaskWatchChan, taskErrorChan)
 
 		startAuction = models.LRPStartAuction{
 			InstanceGuid: "start-auction",
@@ -59,6 +69,10 @@ var _ = Describe("AuctionInbox", func() {
 
 		stopAuction = models.LRPStopAuction{
 			ProcessGuid: "stop-auction",
+		}
+
+		task = models.Task{
+			TaskGuid: "task-guid",
 		}
 
 		inbox = New(runner, bbs, lagertest.NewTestLogger("inbox"))
@@ -69,6 +83,7 @@ var _ = Describe("AuctionInbox", func() {
 		ginkgomon.Interrupt(process)
 		Ω(cancelStartWatchChan).Should(BeClosed())
 		Ω(cancelStopWatchChan).Should(BeClosed())
+		Ω(cancelTaskWatchChan).Should(BeClosed())
 	})
 
 	Context("when a start comes in", func() {
@@ -107,6 +122,23 @@ var _ = Describe("AuctionInbox", func() {
 					return metricSender.GetCounter("AuctioneerStartAuctionsFailed")
 				}).Should(Equal(uint64(1)))
 			})
+		})
+	})
+
+	Context("when a task comes in", func() {
+		JustBeforeEach(func() {
+			taskChan <- task
+		})
+
+		It("should increment the task auctions started counter", func() {
+			Eventually(func() uint64 {
+				return metricSender.GetCounter("AuctioneerTaskAuctionsStarted")
+			}).Should(Equal(uint64(1)))
+		})
+
+		It("should tell the runner", func() {
+			Eventually(runner.AddTaskForAuctionCallCount).Should(Equal(1))
+			Ω(runner.AddTaskForAuctionArgsForCall(0)).Should(Equal(task))
 		})
 	})
 
@@ -157,7 +189,7 @@ var _ = Describe("AuctionInbox", func() {
 			close(startAuctionChan)
 		})
 
-		It("should start watching again on the next lock tick", func() {
+		It("should start watching again on the next clock tick", func() {
 			Eventually(newStartAuctionChan).Should(BeSent(startAuction))
 			Eventually(runner.AddLRPStartAuctionCallCount).ShouldNot(BeZero())
 		})
@@ -171,9 +203,24 @@ var _ = Describe("AuctionInbox", func() {
 			close(stopAuctionChan)
 		})
 
-		It("should start watching again on the next lock tick", func() {
+		It("should start watching again on the next clock tick", func() {
 			Eventually(newStopAuctionChan).Should(BeSent(stopAuction))
 			Eventually(runner.AddLRPStopAuctionCallCount).ShouldNot(BeZero())
+		})
+	})
+
+	Context("if the task watch channel is closed", func() {
+		var newTaskChan chan models.Task
+
+		BeforeEach(func() {
+			newTaskChan = make(chan models.Task)
+			bbs.WatchForDesiredTaskReturns(newTaskChan, cancelTaskWatchChan, taskErrorChan)
+			close(taskChan)
+		})
+
+		It("should start watching again on the next clock tick", func() {
+			Eventually(newTaskChan).Should(BeSent(task))
+			Eventually(runner.AddTaskForAuctionCallCount).ShouldNot(BeZero())
 		})
 	})
 
@@ -196,6 +243,17 @@ var _ = Describe("AuctionInbox", func() {
 		It("should start watching again", func() {
 			Eventually(stopAuctionChan).Should(BeSent(stopAuction))
 			Eventually(runner.AddLRPStopAuctionCallCount).ShouldNot(BeZero())
+		})
+	})
+
+	Context("if the task watch errors", func() {
+		BeforeEach(func() {
+			taskErrorChan <- fmt.Errorf("boom")
+		})
+
+		It("should start watching again", func() {
+			Eventually(taskChan).Should(BeSent(task))
+			Eventually(runner.AddTaskForAuctionCallCount).ShouldNot(BeZero())
 		})
 	})
 })

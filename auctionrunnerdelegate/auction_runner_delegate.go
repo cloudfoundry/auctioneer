@@ -54,4 +54,5 @@ func (a *AuctionRunnerDelegate) DistributedBatch(results auctiontypes.AuctionRes
 		auctioneer.LRPStopAuctionsFailed.Increment()
 		a.bbs.ResolveLRPStopAuction(stop.LRPStopAuction)
 	}
+	auctioneer.TaskAuctionsFailed.Add(uint64(len(results.FailedTasks)))
 }

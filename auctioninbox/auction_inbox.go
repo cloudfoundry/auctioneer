@@ -33,6 +33,10 @@ func (a *AuctionInbox) Run(signals <-chan os.Signal, ready chan<- struct{}) erro
 	var lrpStopErrorChan <-chan error
 	var cancelLRPStopWatchChan chan<- bool
 
+	var taskChan <-chan models.Task
+	var taskErrorChan <-chan error
+	var cancelTaskWatchChan chan<- bool
+
 	for {
 		if lrpStartAuctionChan == nil {
 			lrpStartAuctionChan, cancelLRPStartWatchChan, lrpStartErrorChan = a.bbs.WatchForLRPStartAuction()
@@ -42,6 +46,11 @@ func (a *AuctionInbox) Run(signals <-chan os.Signal, ready chan<- struct{}) erro
 		if lrpStopAuctionChan == nil {
 			lrpStopAuctionChan, cancelLRPStopWatchChan, lrpStopErrorChan = a.bbs.WatchForLRPStopAuction()
 			a.logger.Info("watching-for-stop-auctions")
+		}
+
+		if taskChan == nil {
+			taskChan, cancelTaskWatchChan, taskErrorChan = a.bbs.WatchForDesiredTask()
+			a.logger.Info("watching-for-tasks")
 		}
 
 		if ready != nil {
@@ -94,6 +103,22 @@ func (a *AuctionInbox) Run(signals <-chan os.Signal, ready chan<- struct{}) erro
 				logger.Info("submitted")
 			}()
 
+		case task, ok := <-taskChan:
+			if !ok {
+				taskChan = nil
+				continue
+			}
+
+			logger := a.logger.Session("task", lager.Data{
+				"task": task,
+			})
+			logger.Info("received")
+			go func() {
+				auctioneer.TaskAuctionsStarted.Increment()
+				a.runner.AddTaskForAuction(task)
+				logger.Info("submitted")
+			}()
+
 		case err := <-lrpStartErrorChan:
 			a.logger.Error("watching-start-auctions-failed", err)
 			lrpStartAuctionChan = nil
@@ -104,6 +129,11 @@ func (a *AuctionInbox) Run(signals <-chan os.Signal, ready chan<- struct{}) erro
 			lrpStopAuctionChan = nil
 			lrpStopErrorChan = nil
 
+		case err := <-taskErrorChan:
+			a.logger.Error("watching-tasks-failed", err)
+			taskChan = nil
+			taskErrorChan = nil
+
 		case <-signals:
 			if cancelLRPStartWatchChan != nil {
 				a.logger.Info("stopping-start-watch")
@@ -113,6 +143,11 @@ func (a *AuctionInbox) Run(signals <-chan os.Signal, ready chan<- struct{}) erro
 			if cancelLRPStopWatchChan != nil {
 				a.logger.Info("stopping-stop-watch")
 				close(cancelLRPStopWatchChan)
+			}
+
+			if cancelTaskWatchChan != nil {
+				a.logger.Info("stopping-task-watch")
+				close(cancelTaskWatchChan)
 			}
 
 			return nil

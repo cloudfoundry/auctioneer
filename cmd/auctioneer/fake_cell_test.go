@@ -49,6 +49,14 @@ func (f *FakeCell) LRPs() ([]auctiontypes.LRP, error) {
 	return state.LRPs, nil
 }
 
+func (f *FakeCell) Tasks() ([]auctiontypes.Task, error) {
+	state, err := f.SimulationRep.State()
+	if err != nil {
+		return nil, err
+	}
+	return state.Tasks, nil
+}
+
 func (f *FakeCell) SpinUp() {
 	//make a test-friendly AuctionRepDelegate using the auction package's SimulationRepDelegate
 	f.SimulationRep = simulationrep.New(f.stack, auctiontypes.Resources{

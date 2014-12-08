@@ -14,7 +14,7 @@ var dummyAction = &models.RunAction{
 }
 
 var exampleDesiredLRP = models.DesiredLRP{
-	ProcessGuid: "app-guid",
+	ProcessGuid: "process-guid",
 	DiskMB:      1,
 	MemoryMB:    1,
 	Stack:       lucidStack,
@@ -41,9 +41,28 @@ var _ = Describe("Auctioneer", func() {
 			Ω(err).ShouldNot(HaveOccurred())
 		})
 
-		It("should start the app running on reps of the appropriate stack", func() {
+		It("should start the process running on reps of the appropriate stack", func() {
 			Eventually(lucidCell.LRPs).Should(HaveLen(2))
 			Ω(dotNetCell.LRPs()).Should(BeEmpty())
+		})
+	})
+
+	Context("when a task message arrives", func() {
+		BeforeEach(func() {
+			err := bbs.DesireTask(models.Task{
+				TaskGuid: "task-guid",
+				DiskMB:   1,
+				MemoryMB: 1,
+				Stack:    lucidStack,
+				Action:   dummyAction,
+				Domain:   "test",
+			})
+			Ω(err).ShouldNot(HaveOccurred())
+		})
+
+		It("should start the task running on reps of the appropriate stack", func() {
+			Eventually(lucidCell.Tasks).Should(HaveLen(1))
+			Ω(dotNetCell.Tasks()).Should(BeEmpty())
 		})
 	})
 
@@ -77,7 +96,7 @@ var _ = Describe("Auctioneer", func() {
 
 		It("should stop all but one instance of the app", func() {
 			bbs.RequestLRPStopAuction(models.LRPStopAuction{
-				ProcessGuid: "app-guid",
+				ProcessGuid: "process-guid",
 				Index:       0,
 			})
 
