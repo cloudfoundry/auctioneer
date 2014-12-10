@@ -1,6 +1,7 @@
 package main_test
 
 import (
+	"github.com/cloudfoundry-incubator/auctioneer/auctionrunnerdelegate"
 	"github.com/cloudfoundry-incubator/runtime-schema/bbs/shared"
 	"github.com/cloudfoundry-incubator/runtime-schema/models"
 	"github.com/cloudfoundry/storeadapter"
@@ -48,21 +49,52 @@ var _ = Describe("Auctioneer", func() {
 	})
 
 	Context("when a task message arrives", func() {
-		BeforeEach(func() {
-			err := bbs.DesireTask(models.Task{
-				TaskGuid: "task-guid",
-				DiskMB:   1,
-				MemoryMB: 1,
-				Stack:    lucidStack,
-				Action:   dummyAction,
-				Domain:   "test",
+		Context("when there are sufficient resources to start the task", func() {
+			BeforeEach(func() {
+				err := bbs.DesireTask(models.Task{
+					TaskGuid: "task-guid",
+					DiskMB:   1,
+					MemoryMB: 1,
+					Stack:    lucidStack,
+					Action:   dummyAction,
+					Domain:   "test",
+				})
+				Ω(err).ShouldNot(HaveOccurred())
 			})
-			Ω(err).ShouldNot(HaveOccurred())
+
+			It("should start the task running on reps of the appropriate stack", func() {
+				Eventually(lucidCell.Tasks).Should(HaveLen(1))
+				Ω(dotNetCell.Tasks()).Should(BeEmpty())
+			})
 		})
 
-		It("should start the task running on reps of the appropriate stack", func() {
-			Eventually(lucidCell.Tasks).Should(HaveLen(1))
-			Ω(dotNetCell.Tasks()).Should(BeEmpty())
+		Context("when there are insufficient resources to start the task", func() {
+			BeforeEach(func() {
+				err := bbs.DesireTask(models.Task{
+					TaskGuid: "task-guid",
+					DiskMB:   1000,
+					MemoryMB: 1000,
+					Stack:    lucidStack,
+					Action:   dummyAction,
+					Domain:   "test",
+				})
+				Ω(err).ShouldNot(HaveOccurred())
+			})
+
+			It("should not start the task on any rep", func() {
+				Consistently(lucidCell.Tasks).Should(BeEmpty())
+				Consistently(dotNetCell.Tasks).Should(BeEmpty())
+			})
+
+			It("should mark the task as failed in the BBS", func() {
+				Eventually(bbs.CompletedTasks).Should(HaveLen(1))
+
+				completedTasks, _ := bbs.CompletedTasks()
+				completedTask := completedTasks[0]
+				Ω(completedTask.TaskGuid).Should(Equal("task-guid"))
+				Ω(completedTask.Failed).Should(BeTrue())
+				Ω(completedTask.FailureReason).Should(Equal(auctionrunnerdelegate.DEFAULT_AUCTION_FAILURE_REASON))
+			})
 		})
 	})
 

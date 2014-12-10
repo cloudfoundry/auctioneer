@@ -11,6 +11,8 @@ import (
 	"github.com/pivotal-golang/lager"
 )
 
+const DEFAULT_AUCTION_FAILURE_REASON = "insufficient resources"
+
 type AuctionRunnerDelegate struct {
 	client *http.Client
 	bbs    bbs.AuctioneerBBS
@@ -40,19 +42,53 @@ func (a *AuctionRunnerDelegate) FetchCellReps() (map[string]auctiontypes.CellRep
 }
 
 func (a *AuctionRunnerDelegate) DistributedBatch(results auctiontypes.AuctionResults) {
+	auctioneer.LRPStartAuctionsFailed.Add(uint64(len(results.FailedLRPStarts)))
+	auctioneer.LRPStopAuctionsFailed.Add(uint64(len(results.FailedLRPStops)))
+	auctioneer.TaskAuctionsFailed.Add(uint64(len(results.FailedTasks)))
+
 	for _, start := range results.SuccessfulLRPStarts {
-		a.bbs.ResolveLRPStartAuction(start.LRPStartAuction)
+		err := a.bbs.ResolveLRPStartAuction(start.LRPStartAuction)
+		if err != nil {
+			a.logger.Error("failed-to-resolve-lrp-start-auction", err, lager.Data{
+				"lrp-start-auction": start,
+				"auction-result":    "successful",
+			})
+		}
 	}
 	for _, start := range results.FailedLRPStarts {
-		auctioneer.LRPStartAuctionsFailed.Increment()
-		a.bbs.ResolveLRPStartAuction(start.LRPStartAuction)
+		err := a.bbs.ResolveLRPStartAuction(start.LRPStartAuction)
+		if err != nil {
+			a.logger.Error("failed-to-resolve-lrp-start-auction", err, lager.Data{
+				"lrp-start-auction": start,
+				"auction-result":    "failed",
+			})
+		}
 	}
 	for _, stop := range results.SuccessfulLRPStops {
-		a.bbs.ResolveLRPStopAuction(stop.LRPStopAuction)
+		err := a.bbs.ResolveLRPStopAuction(stop.LRPStopAuction)
+		if err != nil {
+			a.logger.Error("failed-to-resolve-lrp-stop-auction", err, lager.Data{
+				"lrp-stop-auction": stop,
+				"auction-result":   "successful",
+			})
+		}
 	}
 	for _, stop := range results.FailedLRPStops {
-		auctioneer.LRPStopAuctionsFailed.Increment()
-		a.bbs.ResolveLRPStopAuction(stop.LRPStopAuction)
+		err := a.bbs.ResolveLRPStopAuction(stop.LRPStopAuction)
+		if err != nil {
+			a.logger.Error("failed-to-resolve-lrp-stop-auction", err, lager.Data{
+				"lrp-stop-auction": stop,
+				"auction-result":   "failed",
+			})
+		}
 	}
-	auctioneer.TaskAuctionsFailed.Add(uint64(len(results.FailedTasks)))
+	for _, task := range results.FailedTasks {
+		err := a.bbs.CompleteTask(task.Identifier(), true, DEFAULT_AUCTION_FAILURE_REASON, "")
+		if err != nil {
+			a.logger.Error("failed-to-complete-task", err, lager.Data{
+				"task":           task,
+				"auction-result": "failed",
+			})
+		}
+	}
 }

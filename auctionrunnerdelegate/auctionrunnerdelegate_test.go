@@ -12,7 +12,7 @@ import (
 
 	"github.com/pivotal-golang/lager/lagertest"
 
-	. "github.com/cloudfoundry-incubator/auctioneer/auctionrunnerdelegate"
+	"github.com/cloudfoundry-incubator/auctioneer/auctionrunnerdelegate"
 	"github.com/cloudfoundry-incubator/runtime-schema/bbs/fake_bbs"
 	"github.com/cloudfoundry-incubator/runtime-schema/models"
 
@@ -21,7 +21,7 @@ import (
 )
 
 var _ = Describe("Auction Runner Delegate", func() {
-	var delegate *AuctionRunnerDelegate
+	var delegate *auctionrunnerdelegate.AuctionRunnerDelegate
 	var bbs *fake_bbs.FakeAuctioneerBBS
 	var metricSender *fake.FakeMetricSender
 
@@ -30,7 +30,7 @@ var _ = Describe("Auction Runner Delegate", func() {
 		metrics.Initialize(metricSender)
 
 		bbs = &fake_bbs.FakeAuctioneerBBS{}
-		delegate = New(&http.Client{}, bbs, lagertest.NewTestLogger("delegate"))
+		delegate = auctionrunnerdelegate.New(&http.Client{}, bbs, lagertest.NewTestLogger("delegate"))
 	})
 
 	Describe("fetching cell reps", func() {
@@ -147,6 +147,15 @@ var _ = Describe("Auction Runner Delegate", func() {
 				bbs.ResolveLRPStopAuctionArgsForCall(1).ProcessGuid,
 			}
 			Ω(resolvedStops).Should(ConsistOf([]string{"successful-stop", "failed-stop"}))
+		})
+
+		It("should mark all failed tasks as COMPLETE with the appropriate failure reason", func() {
+			Ω(bbs.CompleteTaskCallCount()).Should(Equal(1))
+			taskGuid, failed, failureReason, result := bbs.CompleteTaskArgsForCall(0)
+			Ω(taskGuid).Should(Equal("failed-task"))
+			Ω(failed).Should(BeTrue())
+			Ω(result).Should(BeEmpty())
+			Ω(failureReason).Should(Equal(auctionrunnerdelegate.DEFAULT_AUCTION_FAILURE_REASON))
 		})
 
 		It("should increment fail metrics for the failed auctions", func() {
