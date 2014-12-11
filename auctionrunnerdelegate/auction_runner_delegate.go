@@ -43,7 +43,6 @@ func (a *AuctionRunnerDelegate) FetchCellReps() (map[string]auctiontypes.CellRep
 
 func (a *AuctionRunnerDelegate) DistributedBatch(results auctiontypes.AuctionResults) {
 	auctioneer.LRPStartAuctionsFailed.Add(uint64(len(results.FailedLRPStarts)))
-	auctioneer.LRPStopAuctionsFailed.Add(uint64(len(results.FailedLRPStops)))
 	auctioneer.TaskAuctionsFailed.Add(uint64(len(results.FailedTasks)))
 
 	for _, start := range results.SuccessfulLRPStarts {
@@ -61,24 +60,6 @@ func (a *AuctionRunnerDelegate) DistributedBatch(results auctiontypes.AuctionRes
 			a.logger.Error("failed-to-resolve-lrp-start-auction", err, lager.Data{
 				"lrp-start-auction": start,
 				"auction-result":    "failed",
-			})
-		}
-	}
-	for _, stop := range results.SuccessfulLRPStops {
-		err := a.bbs.ResolveLRPStopAuction(stop.LRPStopAuction)
-		if err != nil {
-			a.logger.Error("failed-to-resolve-lrp-stop-auction", err, lager.Data{
-				"lrp-stop-auction": stop,
-				"auction-result":   "successful",
-			})
-		}
-	}
-	for _, stop := range results.FailedLRPStops {
-		err := a.bbs.ResolveLRPStopAuction(stop.LRPStopAuction)
-		if err != nil {
-			a.logger.Error("failed-to-resolve-lrp-stop-auction", err, lager.Data{
-				"lrp-stop-auction": stop,
-				"auction-result":   "failed",
 			})
 		}
 	}

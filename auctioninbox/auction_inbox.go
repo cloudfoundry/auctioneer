@@ -29,10 +29,6 @@ func (a *AuctionInbox) Run(signals <-chan os.Signal, ready chan<- struct{}) erro
 	var lrpStartErrorChan <-chan error
 	var cancelLRPStartWatchChan chan<- bool
 
-	var lrpStopAuctionChan <-chan models.LRPStopAuction
-	var lrpStopErrorChan <-chan error
-	var cancelLRPStopWatchChan chan<- bool
-
 	var taskChan <-chan models.Task
 	var taskErrorChan <-chan error
 	var cancelTaskWatchChan chan<- bool
@@ -41,11 +37,6 @@ func (a *AuctionInbox) Run(signals <-chan os.Signal, ready chan<- struct{}) erro
 		if lrpStartAuctionChan == nil {
 			lrpStartAuctionChan, cancelLRPStartWatchChan, lrpStartErrorChan = a.bbs.WatchForLRPStartAuction()
 			a.logger.Info("watching-for-start-auctions")
-		}
-
-		if lrpStopAuctionChan == nil {
-			lrpStopAuctionChan, cancelLRPStopWatchChan, lrpStopErrorChan = a.bbs.WatchForLRPStopAuction()
-			a.logger.Info("watching-for-stop-auctions")
 		}
 
 		if taskChan == nil {
@@ -81,28 +72,6 @@ func (a *AuctionInbox) Run(signals <-chan os.Signal, ready chan<- struct{}) erro
 				logger.Info("submitted")
 			}()
 
-		case stopAuction, ok := <-lrpStopAuctionChan:
-			if !ok {
-				lrpStopAuctionChan = nil
-				continue
-			}
-
-			logger := a.logger.Session("stop", lager.Data{
-				"stop-auction": stopAuction,
-			})
-			logger.Info("received")
-			go func() {
-				auctioneer.LRPStopAuctionsStarted.Increment()
-				err := a.bbs.ClaimLRPStopAuction(stopAuction)
-				if err != nil {
-					logger.Error("failed-to-claim", err)
-					auctioneer.LRPStopAuctionsFailed.Increment()
-					return
-				}
-				a.runner.AddLRPStopAuction(stopAuction)
-				logger.Info("submitted")
-			}()
-
 		case task, ok := <-taskChan:
 			if !ok {
 				taskChan = nil
@@ -124,11 +93,6 @@ func (a *AuctionInbox) Run(signals <-chan os.Signal, ready chan<- struct{}) erro
 			lrpStartAuctionChan = nil
 			lrpStartErrorChan = nil
 
-		case err := <-lrpStopErrorChan:
-			a.logger.Error("watching-stop-auctions-failed", err)
-			lrpStopAuctionChan = nil
-			lrpStopErrorChan = nil
-
 		case err := <-taskErrorChan:
 			a.logger.Error("watching-tasks-failed", err)
 			taskChan = nil
@@ -138,11 +102,6 @@ func (a *AuctionInbox) Run(signals <-chan os.Signal, ready chan<- struct{}) erro
 			if cancelLRPStartWatchChan != nil {
 				a.logger.Info("stopping-start-watch")
 				close(cancelLRPStartWatchChan)
-			}
-
-			if cancelLRPStopWatchChan != nil {
-				a.logger.Info("stopping-stop-watch")
-				close(cancelLRPStopWatchChan)
 			}
 
 			if cancelTaskWatchChan != nil {

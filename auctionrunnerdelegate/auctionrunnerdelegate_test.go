@@ -79,6 +79,7 @@ var _ = Describe("Auction Runner Delegate", func() {
 				Ω(calledB).Should(BeClosed())
 			})
 		})
+
 		Context("when the BBS errors", func() {
 			BeforeEach(func() {
 				bbs.CellsReturns(nil, errors.New("boom"))
@@ -100,11 +101,6 @@ var _ = Describe("Auction Runner Delegate", func() {
 						InstanceGuid: "successful-start",
 					}},
 				},
-				SuccessfulLRPStops: []auctiontypes.LRPStopAuction{
-					{LRPStopAuction: models.LRPStopAuction{
-						ProcessGuid: "successful-stop",
-					}},
-				},
 				SuccessfulTasks: []auctiontypes.TaskAuction{
 					{Task: models.Task{
 						TaskGuid: "successful-task",
@@ -118,11 +114,6 @@ var _ = Describe("Auction Runner Delegate", func() {
 						InstanceGuid: "other-failed-start",
 					}},
 				},
-				FailedLRPStops: []auctiontypes.LRPStopAuction{
-					{LRPStopAuction: models.LRPStopAuction{
-						ProcessGuid: "failed-stop",
-					}},
-				},
 				FailedTasks: []auctiontypes.TaskAuction{
 					{Task: models.Task{
 						TaskGuid: "failed-task",
@@ -131,9 +122,8 @@ var _ = Describe("Auction Runner Delegate", func() {
 			})
 		})
 
-		It("should mark all associated auctions as resolved", func() {
+		It("should mark all associated LRP auctions as resolved", func() {
 			Ω(bbs.ResolveLRPStartAuctionCallCount()).Should(Equal(3))
-			Ω(bbs.ResolveLRPStopAuctionCallCount()).Should(Equal(2))
 
 			resolvedStarts := []string{
 				bbs.ResolveLRPStartAuctionArgsForCall(0).InstanceGuid,
@@ -141,12 +131,6 @@ var _ = Describe("Auction Runner Delegate", func() {
 				bbs.ResolveLRPStartAuctionArgsForCall(2).InstanceGuid,
 			}
 			Ω(resolvedStarts).Should(ConsistOf([]string{"successful-start", "failed-start", "other-failed-start"}))
-
-			resolvedStops := []string{
-				bbs.ResolveLRPStopAuctionArgsForCall(0).ProcessGuid,
-				bbs.ResolveLRPStopAuctionArgsForCall(1).ProcessGuid,
-			}
-			Ω(resolvedStops).Should(ConsistOf([]string{"successful-stop", "failed-stop"}))
 		})
 
 		It("should mark all failed tasks as COMPLETE with the appropriate failure reason", func() {
@@ -160,7 +144,6 @@ var _ = Describe("Auction Runner Delegate", func() {
 
 		It("should increment fail metrics for the failed auctions", func() {
 			Ω(metricSender.GetCounter("AuctioneerStartAuctionsFailed")).Should(BeNumerically("==", 2))
-			Ω(metricSender.GetCounter("AuctioneerStopAuctionsFailed")).Should(BeNumerically("==", 1))
 			Ω(metricSender.GetCounter("AuctioneerTaskAuctionsFailed")).Should(BeNumerically("==", 1))
 		})
 	})

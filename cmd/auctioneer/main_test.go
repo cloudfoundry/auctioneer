@@ -98,44 +98,6 @@ var _ = Describe("Auctioneer", func() {
 		})
 	})
 
-	Context("when a stop auction message arrives", func() {
-		BeforeEach(func() {
-			bbs.RequestLRPStartAuction(models.LRPStartAuction{
-				DesiredLRP:   exampleDesiredLRP,
-				InstanceGuid: "duplicate-instance-guid-1",
-				Index:        0,
-			})
-
-			Eventually(bbs.LRPStartAuctions).Should(HaveLen(0))
-
-			bbs.RequestLRPStartAuction(models.LRPStartAuction{
-				DesiredLRP:   exampleDesiredLRP,
-				InstanceGuid: "duplicate-instance-guid-2",
-				Index:        0,
-			})
-
-			Eventually(bbs.LRPStartAuctions).Should(HaveLen(0))
-
-			bbs.RequestLRPStartAuction(models.LRPStartAuction{
-				DesiredLRP:   exampleDesiredLRP,
-				InstanceGuid: "duplicate-instance-guid-3",
-				Index:        0,
-			})
-
-			Eventually(bbs.LRPStartAuctions).Should(HaveLen(0))
-			Ω(lucidCell.LRPs()).Should(HaveLen(3))
-		})
-
-		It("should stop all but one instance of the app", func() {
-			bbs.RequestLRPStopAuction(models.LRPStopAuction{
-				ProcessGuid: "process-guid",
-				Index:       0,
-			})
-
-			Eventually(lucidCell.LRPs).Should(HaveLen(1))
-		})
-	})
-
 	Context("when the auctioneer loses the lock", func() {
 		BeforeEach(func() {
 			err := etcdClient.Update(storeadapter.StoreNode{
