@@ -54,7 +54,7 @@ var _ = Describe("AuctionInbox", func() {
 		bbs.WatchForDesiredTaskReturns(taskChan, cancelTaskWatchChan, taskErrorChan)
 
 		startAuction = models.LRPStartAuction{
-			InstanceGuid: "start-auction",
+			Index: 3,
 		}
 
 		task = models.Task{

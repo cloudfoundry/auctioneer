@@ -28,16 +28,14 @@ var _ = Describe("Auctioneer", func() {
 	Context("when a start auction message arrives", func() {
 		BeforeEach(func() {
 			err := bbs.RequestLRPStartAuction(models.LRPStartAuction{
-				DesiredLRP:   exampleDesiredLRP,
-				InstanceGuid: "instance-guid-1",
-				Index:        0,
+				DesiredLRP: exampleDesiredLRP,
+				Index:      0,
 			})
 			Ω(err).ShouldNot(HaveOccurred())
 
 			err = bbs.RequestLRPStartAuction(models.LRPStartAuction{
-				DesiredLRP:   exampleDesiredLRP,
-				InstanceGuid: "instance-guid-2",
-				Index:        1,
+				DesiredLRP: exampleDesiredLRP,
+				Index:      1,
 			})
 			Ω(err).ShouldNot(HaveOccurred())
 		})
