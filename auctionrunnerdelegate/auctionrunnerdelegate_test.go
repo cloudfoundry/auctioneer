@@ -14,6 +14,7 @@ import (
 
 	"github.com/cloudfoundry-incubator/auctioneer/auctionrunnerdelegate"
 	"github.com/cloudfoundry-incubator/runtime-schema/bbs/fake_bbs"
+	"github.com/cloudfoundry-incubator/runtime-schema/diego_errors"
 	"github.com/cloudfoundry-incubator/runtime-schema/models"
 
 	. "github.com/onsi/ginkgo"
@@ -128,7 +129,7 @@ var _ = Describe("Auction Runner Delegate", func() {
 			Ω(taskGuid).Should(Equal("failed-task"))
 			Ω(failed).Should(BeTrue())
 			Ω(result).Should(BeEmpty())
-			Ω(failureReason).Should(Equal(auctionrunnerdelegate.DEFAULT_AUCTION_FAILURE_REASON))
+			Ω(failureReason).Should(Equal(diego_errors.INSUFFICIENT_RESOURCES_MESSAGE))
 		})
 
 		It("should increment fail metrics for the failed auctions", func() {

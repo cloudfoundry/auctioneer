@@ -8,10 +8,9 @@ import (
 
 	"github.com/cloudfoundry-incubator/auction/auctiontypes"
 	"github.com/cloudfoundry-incubator/runtime-schema/bbs"
+	"github.com/cloudfoundry-incubator/runtime-schema/diego_errors"
 	"github.com/pivotal-golang/lager"
 )
-
-const DEFAULT_AUCTION_FAILURE_REASON = "insufficient resources"
 
 type AuctionRunnerDelegate struct {
 	client *http.Client
@@ -46,7 +45,7 @@ func (a *AuctionRunnerDelegate) DistributedBatch(results auctiontypes.AuctionRes
 	auctioneer.TaskAuctionsFailed.Add(uint64(len(results.FailedTasks)))
 
 	for _, task := range results.FailedTasks {
-		err := a.bbs.CompleteTask(task.Identifier(), true, DEFAULT_AUCTION_FAILURE_REASON, "")
+		err := a.bbs.CompleteTask(task.Identifier(), true, diego_errors.INSUFFICIENT_RESOURCES_MESSAGE, "")
 		if err != nil {
 			a.logger.Error("failed-to-complete-task", err, lager.Data{
 				"task":           task,

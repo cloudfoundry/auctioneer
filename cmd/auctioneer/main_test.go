@@ -1,8 +1,8 @@
 package main_test
 
 import (
-	"github.com/cloudfoundry-incubator/auctioneer/auctionrunnerdelegate"
 	"github.com/cloudfoundry-incubator/runtime-schema/bbs/shared"
+	"github.com/cloudfoundry-incubator/runtime-schema/diego_errors"
 	"github.com/cloudfoundry-incubator/runtime-schema/models"
 	"github.com/cloudfoundry/storeadapter"
 	. "github.com/onsi/ginkgo"
@@ -100,7 +100,7 @@ var _ = Describe("Auctioneer", func() {
 				completedTask := completedTasks[0]
 				Ω(completedTask.TaskGuid).Should(Equal("task-guid"))
 				Ω(completedTask.Failed).Should(BeTrue())
-				Ω(completedTask.FailureReason).Should(Equal(auctionrunnerdelegate.DEFAULT_AUCTION_FAILURE_REASON))
+				Ω(completedTask.FailureReason).Should(Equal(diego_errors.INSUFFICIENT_RESOURCES_MESSAGE))
 			})
 		})
 	})
