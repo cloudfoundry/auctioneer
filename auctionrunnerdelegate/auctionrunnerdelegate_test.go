@@ -122,17 +122,6 @@ var _ = Describe("Auction Runner Delegate", func() {
 			})
 		})
 
-		It("should mark all associated LRP auctions as resolved", func() {
-			Ω(bbs.ResolveLRPStartAuctionCallCount()).Should(Equal(3))
-
-			resolvedStarts := []string{
-				bbs.ResolveLRPStartAuctionArgsForCall(0).DesiredLRP.ProcessGuid,
-				bbs.ResolveLRPStartAuctionArgsForCall(1).DesiredLRP.ProcessGuid,
-				bbs.ResolveLRPStartAuctionArgsForCall(2).DesiredLRP.ProcessGuid,
-			}
-			Ω(resolvedStarts).Should(ConsistOf("successful-start", "failed-start", "other-failed-start"))
-		})
-
 		It("should mark all failed tasks as COMPLETE with the appropriate failure reason", func() {
 			Ω(bbs.CompleteTaskCallCount()).Should(Equal(1))
 			taskGuid, failed, failureReason, result := bbs.CompleteTaskArgsForCall(0)

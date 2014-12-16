@@ -27,13 +27,13 @@ var exampleDesiredLRP = models.DesiredLRP{
 var _ = Describe("Auctioneer", func() {
 	Context("when a start auction message arrives", func() {
 		BeforeEach(func() {
-			err := bbs.RequestLRPStartAuction(models.LRPStartAuction{
+			err := auctioneerClient.RequestLRPStartAuction(auctioneerAddress, models.LRPStartAuction{
 				DesiredLRP: exampleDesiredLRP,
 				Index:      0,
 			})
 			Ω(err).ShouldNot(HaveOccurred())
 
-			err = bbs.RequestLRPStartAuction(models.LRPStartAuction{
+			err = auctioneerClient.RequestLRPStartAuction(auctioneerAddress, models.LRPStartAuction{
 				DesiredLRP: exampleDesiredLRP,
 				Index:      1,
 			})
@@ -49,14 +49,18 @@ var _ = Describe("Auctioneer", func() {
 	Context("when a task message arrives", func() {
 		Context("when there are sufficient resources to start the task", func() {
 			BeforeEach(func() {
-				err := bbs.DesireTask(models.Task{
+				task := models.Task{
 					TaskGuid: "task-guid",
 					DiskMB:   1,
 					MemoryMB: 1,
 					Stack:    lucidStack,
 					Action:   dummyAction,
 					Domain:   "test",
-				})
+				}
+				err := bbs.DesireTask(task)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				err = auctioneerClient.RequestTaskAuction(auctioneerAddress, task)
 				Ω(err).ShouldNot(HaveOccurred())
 			})
 
@@ -68,14 +72,19 @@ var _ = Describe("Auctioneer", func() {
 
 		Context("when there are insufficient resources to start the task", func() {
 			BeforeEach(func() {
-				err := bbs.DesireTask(models.Task{
+				task := models.Task{
 					TaskGuid: "task-guid",
 					DiskMB:   1000,
 					MemoryMB: 1000,
 					Stack:    lucidStack,
 					Action:   dummyAction,
 					Domain:   "test",
-				})
+				}
+
+				err := bbs.DesireTask(task)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				err = auctioneerClient.RequestTaskAuction(auctioneerAddress, task)
 				Ω(err).ShouldNot(HaveOccurred())
 			})
 

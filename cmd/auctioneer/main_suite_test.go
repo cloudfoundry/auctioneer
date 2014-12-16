@@ -6,6 +6,7 @@ import (
 	"os/exec"
 
 	Bbs "github.com/cloudfoundry-incubator/runtime-schema/bbs"
+	"github.com/cloudfoundry-incubator/runtime-schema/cb"
 	"github.com/cloudfoundry/gunk/timeprovider"
 	"github.com/cloudfoundry/storeadapter"
 	"github.com/cloudfoundry/storeadapter/storerunner/etcdstorerunner"
@@ -30,10 +31,14 @@ var lucidStack = "lucid64"
 var dotNetCell, lucidCell *FakeCell
 
 var etcdPort int
+var auctioneerServerPort int
+var auctioneerAddress string
 
 var runner *ginkgomon.Runner
 var etcdRunner *etcdstorerunner.ETCDClusterRunner
 var etcdClient storeadapter.StoreAdapter
+
+var auctioneerClient cb.AuctioneerClient
 
 var bbs *Bbs.BBS
 var logger lager.Logger
@@ -54,9 +59,14 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 }, func(compiledAuctioneerPath []byte) {
 	auctioneerPath = string(compiledAuctioneerPath)
 
+	auctioneerServerPort = 1800 + GinkgoParallelNode()
+	auctioneerAddress = fmt.Sprintf("http://127.0.0.1:%d", auctioneerServerPort)
+
 	etcdPort = 5001 + GinkgoParallelNode()
 	etcdRunner = etcdstorerunner.NewETCDClusterRunner(etcdPort, 1)
 	etcdClient = etcdRunner.Adapter()
+
+	auctioneerClient = cb.NewAuctioneerClient()
 
 	logger = lagertest.NewTestLogger("test")
 
@@ -69,7 +79,8 @@ var _ = BeforeEach(func() {
 		Command: exec.Command(
 			auctioneerPath,
 			"-etcdCluster", fmt.Sprintf("http://127.0.0.1:%d", etcdPort),
-			"-heartbeatInterval=1s",
+			"-heartbeatInterval", "1s",
+			"-listenAddr", fmt.Sprintf("0.0.0.0:%d", auctioneerServerPort),
 		),
 		StartCheck: "auctioneer.started",
 	})

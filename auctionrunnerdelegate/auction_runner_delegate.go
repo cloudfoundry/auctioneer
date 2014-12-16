@@ -45,24 +45,6 @@ func (a *AuctionRunnerDelegate) DistributedBatch(results auctiontypes.AuctionRes
 	auctioneer.LRPStartAuctionsFailed.Add(uint64(len(results.FailedLRPStarts)))
 	auctioneer.TaskAuctionsFailed.Add(uint64(len(results.FailedTasks)))
 
-	for _, start := range results.SuccessfulLRPStarts {
-		err := a.bbs.ResolveLRPStartAuction(start.LRPStartAuction)
-		if err != nil {
-			a.logger.Error("failed-to-resolve-lrp-start-auction", err, lager.Data{
-				"lrp-start-auction": start,
-				"auction-result":    "successful",
-			})
-		}
-	}
-	for _, start := range results.FailedLRPStarts {
-		err := a.bbs.ResolveLRPStartAuction(start.LRPStartAuction)
-		if err != nil {
-			a.logger.Error("failed-to-resolve-lrp-start-auction", err, lager.Data{
-				"lrp-start-auction": start,
-				"auction-result":    "failed",
-			})
-		}
-	}
 	for _, task := range results.FailedTasks {
 		err := a.bbs.CompleteTask(task.Identifier(), true, DEFAULT_AUCTION_FAILURE_REASON, "")
 		if err != nil {

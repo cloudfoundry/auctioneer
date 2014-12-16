@@ -2,21 +2,24 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"net/http"
 	"os"
 	"strings"
 	"time"
 
-	"github.com/cloudfoundry-incubator/auctioneer/auctioninbox"
 	"github.com/nu7hatch/gouuid"
 
 	"github.com/cloudfoundry-incubator/auctioneer/auctionrunnerdelegate"
 
+	"github.com/cloudfoundry-incubator/auctioneer/handlers"
 	"github.com/cloudfoundry-incubator/cf-debug-server"
 	"github.com/cloudfoundry-incubator/cf-lager"
 	Bbs "github.com/cloudfoundry-incubator/runtime-schema/bbs"
 	"github.com/cloudfoundry-incubator/runtime-schema/bbs/lock_bbs"
+	"github.com/cloudfoundry-incubator/runtime-schema/models"
 	"github.com/pivotal-golang/lager"
+	"github.com/pivotal-golang/localip"
 
 	"github.com/cloudfoundry-incubator/auction/auctionrunner"
 	"github.com/cloudfoundry-incubator/auction/auctiontypes"
@@ -26,6 +29,7 @@ import (
 	"github.com/cloudfoundry/storeadapter/etcdstoreadapter"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
+	"github.com/tedsuo/ifrit/http_server"
 	"github.com/tedsuo/ifrit/sigmon"
 )
 
@@ -71,6 +75,14 @@ var heartbeatInterval = flag.Duration(
 	"the interval between heartbeats to the lock",
 )
 
+var listenAddr = flag.String(
+	"listenAddr",
+	"0.0.0.0:9016",
+	"host:port to serve auction and LRP stop requests on",
+)
+
+const serverProtocol = "http"
+
 func main() {
 	flag.Parse()
 
@@ -78,27 +90,22 @@ func main() {
 	initializeDropsonde(logger)
 	bbs := initializeBBS(logger)
 	auctionRunner := initializeAuctionRunner(bbs, logger)
-	auctionInbox := initializeAuctionInbox(auctionRunner, bbs, logger)
-
-	uuid, err := uuid.NewV4()
-	if err != nil {
-		logger.Fatal("Couldn't generate uuid", err)
-	}
-	heartbeater := bbs.NewAuctioneerLock(uuid.String(), *heartbeatInterval)
+	auctionServer := initializeAuctionServer(auctionRunner, logger)
+	heartbeater := initializeHeartbeater(bbs, logger)
 
 	cf_debug_server.Run()
 
 	group := grouper.NewOrdered(os.Interrupt, grouper.Members{
 		{"heartbeater", heartbeater},
 		{"auction-runner", auctionRunner},
-		{"auction-inbox", auctionInbox},
+		{"auction-server", auctionServer},
 	})
 
 	monitor := ifrit.Invoke(sigmon.New(group))
 
 	logger.Info("started")
 
-	err = <-monitor.Wait()
+	err := <-monitor.Wait()
 	if err != nil {
 		logger.Error("exited-with-failure", err)
 		os.Exit(1)
@@ -115,10 +122,6 @@ func initializeAuctionRunner(bbs Bbs.AuctioneerBBS, logger lager.Logger) auction
 
 	delegate := auctionrunnerdelegate.New(httpClient, bbs, logger)
 	return auctionrunner.New(delegate, timeprovider.NewTimeProvider(), *maxRetries, workpool.NewWorkPool(*communicationWorkPoolSize), logger)
-}
-
-func initializeAuctionInbox(runner auctiontypes.AuctionRunner, bbs Bbs.AuctioneerBBS, logger lager.Logger) *auctioninbox.AuctionInbox {
-	return auctioninbox.New(runner, bbs, logger)
 }
 
 func initializeBBS(logger lager.Logger) Bbs.AuctioneerBBS {
@@ -140,4 +143,34 @@ func initializeDropsonde(logger lager.Logger) {
 	if err != nil {
 		logger.Error("failed to initialize dropsonde: %v", err)
 	}
+}
+
+func initializeAuctionServer(runner auctiontypes.AuctionRunner, logger lager.Logger) ifrit.Runner {
+	return http_server.New(*listenAddr, handlers.New(runner, logger))
+}
+
+func initializeHeartbeater(bbs Bbs.AuctioneerBBS, logger lager.Logger) ifrit.Runner {
+	uuid, err := uuid.NewV4()
+	if err != nil {
+		logger.Fatal("Couldn't generate uuid", err)
+	}
+
+	localIP, err := localip.LocalIP()
+	if err != nil {
+		logger.Fatal("Couldn't determine local IP", err)
+	}
+
+	port := strings.Split(*listenAddr, ":")[1]
+	address := fmt.Sprintf("%s://%s:%s", serverProtocol, localIP, port)
+	auctioneerPresence := models.AuctioneerPresence{
+		AuctioneerID:      uuid.String(),
+		AuctioneerAddress: address,
+	}
+
+	heartbeater, err := bbs.NewAuctioneerLock(auctioneerPresence, *heartbeatInterval)
+	if err != nil {
+		logger.Fatal("Couldn't create heartbeater", err)
+	}
+
+	return heartbeater
 }
