@@ -162,11 +162,8 @@ func initializeHeartbeater(bbs Bbs.AuctioneerBBS, logger lager.Logger) ifrit.Run
 
 	port := strings.Split(*listenAddr, ":")[1]
 	address := fmt.Sprintf("%s://%s:%s", serverProtocol, localIP, port)
-	auctioneerPresence := models.AuctioneerPresence{
-		AuctioneerID:      uuid.String(),
-		AuctioneerAddress: address,
-	}
 
+	auctioneerPresence := models.NewAuctioneerPresence(uuid.String(), address)
 	heartbeater, err := bbs.NewAuctioneerLock(auctioneerPresence, *heartbeatInterval)
 	if err != nil {
 		logger.Fatal("Couldn't create heartbeater", err)
