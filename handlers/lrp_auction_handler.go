@@ -25,8 +25,8 @@ func NewLRPAuctionHandler(runner auctiontypes.AuctionRunner, logger lager.Logger
 func (h *LRPAuctionHandler) Create(w http.ResponseWriter, r *http.Request) {
 	log := h.logger.Session("create")
 
-	startAuction := models.LRPStartAuction{}
-	err := json.NewDecoder(r.Body).Decode(&startAuction)
+	start := models.LRPStart{}
+	err := json.NewDecoder(r.Body).Decode(&start)
 	if err != nil {
 		log.Error("invalid-json", err)
 		writeInvalidJSONResponse(w, err)
@@ -34,7 +34,7 @@ func (h *LRPAuctionHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 	auctioneer.LRPStartAuctionsStarted.Increment()
 
-	h.runner.AddLRPStartAuction(startAuction)
+	h.runner.AddLRPStartForAuction(start)
 	h.logger.Info("submitted")
 	writeStatusCreatedResponse(w)
 }

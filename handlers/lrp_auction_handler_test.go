@@ -39,12 +39,12 @@ var _ = Describe("LRPAuctionHandler", func() {
 
 	Describe("Create", func() {
 		Context("when the request body is an LRP start auction request", func() {
-			var startAuction models.LRPStartAuction
+			var start models.LRPStart
 
 			BeforeEach(func() {
-				startAuction = models.LRPStartAuction{}
+				start = models.LRPStart{}
 
-				handler.Create(responseRecorder, newTestRequest(startAuction))
+				handler.Create(responseRecorder, newTestRequest(start))
 			})
 
 			It("responds with 201", func() {
@@ -56,10 +56,10 @@ var _ = Describe("LRPAuctionHandler", func() {
 			})
 
 			It("should submit the start auction to the auction runner", func() {
-				Ω(runner.AddLRPStartAuctionCallCount()).Should(Equal(1))
+				Ω(runner.AddLRPStartForAuctionCallCount()).Should(Equal(1))
 
-				submittedStartAuction := runner.AddLRPStartAuctionArgsForCall(0)
-				Ω(submittedStartAuction).Should(Equal(startAuction))
+				submittedStart := runner.AddLRPStartForAuctionArgsForCall(0)
+				Ω(submittedStart).Should(Equal(start))
 			})
 
 			It("should increment the start auction auction started metric", func() {
@@ -86,7 +86,7 @@ var _ = Describe("LRPAuctionHandler", func() {
 			})
 
 			It("should not submit the start auction to the auction runner", func() {
-				Ω(runner.AddLRPStartAuctionCallCount()).Should(Equal(0))
+				Ω(runner.AddLRPStartForAuctionCallCount()).Should(Equal(0))
 			})
 
 			It("should not increment the start auction auction started metric", func() {
