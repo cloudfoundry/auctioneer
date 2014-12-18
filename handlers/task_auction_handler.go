@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"encoding/json"
+	"io/ioutil"
 	"net/http"
 
 	"github.com/cloudfoundry-incubator/auction/auctiontypes"
@@ -25,8 +25,17 @@ func NewTaskAuctionHandler(runner auctiontypes.AuctionRunner, logger lager.Logge
 func (h *TaskAuctionHandler) Create(w http.ResponseWriter, r *http.Request) {
 	log := h.logger.Session("create")
 
-	taskAuction := models.Task{}
-	err := json.NewDecoder(r.Body).Decode(&taskAuction)
+	payload, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		log.Error("failed-to-read-request-body", err)
+		writeJSONResponse(w, http.StatusInternalServerError, HandlerError{
+			Error: err.Error(),
+		})
+		return
+	}
+
+	task := models.Task{}
+	err = models.FromJSON(payload, &task)
 	if err != nil {
 		log.Error("invalid-json", err)
 		writeInvalidJSONResponse(w, err)
@@ -34,7 +43,7 @@ func (h *TaskAuctionHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 	auctioneer.TaskAuctionsStarted.Increment()
 
-	h.runner.AddTaskForAuction(taskAuction)
+	h.runner.AddTaskForAuction(task)
 	h.logger.Info("submitted")
 	writeStatusCreatedResponse(w)
 }

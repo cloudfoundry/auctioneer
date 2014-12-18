@@ -42,7 +42,25 @@ var _ = Describe("LRPAuctionHandler", func() {
 			var start models.LRPStart
 
 			BeforeEach(func() {
-				start = models.LRPStart{}
+				start = models.LRPStart{
+					Index: 2,
+
+					DesiredLRP: models.DesiredLRP{
+						Domain:      "tests",
+						ProcessGuid: "some-guid",
+
+						RootFSPath: "docker:///docker.com/docker",
+						Instances:  1,
+						Stack:      "some-stack",
+						MemoryMB:   1024,
+						DiskMB:     512,
+						CPUWeight:  42,
+						Action: &models.DownloadAction{
+							From: "http://example.com",
+							To:   "/tmp/internet",
+						},
+					},
+				}
 
 				handler.Create(responseRecorder, newTestRequest(start))
 			})
@@ -62,10 +80,41 @@ var _ = Describe("LRPAuctionHandler", func() {
 				Ω(submittedStart).Should(Equal(start))
 			})
 
-			It("should increment the start auction auction started metric", func() {
+			It("should increment the start auction started metric", func() {
 				Eventually(func() uint64 {
 					return metricsSender.GetCounter("AuctioneerStartAuctionsStarted")
 				}).Should(Equal(uint64(1)))
+			})
+		})
+
+		Context("when the start auction has invalid index", func() {
+			var start models.LRPStart
+
+			BeforeEach(func() {
+				start = models.LRPStart{}
+
+				handler.Create(responseRecorder, newTestRequest(start))
+			})
+
+			It("responds with 400", func() {
+				Ω(responseRecorder.Code).Should(Equal(http.StatusBadRequest))
+			})
+
+			It("responds with a JSON body containing the error", func() {
+				handlerError := handlers.HandlerError{}
+				err := json.NewDecoder(responseRecorder.Body).Decode(&handlerError)
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(handlerError.Error).ShouldNot(BeEmpty())
+			})
+
+			It("should not submit the start auction to the auction runner", func() {
+				Ω(runner.AddLRPStartForAuctionCallCount()).Should(Equal(0))
+			})
+
+			It("should not increment the start auction started metric", func() {
+				Consistently(func() uint64 {
+					return metricsSender.GetCounter("AuctioneerStartAuctionsStarted")
+				}).Should(Equal(uint64(0)))
 			})
 		})
 
@@ -89,7 +138,36 @@ var _ = Describe("LRPAuctionHandler", func() {
 				Ω(runner.AddLRPStartForAuctionCallCount()).Should(Equal(0))
 			})
 
-			It("should not increment the start auction auction started metric", func() {
+			It("should not increment the start auction started metric", func() {
+				Consistently(func() uint64 {
+					return metricsSender.GetCounter("AuctioneerStartAuctionsStarted")
+				}).Should(Equal(uint64(0)))
+			})
+		})
+
+		Context("when the request body returns a non-EOF error on read", func() {
+			BeforeEach(func() {
+				req := newTestRequest("")
+				req.Body = badReader{}
+				handler.Create(responseRecorder, req)
+			})
+
+			It("responds with 500", func() {
+				Ω(responseRecorder.Code).Should(Equal(http.StatusInternalServerError))
+			})
+
+			It("responds with a JSON body containing the error", func() {
+				handlerError := handlers.HandlerError{}
+				err := json.NewDecoder(responseRecorder.Body).Decode(&handlerError)
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(handlerError.Error).Should(Equal(ErrBadRead.Error()))
+			})
+
+			It("should not submit the start auction to the auction runner", func() {
+				Ω(runner.AddLRPStartForAuctionCallCount()).Should(Equal(0))
+			})
+
+			It("should not increment the start auction started metric", func() {
 				Consistently(func() uint64 {
 					return metricsSender.GetCounter("AuctioneerStartAuctionsStarted")
 				}).Should(Equal(uint64(0)))

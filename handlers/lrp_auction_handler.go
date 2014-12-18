@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"encoding/json"
+	"io/ioutil"
 	"net/http"
 
 	"github.com/cloudfoundry-incubator/auction/auctiontypes"
@@ -25,8 +25,17 @@ func NewLRPAuctionHandler(runner auctiontypes.AuctionRunner, logger lager.Logger
 func (h *LRPAuctionHandler) Create(w http.ResponseWriter, r *http.Request) {
 	log := h.logger.Session("create")
 
+	payload, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		log.Error("failed-to-read-request-body", err)
+		writeJSONResponse(w, http.StatusInternalServerError, HandlerError{
+			Error: err.Error(),
+		})
+		return
+	}
+
 	start := models.LRPStart{}
-	err := json.NewDecoder(r.Body).Decode(&start)
+	err = models.FromJSON(payload, &start)
 	if err != nil {
 		log.Error("invalid-json", err)
 		writeInvalidJSONResponse(w, err)

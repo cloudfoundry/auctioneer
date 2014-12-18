@@ -3,6 +3,7 @@ package handlers_test
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"strings"
@@ -12,6 +13,8 @@ import (
 
 	"testing"
 )
+
+var ErrBadRead = errors.New("bad read!")
 
 func TestHandlers(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -34,4 +37,14 @@ func newTestRequest(body interface{}) *http.Request {
 	request, err := http.NewRequest("", "", reader)
 	Ω(err).ToNot(HaveOccurred())
 	return request
+}
+
+type badReader struct{}
+
+func (_ badReader) Read(_ []byte) (int, error) {
+	return 0, ErrBadRead
+}
+
+func (_ badReader) Close() error {
+	return nil
 }

@@ -42,7 +42,14 @@ var _ = Describe("TaskAuctionHandler", func() {
 			var task models.Task
 
 			BeforeEach(func() {
-				task = models.Task{TaskGuid: "the-task-guid"}
+				task = models.Task{
+					TaskGuid: "the-task-guid",
+					Domain:   "some-domain",
+					Stack:    "some-stack",
+					Action: &models.RunAction{
+						Path: "ls",
+					},
+				}
 
 				handler.Create(responseRecorder, newTestRequest(task))
 			})
@@ -69,6 +76,37 @@ var _ = Describe("TaskAuctionHandler", func() {
 			})
 		})
 
+		Context("when the request body is a not a valid task", func() {
+			var task models.Task
+
+			BeforeEach(func() {
+				task = models.Task{TaskGuid: "the-task-guid"}
+
+				handler.Create(responseRecorder, newTestRequest(task))
+			})
+
+			It("responds with 400", func() {
+				Ω(responseRecorder.Code).Should(Equal(http.StatusBadRequest))
+			})
+
+			It("responds with a JSON body containing the error", func() {
+				handlerError := handlers.HandlerError{}
+				err := json.NewDecoder(responseRecorder.Body).Decode(&handlerError)
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(handlerError.Error).ShouldNot(BeEmpty())
+			})
+
+			It("should not submit the task to the auction runner", func() {
+				Ω(runner.AddTaskForAuctionCallCount()).Should(Equal(0))
+			})
+
+			It("should not increment the task auction started metric", func() {
+				Consistently(func() uint64 {
+					return metricsSender.GetCounter("AuctioneerTaskAuctionsStarted")
+				}).Should(Equal(uint64(0)))
+			})
+		})
+
 		Context("when the request body is a not a task", func() {
 			BeforeEach(func() {
 				handler.Create(responseRecorder, newTestRequest(`{invalidjson}`))
@@ -86,6 +124,35 @@ var _ = Describe("TaskAuctionHandler", func() {
 			})
 
 			It("should not submit the task to the auction runner", func() {
+				Ω(runner.AddTaskForAuctionCallCount()).Should(Equal(0))
+			})
+
+			It("should not increment the task auction started metric", func() {
+				Consistently(func() uint64 {
+					return metricsSender.GetCounter("AuctioneerTaskAuctionsStarted")
+				}).Should(Equal(uint64(0)))
+			})
+		})
+
+		Context("when the request body returns a non-EOF error on read", func() {
+			BeforeEach(func() {
+				req := newTestRequest("")
+				req.Body = badReader{}
+				handler.Create(responseRecorder, req)
+			})
+
+			It("responds with 500", func() {
+				Ω(responseRecorder.Code).Should(Equal(http.StatusInternalServerError))
+			})
+
+			It("responds with a JSON body containing the error", func() {
+				handlerError := handlers.HandlerError{}
+				err := json.NewDecoder(responseRecorder.Body).Decode(&handlerError)
+				Ω(err).ShouldNot(HaveOccurred())
+				Ω(handlerError.Error).Should(Equal(ErrBadRead.Error()))
+			})
+
+			It("should not submit the task auction to the auction runner", func() {
 				Ω(runner.AddTaskForAuctionCallCount()).Should(Equal(0))
 			})
 
