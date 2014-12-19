@@ -10,24 +10,32 @@ import (
 	"github.com/pivotal-golang/lager"
 )
 
+type LRPAuctionHandlerProvider struct {
+	runner auctiontypes.AuctionRunner
+}
+
+func NewLRPAuctionHandlerProvider(runner auctiontypes.AuctionRunner) *LRPAuctionHandlerProvider {
+	return &LRPAuctionHandlerProvider{
+		runner: runner,
+	}
+}
+
 type LRPAuctionHandler struct {
 	runner auctiontypes.AuctionRunner
 	logger lager.Logger
 }
 
-func NewLRPAuctionHandler(runner auctiontypes.AuctionRunner, logger lager.Logger) *LRPAuctionHandler {
+func (provider *LRPAuctionHandlerProvider) WithLogger(logger lager.Logger) http.Handler {
 	return &LRPAuctionHandler{
-		runner: runner,
+		runner: provider.runner,
 		logger: logger.Session("lrp-auction-handler"),
 	}
 }
 
-func (h *LRPAuctionHandler) Create(w http.ResponseWriter, r *http.Request) {
-	log := h.logger.Session("create")
-
+func (h *LRPAuctionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	payload, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		log.Error("failed-to-read-request-body", err)
+		h.logger.Error("failed-to-read-request-body", err)
 		writeJSONResponse(w, http.StatusInternalServerError, HandlerError{
 			Error: err.Error(),
 		})
@@ -37,7 +45,7 @@ func (h *LRPAuctionHandler) Create(w http.ResponseWriter, r *http.Request) {
 	start := models.LRPStart{}
 	err = models.FromJSON(payload, &start)
 	if err != nil {
-		log.Error("invalid-json", err)
+		h.logger.Error("invalid-json", err)
 		writeInvalidJSONResponse(w, err)
 		return
 	}

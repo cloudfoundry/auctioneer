@@ -10,24 +10,32 @@ import (
 	"github.com/pivotal-golang/lager"
 )
 
+type TaskAuctionHandlerProvider struct {
+	runner auctiontypes.AuctionRunner
+}
+
+func NewTaskAuctionHandlerProvider(runner auctiontypes.AuctionRunner) *TaskAuctionHandlerProvider {
+	return &TaskAuctionHandlerProvider{
+		runner: runner,
+	}
+}
+
 type TaskAuctionHandler struct {
 	runner auctiontypes.AuctionRunner
 	logger lager.Logger
 }
 
-func NewTaskAuctionHandler(runner auctiontypes.AuctionRunner, logger lager.Logger) *TaskAuctionHandler {
+func (provider *TaskAuctionHandlerProvider) WithLogger(logger lager.Logger) http.Handler {
 	return &TaskAuctionHandler{
-		runner: runner,
+		runner: provider.runner,
 		logger: logger.Session("task-auction-handler"),
 	}
 }
 
-func (h *TaskAuctionHandler) Create(w http.ResponseWriter, r *http.Request) {
-	log := h.logger.Session("create")
-
+func (h *TaskAuctionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	payload, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		log.Error("failed-to-read-request-body", err)
+		h.logger.Error("failed-to-read-request-body", err)
 		writeJSONResponse(w, http.StatusInternalServerError, HandlerError{
 			Error: err.Error(),
 		})
@@ -37,7 +45,7 @@ func (h *TaskAuctionHandler) Create(w http.ResponseWriter, r *http.Request) {
 	task := models.Task{}
 	err = models.FromJSON(payload, &task)
 	if err != nil {
-		log.Error("invalid-json", err)
+		h.logger.Error("invalid-json", err)
 		writeInvalidJSONResponse(w, err)
 		return
 	}

@@ -21,7 +21,7 @@ var _ = Describe("LRPAuctionHandler", func() {
 		logger           lager.Logger
 		runner           *fake_auction_runner.FakeAuctionRunner
 		responseRecorder *httptest.ResponseRecorder
-		handler          *handlers.LRPAuctionHandler
+		handler          http.Handler
 
 		metricsSender *fake_metrics_sender.FakeMetricSender
 	)
@@ -31,13 +31,13 @@ var _ = Describe("LRPAuctionHandler", func() {
 		logger.RegisterSink(lager.NewWriterSink(GinkgoWriter, lager.DEBUG))
 		runner = new(fake_auction_runner.FakeAuctionRunner)
 		responseRecorder = httptest.NewRecorder()
-		handler = handlers.NewLRPAuctionHandler(runner, logger)
+		handler = handlers.NewLRPAuctionHandlerProvider(runner).WithLogger(logger)
 
 		metricsSender = fake_metrics_sender.NewFakeMetricSender()
 		metrics.Initialize(metricsSender)
 	})
 
-	Describe("Create", func() {
+	Describe("ServeHTTP", func() {
 		Context("when the request body is an LRP start auction request", func() {
 			var start models.LRPStart
 
@@ -62,7 +62,7 @@ var _ = Describe("LRPAuctionHandler", func() {
 					},
 				}
 
-				handler.Create(responseRecorder, newTestRequest(start))
+				handler.ServeHTTP(responseRecorder, newTestRequest(start))
 			})
 
 			It("responds with 201", func() {
@@ -93,7 +93,7 @@ var _ = Describe("LRPAuctionHandler", func() {
 			BeforeEach(func() {
 				start = models.LRPStart{}
 
-				handler.Create(responseRecorder, newTestRequest(start))
+				handler.ServeHTTP(responseRecorder, newTestRequest(start))
 			})
 
 			It("responds with 400", func() {
@@ -120,7 +120,7 @@ var _ = Describe("LRPAuctionHandler", func() {
 
 		Context("when the request body is a not a start auction", func() {
 			BeforeEach(func() {
-				handler.Create(responseRecorder, newTestRequest(`{invalidjson}`))
+				handler.ServeHTTP(responseRecorder, newTestRequest(`{invalidjson}`))
 			})
 
 			It("responds with 400", func() {
@@ -149,7 +149,7 @@ var _ = Describe("LRPAuctionHandler", func() {
 			BeforeEach(func() {
 				req := newTestRequest("")
 				req.Body = badReader{}
-				handler.Create(responseRecorder, req)
+				handler.ServeHTTP(responseRecorder, req)
 			})
 
 			It("responds with 500", func() {
