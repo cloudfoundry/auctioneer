@@ -45,7 +45,7 @@ func (a *AuctionRunnerDelegate) DistributedBatch(results auctiontypes.AuctionRes
 	auctioneer.TaskAuctionsFailed.Add(uint64(len(results.FailedTasks)))
 
 	for _, task := range results.FailedTasks {
-		err := a.bbs.CompleteTask(task.Identifier(), true, diego_errors.INSUFFICIENT_RESOURCES_MESSAGE, "")
+		err := a.bbs.CompleteTask(task.Identifier(), "", true, diego_errors.INSUFFICIENT_RESOURCES_MESSAGE, "")
 		if err != nil {
 			a.logger.Error("failed-to-complete-task", err, lager.Data{
 				"task":           task,

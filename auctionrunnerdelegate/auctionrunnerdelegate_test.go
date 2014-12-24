@@ -125,8 +125,9 @@ var _ = Describe("Auction Runner Delegate", func() {
 
 		It("should mark all failed tasks as COMPLETE with the appropriate failure reason", func() {
 			Ω(bbs.CompleteTaskCallCount()).Should(Equal(1))
-			taskGuid, failed, failureReason, result := bbs.CompleteTaskArgsForCall(0)
+			taskGuid, cellID, failed, failureReason, result := bbs.CompleteTaskArgsForCall(0)
 			Ω(taskGuid).Should(Equal("failed-task"))
+			Ω(cellID).Should(Equal(""))
 			Ω(failed).Should(BeTrue())
 			Ω(result).Should(BeEmpty())
 			Ω(failureReason).Should(Equal(diego_errors.INSUFFICIENT_RESOURCES_MESSAGE))
