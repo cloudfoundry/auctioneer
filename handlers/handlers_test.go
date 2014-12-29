@@ -75,7 +75,7 @@ var _ = Describe("Handlers", func() {
 	Describe("LRP Handler", func() {
 		Context("with a valid LRPStart", func() {
 			BeforeEach(func() {
-				start := models.LRPStart{
+				starts := []models.LRPStart{{
 					Index: 2,
 
 					DesiredLRP: models.DesiredLRP{
@@ -93,21 +93,21 @@ var _ = Describe("Handlers", func() {
 							To:   "/tmp/internet",
 						},
 					},
-				}
+				}}
 
 				reqGen := rata.NewRequestGenerator("http://localhost", auctioneer.Routes)
 
-				payload, err := json.Marshal(start)
+				payload, err := json.Marshal(starts)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				req, err := reqGen.CreateRequest(auctioneer.CreateLRPAuctionRoute, rata.Params{}, bytes.NewBuffer(payload))
+				req, err := reqGen.CreateRequest(auctioneer.CreateLRPAuctionsRoute, rata.Params{}, bytes.NewBuffer(payload))
 				Ω(err).ShouldNot(HaveOccurred())
 
 				handler.ServeHTTP(responseRecorder, req)
 			})
 
-			It("responds with 201", func() {
-				Ω(responseRecorder.Code).Should(Equal(http.StatusCreated))
+			It("responds with 202", func() {
+				Ω(responseRecorder.Code).Should(Equal(http.StatusAccepted))
 			})
 
 			It("logs with the correct session nesting", func() {

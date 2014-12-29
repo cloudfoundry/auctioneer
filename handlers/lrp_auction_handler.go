@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"io/ioutil"
 	"net/http"
 
@@ -42,16 +43,26 @@ func (h *LRPAuctionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	start := models.LRPStart{}
-	err = models.FromJSON(payload, &start)
+	starts := []models.LRPStart{}
+	err = json.Unmarshal(payload, &starts)
 	if err != nil {
-		h.logger.Error("invalid-json", err)
+		h.logger.Error("malformed-json", err)
 		writeInvalidJSONResponse(w, err)
 		return
 	}
-	auctioneer.LRPStartAuctionsStarted.Increment()
 
-	h.runner.AddLRPStartForAuction(start)
+	validStarts := make([]models.LRPStart, 0, len(starts))
+	for _, start := range starts {
+		if err := start.Validate(); err == nil {
+			validStarts = append(validStarts, start)
+		} else {
+			h.logger.Error("start-validate-failed", err, lager.Data{"lrp-start": start})
+		}
+	}
+
+	auctioneer.LRPStartAuctionsStarted.Add(uint64(len(validStarts)))
+
+	h.runner.ScheduleLRPStartsForAuctions(validStarts)
 	h.logger.Info("submitted")
-	writeStatusCreatedResponse(w)
+	writeStatusAcceptedResponse(w)
 }

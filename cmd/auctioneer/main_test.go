@@ -27,16 +27,16 @@ var exampleDesiredLRP = models.DesiredLRP{
 var _ = Describe("Auctioneer", func() {
 	Context("when a start auction message arrives", func() {
 		BeforeEach(func() {
-			err := auctioneerClient.RequestLRPStartAuction(auctioneerAddress, models.LRPStart{
+			err := auctioneerClient.RequestLRPStartAuctions(auctioneerAddress, []models.LRPStart{{
 				DesiredLRP: exampleDesiredLRP,
 				Index:      0,
-			})
+			}})
 			Ω(err).ShouldNot(HaveOccurred())
 
-			err = auctioneerClient.RequestLRPStartAuction(auctioneerAddress, models.LRPStart{
+			err = auctioneerClient.RequestLRPStartAuctions(auctioneerAddress, []models.LRPStart{{
 				DesiredLRP: exampleDesiredLRP,
 				Index:      1,
-			})
+			}})
 			Ω(err).ShouldNot(HaveOccurred())
 		})
 
