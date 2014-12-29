@@ -60,7 +60,7 @@ var _ = Describe("Auctioneer", func() {
 				err := bbs.DesireTask(task)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				err = auctioneerClient.RequestTaskAuction(auctioneerAddress, task)
+				err = auctioneerClient.RequestTaskAuctions(auctioneerAddress, []models.Task{task})
 				Ω(err).ShouldNot(HaveOccurred())
 			})
 
@@ -84,7 +84,7 @@ var _ = Describe("Auctioneer", func() {
 				err := bbs.DesireTask(task)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				err = auctioneerClient.RequestTaskAuction(auctioneerAddress, task)
+				err = auctioneerClient.RequestTaskAuctions(auctioneerAddress, []models.Task{task})
 				Ω(err).ShouldNot(HaveOccurred())
 			})
 

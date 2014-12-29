@@ -38,28 +38,28 @@ var _ = Describe("Handlers", func() {
 	Describe("Task Handler", func() {
 		Context("with a valid task", func() {
 			BeforeEach(func() {
-				task := models.Task{
+				tasks := []models.Task{{
 					TaskGuid: "the-task-guid",
 					Domain:   "some-domain",
 					Stack:    "some-stack",
 					Action: &models.RunAction{
 						Path: "ls",
-					},
+					}},
 				}
 
 				reqGen := rata.NewRequestGenerator("http://localhost", auctioneer.Routes)
 
-				payload, err := json.Marshal(task)
+				payload, err := json.Marshal(tasks)
 				Ω(err).ShouldNot(HaveOccurred())
 
-				req, err := reqGen.CreateRequest(auctioneer.CreateTaskAuctionRoute, rata.Params{}, bytes.NewBuffer(payload))
+				req, err := reqGen.CreateRequest(auctioneer.CreateTaskAuctionsRoute, rata.Params{}, bytes.NewBuffer(payload))
 				Ω(err).ShouldNot(HaveOccurred())
 
 				handler.ServeHTTP(responseRecorder, req)
 			})
 
-			It("responds with 201", func() {
-				Ω(responseRecorder.Code).Should(Equal(http.StatusCreated))
+			It("responds with 202", func() {
+				Ω(responseRecorder.Code).Should(Equal(http.StatusAccepted))
 			})
 
 			It("logs with the correct session nesting", func() {

@@ -11,6 +11,7 @@ import (
 	fake_metrics_sender "github.com/cloudfoundry/dropsonde/metric_sender/fake"
 	"github.com/cloudfoundry/dropsonde/metrics"
 	"github.com/pivotal-golang/lager"
+	"github.com/pivotal-golang/lager/lagertest"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -18,7 +19,7 @@ import (
 
 var _ = Describe("TaskAuctionHandler", func() {
 	var (
-		logger           lager.Logger
+		logger           *lagertest.TestLogger
 		runner           *fake_auction_runner.FakeAuctionRunner
 		responseRecorder *httptest.ResponseRecorder
 		handler          http.Handler
@@ -27,7 +28,7 @@ var _ = Describe("TaskAuctionHandler", func() {
 	)
 
 	BeforeEach(func() {
-		logger = lager.NewLogger("test")
+		logger = lagertest.NewTestLogger("test")
 		logger.RegisterSink(lager.NewWriterSink(GinkgoWriter, lager.DEBUG))
 		runner = new(fake_auction_runner.FakeAuctionRunner)
 		responseRecorder = httptest.NewRecorder()
@@ -39,23 +40,23 @@ var _ = Describe("TaskAuctionHandler", func() {
 
 	Describe("ServeHTTP", func() {
 		Context("when the request body is a task", func() {
-			var task models.Task
+			var tasks []models.Task
 
 			BeforeEach(func() {
-				task = models.Task{
+				tasks = []models.Task{{
 					TaskGuid: "the-task-guid",
 					Domain:   "some-domain",
 					Stack:    "some-stack",
 					Action: &models.RunAction{
 						Path: "ls",
 					},
-				}
+				}}
 
-				handler.ServeHTTP(responseRecorder, newTestRequest(task))
+				handler.ServeHTTP(responseRecorder, newTestRequest(tasks))
 			})
 
-			It("responds with 201", func() {
-				Ω(responseRecorder.Code).Should(Equal(http.StatusCreated))
+			It("responds with 202", func() {
+				Ω(responseRecorder.Code).Should(Equal(http.StatusAccepted))
 			})
 
 			It("responds with an empty JSON body", func() {
@@ -63,10 +64,10 @@ var _ = Describe("TaskAuctionHandler", func() {
 			})
 
 			It("should submit the task to the auction runner", func() {
-				Ω(runner.AddTaskForAuctionCallCount()).Should(Equal(1))
+				Ω(runner.ScheduleTasksForAuctionsCallCount()).Should(Equal(1))
 
-				submittedTask := runner.AddTaskForAuctionArgsForCall(0)
-				Ω(submittedTask).Should(Equal(task))
+				submittedTasks := runner.ScheduleTasksForAuctionsArgsForCall(0)
+				Ω(submittedTasks).Should(Equal(tasks))
 			})
 
 			It("should increment the task auction started metric", func() {
@@ -77,27 +78,27 @@ var _ = Describe("TaskAuctionHandler", func() {
 		})
 
 		Context("when the request body is a not a valid task", func() {
-			var task models.Task
+			var tasks []models.Task
 
 			BeforeEach(func() {
-				task = models.Task{TaskGuid: "the-task-guid"}
+				tasks = []models.Task{{TaskGuid: "the-task-guid"}}
 
-				handler.ServeHTTP(responseRecorder, newTestRequest(task))
+				handler.ServeHTTP(responseRecorder, newTestRequest(tasks))
 			})
 
-			It("responds with 400", func() {
-				Ω(responseRecorder.Code).Should(Equal(http.StatusBadRequest))
+			It("responds with 202", func() {
+				Ω(responseRecorder.Code).Should(Equal(http.StatusAccepted))
 			})
 
-			It("responds with a JSON body containing the error", func() {
-				handlerError := handlers.HandlerError{}
-				err := json.NewDecoder(responseRecorder.Body).Decode(&handlerError)
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(handlerError.Error).ShouldNot(BeEmpty())
+			It("logs an error", func() {
+				Ω(logger.TestSink.LogMessages()).Should(ContainElement("test.task-auction-handler.task-validate-failed"))
 			})
 
-			It("should not submit the task to the auction runner", func() {
-				Ω(runner.AddTaskForAuctionCallCount()).Should(Equal(0))
+			It("should submit the task to the auction runner", func() {
+				Ω(runner.ScheduleTasksForAuctionsCallCount()).Should(Equal(1))
+
+				submittedTasks := runner.ScheduleTasksForAuctionsArgsForCall(0)
+				Ω(submittedTasks).Should(BeEmpty())
 			})
 
 			It("should not increment the task auction started metric", func() {
@@ -124,7 +125,7 @@ var _ = Describe("TaskAuctionHandler", func() {
 			})
 
 			It("should not submit the task to the auction runner", func() {
-				Ω(runner.AddTaskForAuctionCallCount()).Should(Equal(0))
+				Ω(runner.ScheduleTasksForAuctionsCallCount()).Should(Equal(0))
 			})
 
 			It("should not increment the task auction started metric", func() {
@@ -153,7 +154,7 @@ var _ = Describe("TaskAuctionHandler", func() {
 			})
 
 			It("should not submit the task auction to the auction runner", func() {
-				Ω(runner.AddTaskForAuctionCallCount()).Should(Equal(0))
+				Ω(runner.ScheduleTasksForAuctionsCallCount()).Should(Equal(0))
 			})
 
 			It("should not increment the task auction started metric", func() {

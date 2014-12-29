@@ -19,8 +19,8 @@ func New(runner auctiontypes.AuctionRunner, logger lager.Logger) http.Handler {
 	lrpAuctionHandler := logWrap(NewLRPAuctionHandlerProvider(runner), logger)
 
 	actions := rata.Handlers{
-		auctioneer.CreateTaskAuctionRoute: taskAuctionHandler,
-		auctioneer.CreateLRPAuctionRoute:  lrpAuctionHandler,
+		auctioneer.CreateTaskAuctionsRoute: taskAuctionHandler,
+		auctioneer.CreateLRPAuctionRoute:   lrpAuctionHandler,
 	}
 
 	handler, err := rata.NewRouter(auctioneer.Routes, actions)

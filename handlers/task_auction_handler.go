@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"io/ioutil"
 	"net/http"
 
@@ -42,16 +43,26 @@ func (h *TaskAuctionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	task := models.Task{}
-	err = models.FromJSON(payload, &task)
+	tasks := []models.Task{}
+	err = json.Unmarshal(payload, &tasks)
 	if err != nil {
-		h.logger.Error("invalid-json", err)
+		h.logger.Error("malformed-json", err)
 		writeInvalidJSONResponse(w, err)
 		return
 	}
-	auctioneer.TaskAuctionsStarted.Increment()
 
-	h.runner.AddTaskForAuction(task)
+	validTasks := make([]models.Task, 0, len(tasks))
+	for _, t := range tasks {
+		if err := t.Validate(); err == nil {
+			validTasks = append(validTasks, t)
+		} else {
+			h.logger.Error("task-validate-failed", err, lager.Data{"task": t})
+		}
+	}
+
+	auctioneer.TaskAuctionsStarted.Add(uint64(len(validTasks)))
+	h.runner.ScheduleTasksForAuctions(validTasks)
+
 	h.logger.Info("submitted")
-	writeStatusCreatedResponse(w)
+	writeStatusAcceptedResponse(w)
 }

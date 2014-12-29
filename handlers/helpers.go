@@ -16,6 +16,10 @@ func writeStatusCreatedResponse(w http.ResponseWriter) {
 	writeJSONResponse(w, http.StatusCreated, struct{}{})
 }
 
+func writeStatusAcceptedResponse(w http.ResponseWriter) {
+	writeJSONResponse(w, http.StatusAccepted, struct{}{})
+}
+
 func writeJSONResponse(w http.ResponseWriter, statusCode int, jsonObj interface{}) {
 	jsonBytes, err := json.Marshal(jsonObj)
 	if err != nil {
@@ -26,10 +30,7 @@ func writeJSONResponse(w http.ResponseWriter, statusCode int, jsonObj interface{
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
 
-	_, err = w.Write(jsonBytes)
-	if err != nil {
-		panic("Unable to write response: " + err.Error())
-	}
+	w.Write(jsonBytes)
 }
 
 type HandlerError struct {
