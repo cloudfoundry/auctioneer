@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/cloudfoundry-incubator/auction/communication/http/auction_http_client"
-	"github.com/cloudfoundry-incubator/auctioneer"
 
 	"github.com/cloudfoundry-incubator/auction/auctiontypes"
 	"github.com/cloudfoundry-incubator/runtime-schema/bbs"
@@ -41,9 +40,6 @@ func (a *AuctionRunnerDelegate) FetchCellReps() (map[string]auctiontypes.CellRep
 }
 
 func (a *AuctionRunnerDelegate) DistributedBatch(results auctiontypes.AuctionResults) {
-	auctioneer.LRPStartAuctionsFailed.Add(uint64(len(results.FailedLRPStarts)))
-	auctioneer.TaskAuctionsFailed.Add(uint64(len(results.FailedTasks)))
-
 	for _, task := range results.FailedTasks {
 		err := a.bbs.CompleteTask(task.Identifier(), "", true, diego_errors.INSUFFICIENT_RESOURCES_MESSAGE, "")
 		if err != nil {

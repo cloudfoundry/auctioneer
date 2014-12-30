@@ -5,8 +5,6 @@ import (
 	"net/http"
 
 	"github.com/cloudfoundry-incubator/auction/auctiontypes"
-	"github.com/cloudfoundry/dropsonde/metric_sender/fake"
-	"github.com/cloudfoundry/dropsonde/metrics"
 
 	"github.com/onsi/gomega/ghttp"
 
@@ -24,12 +22,8 @@ import (
 var _ = Describe("Auction Runner Delegate", func() {
 	var delegate *auctionrunnerdelegate.AuctionRunnerDelegate
 	var bbs *fake_bbs.FakeAuctioneerBBS
-	var metricSender *fake.FakeMetricSender
 
 	BeforeEach(func() {
-		metricSender = fake.NewFakeMetricSender()
-		metrics.Initialize(metricSender)
-
 		bbs = &fake_bbs.FakeAuctioneerBBS{}
 		delegate = auctionrunnerdelegate.New(&http.Client{}, bbs, lagertest.NewTestLogger("delegate"))
 	})
@@ -97,23 +91,23 @@ var _ = Describe("Auction Runner Delegate", func() {
 	Describe("when batches are distributed", func() {
 		BeforeEach(func() {
 			delegate.DistributedBatch(auctiontypes.AuctionResults{
-				SuccessfulLRPStarts: []auctiontypes.LRPStartAuction{
-					{LRPStart: models.LRPStart{
+				SuccessfulLRPs: []auctiontypes.LRPAuction{
+					{
 						DesiredLRP: models.DesiredLRP{ProcessGuid: "successful-start"},
-					}},
+					},
 				},
 				SuccessfulTasks: []auctiontypes.TaskAuction{
 					{Task: models.Task{
 						TaskGuid: "successful-task",
 					}},
 				},
-				FailedLRPStarts: []auctiontypes.LRPStartAuction{
-					{LRPStart: models.LRPStart{
+				FailedLRPs: []auctiontypes.LRPAuction{
+					{
 						DesiredLRP: models.DesiredLRP{ProcessGuid: "failed-start"},
-					}},
-					{LRPStart: models.LRPStart{
+					},
+					{
 						DesiredLRP: models.DesiredLRP{ProcessGuid: "other-failed-start"},
-					}},
+					},
 				},
 				FailedTasks: []auctiontypes.TaskAuction{
 					{Task: models.Task{
@@ -131,11 +125,6 @@ var _ = Describe("Auction Runner Delegate", func() {
 			Ω(failed).Should(BeTrue())
 			Ω(result).Should(BeEmpty())
 			Ω(failureReason).Should(Equal(diego_errors.INSUFFICIENT_RESOURCES_MESSAGE))
-		})
-
-		It("should increment fail metrics for the failed auctions", func() {
-			Ω(metricSender.GetCounter("AuctioneerStartAuctionsFailed")).Should(BeNumerically("==", 2))
-			Ω(metricSender.GetCounter("AuctioneerTaskAuctionsFailed")).Should(BeNumerically("==", 1))
 		})
 	})
 })

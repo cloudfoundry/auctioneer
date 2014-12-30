@@ -8,8 +8,6 @@ import (
 	fake_auction_runner "github.com/cloudfoundry-incubator/auction/auctiontypes/fakes"
 	"github.com/cloudfoundry-incubator/auctioneer/handlers"
 	"github.com/cloudfoundry-incubator/runtime-schema/models"
-	fake_metrics_sender "github.com/cloudfoundry/dropsonde/metric_sender/fake"
-	"github.com/cloudfoundry/dropsonde/metrics"
 	"github.com/pivotal-golang/lager"
 
 	. "github.com/onsi/ginkgo"
@@ -22,8 +20,6 @@ var _ = Describe("LRPAuctionHandler", func() {
 		runner           *fake_auction_runner.FakeAuctionRunner
 		responseRecorder *httptest.ResponseRecorder
 		handler          http.Handler
-
-		metricsSender *fake_metrics_sender.FakeMetricSender
 	)
 
 	BeforeEach(func() {
@@ -32,36 +28,15 @@ var _ = Describe("LRPAuctionHandler", func() {
 		runner = new(fake_auction_runner.FakeAuctionRunner)
 		responseRecorder = httptest.NewRecorder()
 		handler = handlers.NewLRPAuctionHandlerProvider(runner).WithLogger(logger)
-
-		metricsSender = fake_metrics_sender.NewFakeMetricSender()
-		metrics.Initialize(metricsSender)
 	})
 
 	Describe("ServeHTTP", func() {
 		Context("when the request body is an LRP start auction request", func() {
-			var starts []models.LRPStart
+			var starts []models.LRPStartRequest
 
 			BeforeEach(func() {
-				starts = []models.LRPStart{{
-					Index: 2,
-
-					DesiredLRP: models.DesiredLRP{
-						Domain:      "tests",
-						ProcessGuid: "some-guid",
-
-						RootFSPath: "docker:///docker.com/docker",
-						Instances:  1,
-						Stack:      "some-stack",
-						MemoryMB:   1024,
-						DiskMB:     512,
-						CPUWeight:  42,
-						Action: &models.DownloadAction{
-							From: "http://example.com",
-							To:   "/tmp/internet",
-						},
-					},
-				}, {
-					Index: 3,
+				starts = []models.LRPStartRequest{{
+					Indices: []uint{2, 3},
 
 					DesiredLRP: models.DesiredLRP{
 						Domain:      "tests",
@@ -92,24 +67,18 @@ var _ = Describe("LRPAuctionHandler", func() {
 			})
 
 			It("should submit the start auction to the auction runner", func() {
-				Ω(runner.ScheduleLRPStartsForAuctionsCallCount()).Should(Equal(1))
+				Ω(runner.ScheduleLRPsForAuctionsCallCount()).Should(Equal(1))
 
-				submittedStart := runner.ScheduleLRPStartsForAuctionsArgsForCall(0)
+				submittedStart := runner.ScheduleLRPsForAuctionsArgsForCall(0)
 				Ω(submittedStart).Should(Equal(starts))
-			})
-
-			It("should increment the start auction started metric", func() {
-				Eventually(func() uint64 {
-					return metricsSender.GetCounter("AuctioneerStartAuctionsStarted")
-				}).Should(Equal(uint64(2)))
 			})
 		})
 
 		Context("when the start auction has invalid index", func() {
-			var start models.LRPStart
+			var start models.LRPStartRequest
 
 			BeforeEach(func() {
-				start = models.LRPStart{}
+				start = models.LRPStartRequest{}
 
 				handler.ServeHTTP(responseRecorder, newTestRequest(start))
 			})
@@ -126,13 +95,7 @@ var _ = Describe("LRPAuctionHandler", func() {
 			})
 
 			It("should not submit the start auction to the auction runner", func() {
-				Ω(runner.ScheduleLRPStartsForAuctionsCallCount()).Should(Equal(0))
-			})
-
-			It("should not increment the start auction started metric", func() {
-				Consistently(func() uint64 {
-					return metricsSender.GetCounter("AuctioneerStartAuctionsStarted")
-				}).Should(Equal(uint64(0)))
+				Ω(runner.ScheduleLRPsForAuctionsCallCount()).Should(Equal(0))
 			})
 		})
 
@@ -153,13 +116,7 @@ var _ = Describe("LRPAuctionHandler", func() {
 			})
 
 			It("should not submit the start auction to the auction runner", func() {
-				Ω(runner.ScheduleLRPStartsForAuctionsCallCount()).Should(Equal(0))
-			})
-
-			It("should not increment the start auction started metric", func() {
-				Consistently(func() uint64 {
-					return metricsSender.GetCounter("AuctioneerStartAuctionsStarted")
-				}).Should(Equal(uint64(0)))
+				Ω(runner.ScheduleLRPsForAuctionsCallCount()).Should(Equal(0))
 			})
 		})
 
@@ -182,13 +139,7 @@ var _ = Describe("LRPAuctionHandler", func() {
 			})
 
 			It("should not submit the start auction to the auction runner", func() {
-				Ω(runner.ScheduleLRPStartsForAuctionsCallCount()).Should(Equal(0))
-			})
-
-			It("should not increment the start auction started metric", func() {
-				Consistently(func() uint64 {
-					return metricsSender.GetCounter("AuctioneerStartAuctionsStarted")
-				}).Should(Equal(uint64(0)))
+				Ω(runner.ScheduleLRPsForAuctionsCallCount()).Should(Equal(0))
 			})
 		})
 	})

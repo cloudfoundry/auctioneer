@@ -6,7 +6,6 @@ import (
 	"net/http"
 
 	"github.com/cloudfoundry-incubator/auction/auctiontypes"
-	"github.com/cloudfoundry-incubator/auctioneer"
 	"github.com/cloudfoundry-incubator/runtime-schema/models"
 	"github.com/pivotal-golang/lager"
 )
@@ -43,7 +42,7 @@ func (h *LRPAuctionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	starts := []models.LRPStart{}
+	starts := []models.LRPStartRequest{}
 	err = json.Unmarshal(payload, &starts)
 	if err != nil {
 		h.logger.Error("malformed-json", err)
@@ -51,7 +50,7 @@ func (h *LRPAuctionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	validStarts := make([]models.LRPStart, 0, len(starts))
+	validStarts := make([]models.LRPStartRequest, 0, len(starts))
 	for _, start := range starts {
 		if err := start.Validate(); err == nil {
 			validStarts = append(validStarts, start)
@@ -60,9 +59,7 @@ func (h *LRPAuctionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	auctioneer.LRPStartAuctionsStarted.Add(uint64(len(validStarts)))
-
-	h.runner.ScheduleLRPStartsForAuctions(validStarts)
+	h.runner.ScheduleLRPsForAuctions(validStarts)
 	h.logger.Info("submitted")
 	writeStatusAcceptedResponse(w)
 }

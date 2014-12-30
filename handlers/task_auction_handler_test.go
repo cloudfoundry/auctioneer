@@ -8,8 +8,6 @@ import (
 	fake_auction_runner "github.com/cloudfoundry-incubator/auction/auctiontypes/fakes"
 	"github.com/cloudfoundry-incubator/auctioneer/handlers"
 	"github.com/cloudfoundry-incubator/runtime-schema/models"
-	fake_metrics_sender "github.com/cloudfoundry/dropsonde/metric_sender/fake"
-	"github.com/cloudfoundry/dropsonde/metrics"
 	"github.com/pivotal-golang/lager"
 	"github.com/pivotal-golang/lager/lagertest"
 
@@ -23,8 +21,6 @@ var _ = Describe("TaskAuctionHandler", func() {
 		runner           *fake_auction_runner.FakeAuctionRunner
 		responseRecorder *httptest.ResponseRecorder
 		handler          http.Handler
-
-		metricsSender *fake_metrics_sender.FakeMetricSender
 	)
 
 	BeforeEach(func() {
@@ -33,9 +29,6 @@ var _ = Describe("TaskAuctionHandler", func() {
 		runner = new(fake_auction_runner.FakeAuctionRunner)
 		responseRecorder = httptest.NewRecorder()
 		handler = handlers.NewTaskAuctionHandlerProvider(runner).WithLogger(logger)
-
-		metricsSender = fake_metrics_sender.NewFakeMetricSender()
-		metrics.Initialize(metricsSender)
 	})
 
 	Describe("ServeHTTP", func() {
@@ -69,12 +62,6 @@ var _ = Describe("TaskAuctionHandler", func() {
 				submittedTasks := runner.ScheduleTasksForAuctionsArgsForCall(0)
 				Ω(submittedTasks).Should(Equal(tasks))
 			})
-
-			It("should increment the task auction started metric", func() {
-				Eventually(func() uint64 {
-					return metricsSender.GetCounter("AuctioneerTaskAuctionsStarted")
-				}).Should(Equal(uint64(1)))
-			})
 		})
 
 		Context("when the request body is a not a valid task", func() {
@@ -100,12 +87,6 @@ var _ = Describe("TaskAuctionHandler", func() {
 				submittedTasks := runner.ScheduleTasksForAuctionsArgsForCall(0)
 				Ω(submittedTasks).Should(BeEmpty())
 			})
-
-			It("should not increment the task auction started metric", func() {
-				Consistently(func() uint64 {
-					return metricsSender.GetCounter("AuctioneerTaskAuctionsStarted")
-				}).Should(Equal(uint64(0)))
-			})
 		})
 
 		Context("when the request body is a not a task", func() {
@@ -126,12 +107,6 @@ var _ = Describe("TaskAuctionHandler", func() {
 
 			It("should not submit the task to the auction runner", func() {
 				Ω(runner.ScheduleTasksForAuctionsCallCount()).Should(Equal(0))
-			})
-
-			It("should not increment the task auction started metric", func() {
-				Consistently(func() uint64 {
-					return metricsSender.GetCounter("AuctioneerTaskAuctionsStarted")
-				}).Should(Equal(uint64(0)))
 			})
 		})
 
@@ -155,12 +130,6 @@ var _ = Describe("TaskAuctionHandler", func() {
 
 			It("should not submit the task auction to the auction runner", func() {
 				Ω(runner.ScheduleTasksForAuctionsCallCount()).Should(Equal(0))
-			})
-
-			It("should not increment the task auction started metric", func() {
-				Consistently(func() uint64 {
-					return metricsSender.GetCounter("AuctioneerTaskAuctionsStarted")
-				}).Should(Equal(uint64(0)))
 			})
 		})
 	})

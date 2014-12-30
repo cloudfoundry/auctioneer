@@ -75,8 +75,8 @@ var _ = Describe("Handlers", func() {
 	Describe("LRP Handler", func() {
 		Context("with a valid LRPStart", func() {
 			BeforeEach(func() {
-				starts := []models.LRPStart{{
-					Index: 2,
+				starts := []models.LRPStartRequest{{
+					Indices: []uint{2},
 
 					DesiredLRP: models.DesiredLRP{
 						Domain:      "tests",

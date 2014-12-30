@@ -6,7 +6,6 @@ import (
 	"net/http"
 
 	"github.com/cloudfoundry-incubator/auction/auctiontypes"
-	"github.com/cloudfoundry-incubator/auctioneer"
 	"github.com/cloudfoundry-incubator/runtime-schema/models"
 	"github.com/pivotal-golang/lager"
 )
@@ -60,7 +59,6 @@ func (h *TaskAuctionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	auctioneer.TaskAuctionsStarted.Add(uint64(len(validTasks)))
 	h.runner.ScheduleTasksForAuctions(validTasks)
 
 	h.logger.Info("submitted")
