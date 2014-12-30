@@ -15,6 +15,7 @@ import (
 	"github.com/cloudfoundry-incubator/auctioneer/handlers"
 	"github.com/cloudfoundry-incubator/cf-debug-server"
 	"github.com/cloudfoundry-incubator/cf-lager"
+	"github.com/cloudfoundry-incubator/cf_http"
 	Bbs "github.com/cloudfoundry-incubator/runtime-schema/bbs"
 	"github.com/cloudfoundry-incubator/runtime-schema/bbs/lock_bbs"
 	"github.com/cloudfoundry-incubator/runtime-schema/models"
@@ -37,6 +38,12 @@ var etcdCluster = flag.String(
 	"etcdCluster",
 	"http://127.0.0.1:4001",
 	"comma-separated list of etcd addresses (http://ip:port)",
+)
+
+var communicationTimeout = flag.Duration(
+	"communicationTimeout",
+	10*time.Second,
+	"Timeout applied to all HTTP requests.",
 )
 
 var heartbeatInterval = flag.Duration(
@@ -71,6 +78,8 @@ func main() {
 	auctionServer := initializeAuctionServer(auctionRunner, logger)
 	heartbeater := initializeHeartbeater(bbs, logger)
 
+	cf_http.Initialize(*communicationTimeout)
+
 	members := grouper.Members{
 		{"heartbeater", heartbeater},
 		{"auction-runner", auctionRunner},
@@ -99,10 +108,8 @@ func main() {
 }
 
 func initializeAuctionRunner(bbs Bbs.AuctioneerBBS, logger lager.Logger) auctiontypes.AuctionRunner {
-	httpClient := &http.Client{
-		Timeout:   auctionRunnerTimeout,
-		Transport: &http.Transport{},
-	}
+	httpClient := cf_http.NewClient()
+	httpClient.Transport = &http.Transport{}
 
 	delegate := auctionrunnerdelegate.New(httpClient, bbs, logger)
 	return auctionrunner.New(delegate, timeprovider.NewTimeProvider(), workpool.NewWorkPool(auctionRunnerWorkPoolSize), logger)
