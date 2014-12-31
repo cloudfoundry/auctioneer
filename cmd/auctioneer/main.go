@@ -39,30 +39,6 @@ var etcdCluster = flag.String(
 	"comma-separated list of etcd addresses (http://ip:port)",
 )
 
-var communicationTimeout = flag.Duration(
-	"communicationTimeout",
-	10*time.Second,
-	"How long the auction will wait to hear back from a cell",
-)
-
-var communicationWorkPoolSize = flag.Int(
-	"communicationWorkPoolSize",
-	1000,
-	"Limits the number of simultaneous concurrent outbound connections with cells",
-)
-
-var dropsondeOrigin = flag.String(
-	"dropsondeOrigin",
-	"auctioneer",
-	"Origin identifier for dropsonde-emitted metrics.",
-)
-
-var dropsondeDestination = flag.String(
-	"dropsondeDestination",
-	"localhost:3457",
-	"Destination for dropsonde-emitted metrics.",
-)
-
 var heartbeatInterval = flag.Duration(
 	"heartbeatInterval",
 	lock_bbs.HEARTBEAT_INTERVAL,
@@ -75,7 +51,13 @@ var listenAddr = flag.String(
 	"host:port to serve auction and LRP stop requests on",
 )
 
-const serverProtocol = "http"
+const (
+	auctionRunnerTimeout      = 10 * time.Second
+	auctionRunnerWorkPoolSize = 1000
+	dropsondeDestination      = "localhost:3457"
+	dropsondeOrigin           = "auctioneer"
+	serverProtocol            = "http"
+)
 
 func main() {
 	flag.Parse()
@@ -110,12 +92,12 @@ func main() {
 
 func initializeAuctionRunner(bbs Bbs.AuctioneerBBS, logger lager.Logger) auctiontypes.AuctionRunner {
 	httpClient := &http.Client{
-		Timeout:   *communicationTimeout,
+		Timeout:   auctionRunnerTimeout,
 		Transport: &http.Transport{},
 	}
 
 	delegate := auctionrunnerdelegate.New(httpClient, bbs, logger)
-	return auctionrunner.New(delegate, timeprovider.NewTimeProvider(), workpool.NewWorkPool(*communicationWorkPoolSize), logger)
+	return auctionrunner.New(delegate, timeprovider.NewTimeProvider(), workpool.NewWorkPool(auctionRunnerWorkPoolSize), logger)
 }
 
 func initializeBBS(logger lager.Logger) Bbs.AuctioneerBBS {
@@ -133,7 +115,7 @@ func initializeBBS(logger lager.Logger) Bbs.AuctioneerBBS {
 }
 
 func initializeDropsonde(logger lager.Logger) {
-	err := dropsonde.Initialize(*dropsondeDestination, *dropsondeOrigin)
+	err := dropsonde.Initialize(dropsondeDestination, dropsondeOrigin)
 	if err != nil {
 		logger.Error("failed to initialize dropsonde: %v", err)
 	}
