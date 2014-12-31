@@ -39,12 +39,6 @@ var etcdCluster = flag.String(
 	"comma-separated list of etcd addresses (http://ip:port)",
 )
 
-var maxRetries = flag.Int(
-	"maxRetries",
-	5,
-	"Maximum number of retries to place an instance before declaring failure",
-)
-
 var communicationTimeout = flag.Duration(
 	"communicationTimeout",
 	10*time.Second,
@@ -121,7 +115,7 @@ func initializeAuctionRunner(bbs Bbs.AuctioneerBBS, logger lager.Logger) auction
 	}
 
 	delegate := auctionrunnerdelegate.New(httpClient, bbs, logger)
-	return auctionrunner.New(delegate, timeprovider.NewTimeProvider(), *maxRetries, workpool.NewWorkPool(*communicationWorkPoolSize), logger)
+	return auctionrunner.New(delegate, timeprovider.NewTimeProvider(), workpool.NewWorkPool(*communicationWorkPoolSize), logger)
 }
 
 func initializeBBS(logger lager.Logger) Bbs.AuctioneerBBS {
