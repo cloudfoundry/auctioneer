@@ -59,7 +59,7 @@ func (f *FakeCell) Tasks() ([]auctiontypes.Task, error) {
 
 func (f *FakeCell) SpinUp() {
 	//make a test-friendly AuctionRepDelegate using the auction package's SimulationRepDelegate
-	f.SimulationRep = simulationrep.New(f.stack, auctiontypes.Resources{
+	f.SimulationRep = simulationrep.New(f.stack, "Z0", auctiontypes.Resources{
 		DiskMB:     100,
 		MemoryMB:   100,
 		Containers: 100,
