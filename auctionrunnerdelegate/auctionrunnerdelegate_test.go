@@ -5,6 +5,8 @@ import (
 	"net/http"
 
 	"github.com/cloudfoundry-incubator/auction/auctiontypes"
+	"github.com/cloudfoundry/dropsonde/metric_sender/fake"
+	"github.com/cloudfoundry/dropsonde/metrics"
 
 	"github.com/onsi/gomega/ghttp"
 
@@ -22,8 +24,12 @@ import (
 var _ = Describe("Auction Runner Delegate", func() {
 	var delegate *auctionrunnerdelegate.AuctionRunnerDelegate
 	var bbs *fake_bbs.FakeAuctioneerBBS
+	var metricSender *fake.FakeMetricSender
 
 	BeforeEach(func() {
+		metricSender = fake.NewFakeMetricSender()
+		metrics.Initialize(metricSender)
+
 		bbs = &fake_bbs.FakeAuctioneerBBS{}
 		delegate = auctionrunnerdelegate.New(&http.Client{}, bbs, lagertest.NewTestLogger("delegate"))
 	})
@@ -89,8 +95,10 @@ var _ = Describe("Auction Runner Delegate", func() {
 	})
 
 	Describe("when batches are distributed", func() {
+		var results auctiontypes.AuctionResults
+
 		BeforeEach(func() {
-			delegate.DistributedBatch(auctiontypes.AuctionResults{
+			results = auctiontypes.AuctionResults{
 				SuccessfulLRPs: []auctiontypes.LRPAuction{
 					{
 						DesiredLRP: models.DesiredLRP{ProcessGuid: "successful-start"},
@@ -114,7 +122,16 @@ var _ = Describe("Auction Runner Delegate", func() {
 						TaskGuid: "failed-task",
 					}},
 				},
-			})
+			}
+
+			delegate.DistributedBatch(results)
+		})
+
+		It("should adjust the metric counters", func() {
+			Ω(metricSender.GetCounter("AuctioneerLRPAuctionsStarted")).Should(BeNumerically("==", len(results.SuccessfulLRPs)))
+			Ω(metricSender.GetCounter("AuctioneerTaskAuctionsStarted")).Should(BeNumerically("==", len(results.SuccessfulTasks)))
+			Ω(metricSender.GetCounter("AuctioneerLRPAuctionsFailed")).Should(BeNumerically("==", len(results.FailedLRPs)))
+			Ω(metricSender.GetCounter("AuctioneerTaskAuctionsFailed")).Should(BeNumerically("==", len(results.FailedTasks)))
 		})
 
 		It("should mark all failed tasks as COMPLETE with the appropriate failure reason", func() {
