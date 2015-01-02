@@ -124,7 +124,7 @@ var _ = Describe("Auction Runner Delegate", func() {
 				},
 			}
 
-			delegate.DistributedBatch(results)
+			delegate.AuctionCompleted(results)
 		})
 
 		It("should adjust the metric counters", func() {

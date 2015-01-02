@@ -40,7 +40,7 @@ func (a *AuctionRunnerDelegate) FetchCellReps() (map[string]auctiontypes.CellRep
 	return cellReps, nil
 }
 
-func (a *AuctionRunnerDelegate) DistributedBatch(results auctiontypes.AuctionResults) {
+func (a *AuctionRunnerDelegate) AuctionCompleted(results auctiontypes.AuctionResults) {
 	auctioneer.LRPAuctionsStarted.Add(uint64(len(results.SuccessfulLRPs)))
 	auctioneer.TaskAuctionsStarted.Add(uint64(len(results.SuccessfulTasks)))
 
