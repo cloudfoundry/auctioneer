@@ -60,6 +60,7 @@ const (
 )
 
 func main() {
+	cf_debug_server.AddFlags(flag.CommandLine)
 	flag.Parse()
 
 	logger := cf_lager.New("auctioneer")
@@ -69,13 +70,19 @@ func main() {
 	auctionServer := initializeAuctionServer(auctionRunner, logger)
 	heartbeater := initializeHeartbeater(bbs, logger)
 
-	cf_debug_server.Run()
-
-	group := grouper.NewOrdered(os.Interrupt, grouper.Members{
+	members := grouper.Members{
 		{"heartbeater", heartbeater},
 		{"auction-runner", auctionRunner},
 		{"auction-server", auctionServer},
-	})
+	}
+
+	if dbgAddr := cf_debug_server.DebugAddress(flag.CommandLine); dbgAddr != "" {
+		members = append(grouper.Members{
+			{"debug-server", cf_debug_server.Runner(dbgAddr)},
+		}, members...)
+	}
+
+	group := grouper.NewOrdered(os.Interrupt, members)
 
 	monitor := ifrit.Invoke(sigmon.New(group))
 
