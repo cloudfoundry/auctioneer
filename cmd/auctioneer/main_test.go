@@ -57,7 +57,7 @@ var _ = Describe("Auctioneer", func() {
 					Action:   dummyAction,
 					Domain:   "test",
 				}
-				err := bbs.DesireTask(task)
+				err := bbs.DesireTask(logger, task)
 				Ω(err).ShouldNot(HaveOccurred())
 
 				err = auctioneerClient.RequestTaskAuctions(auctioneerAddress, []models.Task{task})
@@ -81,7 +81,7 @@ var _ = Describe("Auctioneer", func() {
 					Domain:   "test",
 				}
 
-				err := bbs.DesireTask(task)
+				err := bbs.DesireTask(logger, task)
 				Ω(err).ShouldNot(HaveOccurred())
 
 				err = auctioneerClient.RequestTaskAuctions(auctioneerAddress, []models.Task{task})
@@ -94,9 +94,11 @@ var _ = Describe("Auctioneer", func() {
 			})
 
 			It("should mark the task as failed in the BBS", func() {
-				Eventually(bbs.CompletedTasks).Should(HaveLen(1))
+				Eventually(func() ([]models.Task, error) {
+					return bbs.CompletedTasks(logger)
+				}).Should(HaveLen(1))
 
-				completedTasks, _ := bbs.CompletedTasks()
+				completedTasks, _ := bbs.CompletedTasks(logger)
 				completedTask := completedTasks[0]
 				Ω(completedTask.TaskGuid).Should(Equal("task-guid"))
 				Ω(completedTask.Failed).Should(BeTrue())

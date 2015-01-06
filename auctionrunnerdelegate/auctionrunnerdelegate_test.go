@@ -10,6 +10,7 @@ import (
 
 	"github.com/onsi/gomega/ghttp"
 
+	"github.com/pivotal-golang/lager"
 	"github.com/pivotal-golang/lager/lagertest"
 
 	"github.com/cloudfoundry-incubator/auctioneer/auctionrunnerdelegate"
@@ -25,13 +26,15 @@ var _ = Describe("Auction Runner Delegate", func() {
 	var delegate *auctionrunnerdelegate.AuctionRunnerDelegate
 	var bbs *fake_bbs.FakeAuctioneerBBS
 	var metricSender *fake.FakeMetricSender
+	var logger lager.Logger
 
 	BeforeEach(func() {
 		metricSender = fake.NewFakeMetricSender()
 		metrics.Initialize(metricSender)
 
 		bbs = &fake_bbs.FakeAuctioneerBBS{}
-		delegate = auctionrunnerdelegate.New(&http.Client{}, bbs, lagertest.NewTestLogger("delegate"))
+		logger = lagertest.NewTestLogger("delegate")
+		delegate = auctionrunnerdelegate.New(&http.Client{}, bbs, logger)
 	})
 
 	Describe("fetching cell reps", func() {
@@ -136,7 +139,8 @@ var _ = Describe("Auction Runner Delegate", func() {
 
 		It("should mark all failed tasks as COMPLETE with the appropriate failure reason", func() {
 			Ω(bbs.CompleteTaskCallCount()).Should(Equal(1))
-			taskGuid, cellID, failed, failureReason, result := bbs.CompleteTaskArgsForCall(0)
+			completeTaskLogger, taskGuid, cellID, failed, failureReason, result := bbs.CompleteTaskArgsForCall(0)
+			Ω(completeTaskLogger).Should(Equal(logger))
 			Ω(taskGuid).Should(Equal("failed-task"))
 			Ω(cellID).Should(Equal(""))
 			Ω(failed).Should(BeTrue())
