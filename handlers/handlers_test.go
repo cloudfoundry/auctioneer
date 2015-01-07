@@ -65,7 +65,7 @@ var _ = Describe("Handlers", func() {
 			It("logs with the correct session nesting", func() {
 				Ω(logger.TestSink.LogMessages()).Should(Equal([]string{
 					"test.request.serving",
-					"test.request.task-auction-handler.submitted",
+					"test.request.task-auction-handler.create.submitted",
 					"test.request.done",
 				}))
 			})
@@ -113,7 +113,7 @@ var _ = Describe("Handlers", func() {
 			It("logs with the correct session nesting", func() {
 				Ω(logger.TestSink.LogMessages()).Should(Equal([]string{
 					"test.request.serving",
-					"test.request.lrp-auction-handler.submitted",
+					"test.request.lrp-auction-handler.create.submitted",
 					"test.request.done",
 				}))
 			})

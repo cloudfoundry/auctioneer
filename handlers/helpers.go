@@ -12,6 +12,12 @@ func writeInvalidJSONResponse(w http.ResponseWriter, err error) {
 	})
 }
 
+func writeInternalErrorJSONResponse(w http.ResponseWriter, err error) {
+	writeJSONResponse(w, http.StatusInternalServerError, HandlerError{
+		Error: err.Error(),
+	})
+}
+
 func writeStatusCreatedResponse(w http.ResponseWriter) {
 	writeJSONResponse(w, http.StatusCreated, struct{}{})
 }

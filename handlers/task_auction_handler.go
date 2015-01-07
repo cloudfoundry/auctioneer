@@ -10,42 +10,34 @@ import (
 	"github.com/pivotal-golang/lager"
 )
 
-type TaskAuctionHandlerProvider struct {
+type TaskAuctionHandler struct {
 	runner auctiontypes.AuctionRunner
 }
 
-func NewTaskAuctionHandlerProvider(runner auctiontypes.AuctionRunner) *TaskAuctionHandlerProvider {
-	return &TaskAuctionHandlerProvider{
+func NewTaskAuctionHandler(runner auctiontypes.AuctionRunner) *TaskAuctionHandler {
+	return &TaskAuctionHandler{
 		runner: runner,
 	}
 }
 
-type TaskAuctionHandler struct {
-	runner auctiontypes.AuctionRunner
-	logger lager.Logger
+func (*TaskAuctionHandler) logSession(logger lager.Logger) lager.Logger {
+	return logger.Session("task-auction-handler")
 }
 
-func (provider *TaskAuctionHandlerProvider) WithLogger(logger lager.Logger) http.Handler {
-	return &TaskAuctionHandler{
-		runner: provider.runner,
-		logger: logger.Session("task-auction-handler"),
-	}
-}
+func (h *TaskAuctionHandler) Create(w http.ResponseWriter, r *http.Request, logger lager.Logger) {
+	logger = h.logSession(logger).Session("create")
 
-func (h *TaskAuctionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	payload, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		h.logger.Error("failed-to-read-request-body", err)
-		writeJSONResponse(w, http.StatusInternalServerError, HandlerError{
-			Error: err.Error(),
-		})
+		logger.Error("failed-to-read-request-body", err)
+		writeInternalErrorJSONResponse(w, err)
 		return
 	}
 
 	tasks := []models.Task{}
 	err = json.Unmarshal(payload, &tasks)
 	if err != nil {
-		h.logger.Error("malformed-json", err)
+		logger.Error("malformed-json", err)
 		writeInvalidJSONResponse(w, err)
 		return
 	}
@@ -55,12 +47,12 @@ func (h *TaskAuctionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if err := t.Validate(); err == nil {
 			validTasks = append(validTasks, t)
 		} else {
-			h.logger.Error("task-validate-failed", err, lager.Data{"task": t})
+			logger.Error("task-validate-failed", err, lager.Data{"task": t})
 		}
 	}
 
 	h.runner.ScheduleTasksForAuctions(validTasks)
 
-	h.logger.Info("submitted")
+	logger.Info("submitted")
 	writeStatusAcceptedResponse(w)
 }

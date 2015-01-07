@@ -13,6 +13,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gbytes"
 )
 
 var _ = Describe("TaskAuctionHandler", func() {
@@ -20,7 +21,7 @@ var _ = Describe("TaskAuctionHandler", func() {
 		logger           *lagertest.TestLogger
 		runner           *fake_auction_runner.FakeAuctionRunner
 		responseRecorder *httptest.ResponseRecorder
-		handler          http.Handler
+		handler          *handlers.TaskAuctionHandler
 	)
 
 	BeforeEach(func() {
@@ -28,10 +29,10 @@ var _ = Describe("TaskAuctionHandler", func() {
 		logger.RegisterSink(lager.NewWriterSink(GinkgoWriter, lager.DEBUG))
 		runner = new(fake_auction_runner.FakeAuctionRunner)
 		responseRecorder = httptest.NewRecorder()
-		handler = handlers.NewTaskAuctionHandlerProvider(runner).WithLogger(logger)
+		handler = handlers.NewTaskAuctionHandler(runner)
 	})
 
-	Describe("ServeHTTP", func() {
+	Describe("Create", func() {
 		Context("when the request body is a task", func() {
 			var tasks []models.Task
 
@@ -45,7 +46,7 @@ var _ = Describe("TaskAuctionHandler", func() {
 					},
 				}}
 
-				handler.ServeHTTP(responseRecorder, newTestRequest(tasks))
+				handler.Create(responseRecorder, newTestRequest(tasks), logger)
 			})
 
 			It("responds with 202", func() {
@@ -70,7 +71,7 @@ var _ = Describe("TaskAuctionHandler", func() {
 			BeforeEach(func() {
 				tasks = []models.Task{{TaskGuid: "the-task-guid"}}
 
-				handler.ServeHTTP(responseRecorder, newTestRequest(tasks))
+				handler.Create(responseRecorder, newTestRequest(tasks), logger)
 			})
 
 			It("responds with 202", func() {
@@ -78,7 +79,7 @@ var _ = Describe("TaskAuctionHandler", func() {
 			})
 
 			It("logs an error", func() {
-				Ω(logger.TestSink.LogMessages()).Should(ContainElement("test.task-auction-handler.task-validate-failed"))
+				Ω(logger).Should(Say("test.task-auction-handler.create.task-validate-failed"))
 			})
 
 			It("should submit the task to the auction runner", func() {
@@ -91,7 +92,7 @@ var _ = Describe("TaskAuctionHandler", func() {
 
 		Context("when the request body is a not a task", func() {
 			BeforeEach(func() {
-				handler.ServeHTTP(responseRecorder, newTestRequest(`{invalidjson}`))
+				handler.Create(responseRecorder, newTestRequest(`{invalidjson}`), logger)
 			})
 
 			It("responds with 400", func() {
@@ -114,7 +115,7 @@ var _ = Describe("TaskAuctionHandler", func() {
 			BeforeEach(func() {
 				req := newTestRequest("")
 				req.Body = badReader{}
-				handler.ServeHTTP(responseRecorder, req)
+				handler.Create(responseRecorder, req, logger)
 			})
 
 			It("responds with 500", func() {

@@ -19,7 +19,7 @@ var _ = Describe("LRPAuctionHandler", func() {
 		logger           lager.Logger
 		runner           *fake_auction_runner.FakeAuctionRunner
 		responseRecorder *httptest.ResponseRecorder
-		handler          http.Handler
+		handler          *handlers.LRPAuctionHandler
 	)
 
 	BeforeEach(func() {
@@ -27,10 +27,10 @@ var _ = Describe("LRPAuctionHandler", func() {
 		logger.RegisterSink(lager.NewWriterSink(GinkgoWriter, lager.DEBUG))
 		runner = new(fake_auction_runner.FakeAuctionRunner)
 		responseRecorder = httptest.NewRecorder()
-		handler = handlers.NewLRPAuctionHandlerProvider(runner).WithLogger(logger)
+		handler = handlers.NewLRPAuctionHandler(runner)
 	})
 
-	Describe("ServeHTTP", func() {
+	Describe("Create", func() {
 		Context("when the request body is an LRP start auction request", func() {
 			var starts []models.LRPStartRequest
 
@@ -55,7 +55,7 @@ var _ = Describe("LRPAuctionHandler", func() {
 					},
 				}}
 
-				handler.ServeHTTP(responseRecorder, newTestRequest(starts))
+				handler.Create(responseRecorder, newTestRequest(starts), logger)
 			})
 
 			It("responds with 202", func() {
@@ -80,7 +80,7 @@ var _ = Describe("LRPAuctionHandler", func() {
 			BeforeEach(func() {
 				start = models.LRPStartRequest{}
 
-				handler.ServeHTTP(responseRecorder, newTestRequest(start))
+				handler.Create(responseRecorder, newTestRequest(start), logger)
 			})
 
 			It("responds with 400", func() {
@@ -101,7 +101,7 @@ var _ = Describe("LRPAuctionHandler", func() {
 
 		Context("when the request body is a not a start auction", func() {
 			BeforeEach(func() {
-				handler.ServeHTTP(responseRecorder, newTestRequest(`{invalidjson}`))
+				handler.Create(responseRecorder, newTestRequest(`{invalidjson}`), logger)
 			})
 
 			It("responds with 400", func() {
@@ -124,7 +124,7 @@ var _ = Describe("LRPAuctionHandler", func() {
 			BeforeEach(func() {
 				req := newTestRequest("")
 				req.Body = badReader{}
-				handler.ServeHTTP(responseRecorder, req)
+				handler.Create(responseRecorder, req, logger)
 			})
 
 			It("responds with 500", func() {
