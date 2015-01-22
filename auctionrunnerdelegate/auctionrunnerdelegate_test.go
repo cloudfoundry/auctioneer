@@ -114,16 +114,20 @@ var _ = Describe("Auction Runner Delegate", func() {
 				},
 				FailedLRPs: []auctiontypes.LRPAuction{
 					{
-						DesiredLRP: models.DesiredLRP{ProcessGuid: "failed-start"},
+						DesiredLRP:    models.DesiredLRP{ProcessGuid: "insufficient-capacity", Domain: "domain", Instances: 1},
+						AuctionRecord: auctiontypes.AuctionRecord{PlacementError: diego_errors.INSUFFICIENT_RESOURCES_MESSAGE},
 					},
 					{
-						DesiredLRP: models.DesiredLRP{ProcessGuid: "other-failed-start"},
+						DesiredLRP:    models.DesiredLRP{ProcessGuid: "incompatible-stacks", Domain: "domain", Instances: 1},
+						AuctionRecord: auctiontypes.AuctionRecord{PlacementError: diego_errors.STACK_MISMATCH},
 					},
 				},
 				FailedTasks: []auctiontypes.TaskAuction{
 					{Task: models.Task{
 						TaskGuid: "failed-task",
-					}},
+					},
+						AuctionRecord: auctiontypes.AuctionRecord{PlacementError: diego_errors.INSUFFICIENT_RESOURCES_MESSAGE},
+					},
 				},
 			}
 
@@ -143,6 +147,18 @@ var _ = Describe("Auction Runner Delegate", func() {
 			Ω(failTaskLogger).Should(Equal(logger))
 			Ω(taskGuid).Should(Equal("failed-task"))
 			Ω(failureReason).Should(Equal(diego_errors.INSUFFICIENT_RESOURCES_MESSAGE))
+		})
+
+		It("should mark all failed LRPs as UNCLAIMED with the appropriate placement error", func() {
+			Ω(bbs.FailLRPCallCount()).Should(Equal(2))
+			_, lrpKey, errorMessage := bbs.FailLRPArgsForCall(0)
+			Ω(lrpKey).Should(Equal(models.NewActualLRPKey("insufficient-capacity", 0, "domain")))
+			Ω(errorMessage).Should(Equal(diego_errors.INSUFFICIENT_RESOURCES_MESSAGE))
+
+			_, lrpKey1, errorMessage1 := bbs.FailLRPArgsForCall(1)
+			Ω(lrpKey1).Should(Equal(models.NewActualLRPKey("incompatible-stacks", 0, "domain")))
+			Ω(errorMessage1).Should(Equal(diego_errors.STACK_MISMATCH))
+
 		})
 	})
 })
