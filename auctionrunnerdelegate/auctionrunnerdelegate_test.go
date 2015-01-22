@@ -119,7 +119,7 @@ var _ = Describe("Auction Runner Delegate", func() {
 					},
 					{
 						DesiredLRP:    models.DesiredLRP{ProcessGuid: "incompatible-stacks", Domain: "domain", Instances: 1},
-						AuctionRecord: auctiontypes.AuctionRecord{PlacementError: diego_errors.STACK_MISMATCH},
+						AuctionRecord: auctiontypes.AuctionRecord{PlacementError: diego_errors.CELL_MISMATCH_MESSAGE},
 					},
 				},
 				FailedTasks: []auctiontypes.TaskAuction{
@@ -157,7 +157,7 @@ var _ = Describe("Auction Runner Delegate", func() {
 
 			_, lrpKey1, errorMessage1 := bbs.FailLRPArgsForCall(1)
 			Ω(lrpKey1).Should(Equal(models.NewActualLRPKey("incompatible-stacks", 0, "domain")))
-			Ω(errorMessage1).Should(Equal(diego_errors.STACK_MISMATCH))
+			Ω(errorMessage1).Should(Equal(diego_errors.CELL_MISMATCH_MESSAGE))
 
 		})
 	})
