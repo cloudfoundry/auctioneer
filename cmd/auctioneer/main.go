@@ -25,9 +25,9 @@ import (
 	"github.com/cloudfoundry-incubator/auction/auctionrunner"
 	"github.com/cloudfoundry-incubator/auction/auctiontypes"
 	"github.com/cloudfoundry/dropsonde"
-	"github.com/cloudfoundry/gunk/timeprovider"
 	"github.com/cloudfoundry/gunk/workpool"
 	"github.com/cloudfoundry/storeadapter/etcdstoreadapter"
+	"github.com/pivotal-golang/clock"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/http_server"
@@ -112,7 +112,7 @@ func initializeAuctionRunner(bbs Bbs.AuctioneerBBS, logger lager.Logger) auction
 	httpClient.Transport = &http.Transport{}
 
 	delegate := auctionrunnerdelegate.New(httpClient, bbs, logger)
-	return auctionrunner.New(delegate, timeprovider.NewTimeProvider(), workpool.NewWorkPool(auctionRunnerWorkPoolSize), logger)
+	return auctionrunner.New(delegate, clock.NewClock(), workpool.NewWorkPool(auctionRunnerWorkPoolSize), logger)
 }
 
 func initializeBBS(logger lager.Logger) Bbs.AuctioneerBBS {
@@ -126,7 +126,7 @@ func initializeBBS(logger lager.Logger) Bbs.AuctioneerBBS {
 		logger.Fatal("failed-to-connect-to-etcd", err)
 	}
 
-	return Bbs.NewAuctioneerBBS(etcdAdapter, timeprovider.NewTimeProvider(), logger)
+	return Bbs.NewAuctioneerBBS(etcdAdapter, clock.NewClock(), logger)
 }
 
 func initializeDropsonde(logger lager.Logger) {

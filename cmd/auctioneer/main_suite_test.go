@@ -8,12 +8,12 @@ import (
 	Bbs "github.com/cloudfoundry-incubator/runtime-schema/bbs"
 	"github.com/cloudfoundry-incubator/runtime-schema/cb"
 	"github.com/cloudfoundry-incubator/runtime-schema/models"
-	"github.com/cloudfoundry/gunk/timeprovider"
 	"github.com/cloudfoundry/storeadapter"
 	"github.com/cloudfoundry/storeadapter/storerunner/etcdstorerunner"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
+	"github.com/pivotal-golang/clock"
 	"github.com/pivotal-golang/lager"
 	"github.com/pivotal-golang/lager/lagertest"
 	"github.com/tedsuo/ifrit"
@@ -71,7 +71,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 
 	logger = lagertest.NewTestLogger("test")
 
-	bbs = Bbs.NewBBS(etcdClient, timeprovider.NewTimeProvider(), models.NewDefaultRestartCalculator(), logger)
+	bbs = Bbs.NewBBS(etcdClient, clock.NewClock(), models.NewDefaultRestartCalculator(), logger)
 })
 
 var _ = BeforeEach(func() {
