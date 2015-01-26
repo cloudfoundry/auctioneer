@@ -7,7 +7,6 @@ import (
 
 	Bbs "github.com/cloudfoundry-incubator/runtime-schema/bbs"
 	"github.com/cloudfoundry-incubator/runtime-schema/cb"
-	"github.com/cloudfoundry-incubator/runtime-schema/models"
 	"github.com/cloudfoundry/storeadapter"
 	"github.com/cloudfoundry/storeadapter/storerunner/etcdstorerunner"
 	. "github.com/onsi/ginkgo"
@@ -71,7 +70,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 
 	logger = lagertest.NewTestLogger("test")
 
-	bbs = Bbs.NewBBS(etcdClient, clock.NewClock(), models.NewDefaultRestartCalculator(), logger)
+	bbs = Bbs.NewBBS(etcdClient, clock.NewClock(), logger)
 })
 
 var _ = BeforeEach(func() {
