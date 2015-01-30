@@ -74,11 +74,8 @@ func (f *FakeCell) SpinUp() {
 	f.server = httptest.NewServer(router)
 
 	//start hearbeating to ETCD (via global test bbs)
-	f.heartbeater = ifrit.Invoke(bbs.NewCellHeartbeat(models.CellPresence{
-		CellID:     f.cellID,
-		Stack:      f.stack,
-		RepAddress: f.server.URL,
-	}, time.Second))
+	capacity := models.NewCellCapacity(512, 1024, 124)
+	f.heartbeater = ifrit.Invoke(bbs.NewCellHeartbeat(models.NewCellPresence(f.cellID, f.stack, f.server.URL, "az1", capacity), time.Second))
 }
 
 func (f *FakeCell) Stop() {
