@@ -71,7 +71,7 @@ func main() {
 	cf_lager.AddFlags(flag.CommandLine)
 	flag.Parse()
 
-	logger := cf_lager.New("auctioneer")
+	logger, reconfigurableSink := cf_lager.New("auctioneer")
 	initializeDropsonde(logger)
 	bbs := initializeBBS(logger)
 	auctionRunner := initializeAuctionRunner(bbs, logger)
@@ -88,7 +88,7 @@ func main() {
 
 	if dbgAddr := cf_debug_server.DebugAddress(flag.CommandLine); dbgAddr != "" {
 		members = append(grouper.Members{
-			{"debug-server", cf_debug_server.Runner(dbgAddr)},
+			{"debug-server", cf_debug_server.Runner(dbgAddr, reconfigurableSink)},
 		}, members...)
 	}
 
