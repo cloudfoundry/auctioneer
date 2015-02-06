@@ -58,7 +58,7 @@ func (a *AuctionRunnerDelegate) AuctionCompleted(results auctiontypes.AuctionRes
 	}
 
 	for _, lrp := range results.FailedLRPs {
-		err := a.bbs.FailLRP(a.logger, models.NewActualLRPKey(lrp.DesiredLRP.ProcessGuid, lrp.Index, lrp.DesiredLRP.Domain), lrp.PlacementError)
+		err := a.bbs.FailActualLRP(a.logger, models.NewActualLRPKey(lrp.DesiredLRP.ProcessGuid, lrp.Index, lrp.DesiredLRP.Domain), lrp.PlacementError)
 		if err != nil {
 			a.logger.Error("failed-to-fail-LRP", err, lager.Data{
 				"lrp":            lrp,

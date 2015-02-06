@@ -150,12 +150,12 @@ var _ = Describe("Auction Runner Delegate", func() {
 		})
 
 		It("should mark all failed LRPs as UNCLAIMED with the appropriate placement error", func() {
-			Ω(bbs.FailLRPCallCount()).Should(Equal(2))
-			_, lrpKey, errorMessage := bbs.FailLRPArgsForCall(0)
+			Ω(bbs.FailActualLRPCallCount()).Should(Equal(2))
+			_, lrpKey, errorMessage := bbs.FailActualLRPArgsForCall(0)
 			Ω(lrpKey).Should(Equal(models.NewActualLRPKey("insufficient-capacity", 0, "domain")))
 			Ω(errorMessage).Should(Equal(diego_errors.INSUFFICIENT_RESOURCES_MESSAGE))
 
-			_, lrpKey1, errorMessage1 := bbs.FailLRPArgsForCall(1)
+			_, lrpKey1, errorMessage1 := bbs.FailActualLRPArgsForCall(1)
 			Ω(lrpKey1).Should(Equal(models.NewActualLRPKey("incompatible-stacks", 0, "domain")))
 			Ω(errorMessage1).Should(Equal(diego_errors.CELL_MISMATCH_MESSAGE))
 
