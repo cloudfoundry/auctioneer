@@ -89,8 +89,6 @@ var _ = BeforeEach(func() {
 
 	dotNetCell = SpinUpFakeCell("dot-net-cell", dotNetStack)
 	lucidCell = SpinUpFakeCell("lucid-cell", lucidStack)
-
-	auctioneer = ginkgomon.Invoke(runner)
 })
 
 var _ = AfterEach(func() {

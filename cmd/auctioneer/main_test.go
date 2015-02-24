@@ -1,12 +1,16 @@
 package main_test
 
 import (
+	"time"
+
 	"github.com/cloudfoundry-incubator/runtime-schema/bbs/shared"
 	"github.com/cloudfoundry-incubator/runtime-schema/diego_errors"
 	"github.com/cloudfoundry-incubator/runtime-schema/models"
 	"github.com/cloudfoundry/storeadapter"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/tedsuo/ifrit"
+	"github.com/tedsuo/ifrit/ginkgomon"
 )
 
 var dummyAction = &models.RunAction{
@@ -27,6 +31,8 @@ var exampleDesiredLRP = models.DesiredLRP{
 var _ = Describe("Auctioneer", func() {
 	Context("when a start auction message arrives", func() {
 		BeforeEach(func() {
+			auctioneer = ginkgomon.Invoke(runner)
+
 			err := auctioneerClient.RequestLRPAuctions(auctioneerAddress, []models.LRPStartRequest{{
 				DesiredLRP: exampleDesiredLRP,
 				Indices:    []uint{0},
@@ -47,6 +53,10 @@ var _ = Describe("Auctioneer", func() {
 	})
 
 	Context("when a task message arrives", func() {
+		BeforeEach(func() {
+			auctioneer = ginkgomon.Invoke(runner)
+		})
+
 		Context("when there are sufficient resources to start the task", func() {
 			BeforeEach(func() {
 				task := models.Task{
@@ -109,6 +119,7 @@ var _ = Describe("Auctioneer", func() {
 
 	Context("when the auctioneer loses the lock", func() {
 		BeforeEach(func() {
+			auctioneer = ginkgomon.Invoke(runner)
 			err := etcdClient.Update(storeadapter.StoreNode{
 				Key:   shared.LockSchemaPath("auctioneer_lock"),
 				Value: []byte("something-else"),
@@ -118,6 +129,42 @@ var _ = Describe("Auctioneer", func() {
 
 		It("exits with an error", func() {
 			Eventually(runner.ExitCode, 3).Should(Equal(1))
+		})
+	})
+
+	Context("when the auctioneer cannot acquire the lock on startup", func() {
+		BeforeEach(func() {
+			presence := models.AuctioneerPresence{
+				AuctioneerID:      "existing-auctioneer-id",
+				AuctioneerAddress: "existing-auctioneer-address",
+			}
+			presenceJSON, err := models.ToJSON(presence)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			err = etcdClient.Create(storeadapter.StoreNode{
+				Key:   shared.LockSchemaPath("auctioneer_lock"),
+				Value: presenceJSON,
+			})
+			Ω(err).ShouldNot(HaveOccurred())
+
+			auctioneer = ifrit.Background(runner)
+		})
+
+		It("should not advertise its presence, but should be reachable", func() {
+			Consistently(bbs.AuctioneerAddress, 3*time.Second).Should(Equal("existing-auctioneer-address"))
+			task := models.Task{
+				TaskGuid: "task-guid",
+				DiskMB:   1,
+				MemoryMB: 1,
+				Stack:    lucidStack,
+				Action:   dummyAction,
+				Domain:   "test",
+			}
+			err := bbs.DesireTask(logger, task)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			err = auctioneerClient.RequestTaskAuctions(auctioneerAddress, []models.Task{task})
+			Ω(err).ShouldNot(HaveOccurred())
 		})
 	})
 })
