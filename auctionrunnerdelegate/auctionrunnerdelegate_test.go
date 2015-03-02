@@ -134,13 +134,6 @@ var _ = Describe("Auction Runner Delegate", func() {
 			delegate.AuctionCompleted(results)
 		})
 
-		It("should adjust the metric counters", func() {
-			Ω(metricSender.GetCounter("AuctioneerLRPAuctionsStarted")).Should(BeNumerically("==", len(results.SuccessfulLRPs)))
-			Ω(metricSender.GetCounter("AuctioneerTaskAuctionsStarted")).Should(BeNumerically("==", len(results.SuccessfulTasks)))
-			Ω(metricSender.GetCounter("AuctioneerLRPAuctionsFailed")).Should(BeNumerically("==", len(results.FailedLRPs)))
-			Ω(metricSender.GetCounter("AuctioneerTaskAuctionsFailed")).Should(BeNumerically("==", len(results.FailedTasks)))
-		})
-
 		It("should mark all failed tasks as COMPLETE with the appropriate failure reason", func() {
 			Ω(bbs.FailTaskCallCount()).Should(Equal(1))
 			failTaskLogger, taskGuid, failureReason := bbs.FailTaskArgsForCall(0)

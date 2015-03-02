@@ -7,4 +7,5 @@ const (
 	LRPAuctionsFailed   = metric.Counter("AuctioneerLRPAuctionsFailed")
 	TaskAuctionsStarted = metric.Counter("AuctioneerTaskAuctionsStarted")
 	TaskAuctionsFailed  = metric.Counter("AuctioneerTaskAuctionsFailed")
+	FetchStatesDuration = metric.Duration("AuctioneerFetchStatesDuration")
 )

@@ -10,6 +10,7 @@ import (
 
 	"github.com/nu7hatch/gouuid"
 
+	"github.com/cloudfoundry-incubator/auctioneer/auctionmetricemitterdelegate"
 	"github.com/cloudfoundry-incubator/auctioneer/auctionrunnerdelegate"
 
 	"github.com/cloudfoundry-incubator/auctioneer/handlers"
@@ -112,7 +113,14 @@ func initializeAuctionRunner(bbs Bbs.AuctioneerBBS, logger lager.Logger) auction
 	httpClient.Transport = &http.Transport{}
 
 	delegate := auctionrunnerdelegate.New(httpClient, bbs, logger)
-	return auctionrunner.New(delegate, clock.NewClock(), workpool.NewWorkPool(auctionRunnerWorkPoolSize), logger)
+	metricEmitter := auctionmetricemitterdelegate.New()
+	return auctionrunner.New(
+		delegate,
+		metricEmitter,
+		clock.NewClock(),
+		workpool.NewWorkPool(auctionRunnerWorkPoolSize),
+		logger,
+	)
 }
 
 func initializeBBS(logger lager.Logger) Bbs.AuctioneerBBS {
