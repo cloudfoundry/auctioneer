@@ -2,7 +2,6 @@ package main_test
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 
@@ -10,7 +9,6 @@ import (
 	"github.com/cloudfoundry-incubator/runtime-schema/cb"
 	"github.com/cloudfoundry/storeadapter"
 	"github.com/cloudfoundry/storeadapter/storerunner/etcdstorerunner"
-	"github.com/coreos/go-etcd/etcd"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
@@ -86,7 +84,6 @@ var _ = BeforeEach(func() {
 		),
 		StartCheck: "auctioneer.started",
 	})
-	etcd.SetLogger(log.New(GinkgoWriter, "go-etcd", log.LstdFlags))
 
 	etcdRunner.Start()
 
