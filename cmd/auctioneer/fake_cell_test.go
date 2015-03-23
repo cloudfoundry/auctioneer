@@ -75,7 +75,7 @@ func (f *FakeCell) SpinUp() {
 
 	//start hearbeating to ETCD (via global test bbs)
 	capacity := models.NewCellCapacity(512, 1024, 124)
-	f.heartbeater = ifrit.Invoke(bbs.NewCellHeartbeat(models.NewCellPresence(f.cellID, f.stack, f.server.URL, "az1", capacity), time.Second))
+	f.heartbeater = ifrit.Invoke(bbs.NewCellHeartbeat(models.NewCellPresence(f.cellID, f.server.URL, "az1", capacity), time.Second))
 }
 
 func (f *FakeCell) Stop() {

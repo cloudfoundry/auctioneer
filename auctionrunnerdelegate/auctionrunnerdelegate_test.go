@@ -58,8 +58,8 @@ var _ = Describe("Auction Runner Delegate", func() {
 				})
 
 				bbs.CellsReturns([]models.CellPresence{
-					{CellID: "cell-A", Stack: "lucid64", RepAddress: serverA.URL()},
-					{CellID: "cell-B", Stack: "lucid64", RepAddress: serverB.URL()},
+					models.NewCellPresence("cell-A", serverA.URL(), "zone-1", models.NewCellCapacity(123, 456, 789)),
+					models.NewCellPresence("cell-B", serverB.URL(), "zone-2", models.NewCellCapacity(123, 456, 789)),
 				}, nil)
 			})
 
