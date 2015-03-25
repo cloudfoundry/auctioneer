@@ -22,7 +22,7 @@ var exampleDesiredLRP = models.DesiredLRP{
 	ProcessGuid: "process-guid",
 	DiskMB:      1,
 	MemoryMB:    1,
-	Stack:       lucidStack,
+	RootFS:      lucidRootFSURL,
 	Action:      dummyAction,
 	Domain:      "test",
 	Instances:   2,
@@ -63,7 +63,7 @@ var _ = Describe("Auctioneer", func() {
 					TaskGuid: "task-guid",
 					DiskMB:   1,
 					MemoryMB: 1,
-					Stack:    lucidStack,
+					RootFS:   lucidRootFSURL,
 					Action:   dummyAction,
 					Domain:   "test",
 				}
@@ -86,7 +86,7 @@ var _ = Describe("Auctioneer", func() {
 					TaskGuid: "task-guid",
 					DiskMB:   1000,
 					MemoryMB: 1000,
-					Stack:    lucidStack,
+					RootFS:   lucidRootFSURL,
 					Action:   dummyAction,
 					Domain:   "test",
 				}
@@ -156,7 +156,7 @@ var _ = Describe("Auctioneer", func() {
 				TaskGuid: "task-guid",
 				DiskMB:   1,
 				MemoryMB: 1,
-				Stack:    lucidStack,
+				RootFS:   lucidRootFSURL,
 				Action:   dummyAction,
 				Domain:   "test",
 			}

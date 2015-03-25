@@ -41,7 +41,7 @@ var _ = Describe("Handlers", func() {
 				tasks := []models.Task{{
 					TaskGuid: "the-task-guid",
 					Domain:   "some-domain",
-					Stack:    "some-stack",
+					RootFS:   "some:rootfs",
 					Action: &models.RunAction{
 						Path: "ls",
 					}},
@@ -82,12 +82,11 @@ var _ = Describe("Handlers", func() {
 						Domain:      "tests",
 						ProcessGuid: "some-guid",
 
-						RootFSPath: "docker:///docker.com/docker",
-						Instances:  1,
-						Stack:      "some-stack",
-						MemoryMB:   1024,
-						DiskMB:     512,
-						CPUWeight:  42,
+						RootFS:    "docker:///docker.com/docker",
+						Instances: 1,
+						MemoryMB:  1024,
+						DiskMB:    512,
+						CPUWeight: 42,
 						Action: &models.DownloadAction{
 							From: "http://example.com",
 							To:   "/tmp/internet",

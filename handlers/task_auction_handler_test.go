@@ -40,7 +40,7 @@ var _ = Describe("TaskAuctionHandler", func() {
 				tasks = []models.Task{{
 					TaskGuid: "the-task-guid",
 					Domain:   "some-domain",
-					Stack:    "some-stack",
+					RootFS:   "some:rootfs",
 					Action: &models.RunAction{
 						Path: "ls",
 					},

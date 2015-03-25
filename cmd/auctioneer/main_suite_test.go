@@ -7,6 +7,7 @@ import (
 
 	Bbs "github.com/cloudfoundry-incubator/runtime-schema/bbs"
 	"github.com/cloudfoundry-incubator/runtime-schema/cb"
+	"github.com/cloudfoundry-incubator/runtime-schema/models"
 	"github.com/cloudfoundry/storeadapter"
 	"github.com/cloudfoundry/storeadapter/storerunner/etcdstorerunner"
 	. "github.com/onsi/ginkgo"
@@ -27,7 +28,9 @@ var auctioneer ifrit.Process
 var auctioneerPath string
 
 var dotNetStack = "dot-net"
+var dotNetRootFSURL = models.PreloadedRootFS(dotNetStack)
 var lucidStack = "lucid64"
+var lucidRootFSURL = models.PreloadedRootFS(lucidStack)
 var dotNetCell, lucidCell *FakeCell
 
 var etcdPort int
