@@ -13,9 +13,11 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/cloudfoundry-incubator/auction/communication/http/routes"
+	"github.com/hashicorp/consul/consul/structs"
 
 	"github.com/cloudfoundry-incubator/auction/auctiontypes"
 	"github.com/cloudfoundry-incubator/auction/communication/http/auction_http_handlers"
+	Bbs "github.com/cloudfoundry-incubator/runtime-schema/bbs"
 	"github.com/cloudfoundry-incubator/runtime-schema/models"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/rata"
@@ -30,13 +32,13 @@ type FakeCell struct {
 	SimulationRep auctiontypes.SimulationCellRep
 }
 
-func SpinUpFakeCell(cellID string, stack string) *FakeCell {
+func SpinUpFakeCell(bbs *Bbs.BBS, cellID string, stack string) *FakeCell {
 	fakeRep := &FakeCell{
 		cellID: cellID,
 		stack:  stack,
 	}
 
-	fakeRep.SpinUp()
+	fakeRep.SpinUp(bbs)
 
 	return fakeRep
 }
@@ -57,7 +59,7 @@ func (f *FakeCell) Tasks() ([]auctiontypes.Task, error) {
 	return state.Tasks, nil
 }
 
-func (f *FakeCell) SpinUp() {
+func (f *FakeCell) SpinUp(bbs *Bbs.BBS) {
 	//make a test-friendly AuctionRepDelegate using the auction package's SimulationRepDelegate
 	f.SimulationRep = simulationrep.New(f.stack, "Z0", auctiontypes.Resources{
 		DiskMB:     100,
@@ -75,11 +77,11 @@ func (f *FakeCell) SpinUp() {
 
 	//start hearbeating to ETCD (via global test bbs)
 	capacity := models.NewCellCapacity(512, 1024, 124)
-	f.heartbeater = ifrit.Invoke(bbs.NewCellHeartbeat(models.NewCellPresence(f.cellID, f.server.URL, "az1", capacity), time.Second))
+	f.heartbeater = ifrit.Invoke(bbs.NewCellHeartbeat(models.NewCellPresence(f.cellID, f.server.URL, "az1", capacity), structs.SessionTTLMin, time.Second))
 }
 
 func (f *FakeCell) Stop() {
 	f.server.Close()
 	f.heartbeater.Signal(os.Interrupt)
-	Eventually(f.heartbeater.Wait()).Should(Receive(BeNil()))
+	Eventually(f.heartbeater.Wait()).Should(Receive())
 }

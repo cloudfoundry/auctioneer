@@ -13,11 +13,11 @@ import (
 
 	"github.com/cloudfoundry-incubator/auctioneer/auctionmetricemitterdelegate"
 	"github.com/cloudfoundry-incubator/auctioneer/auctionrunnerdelegate"
-
 	"github.com/cloudfoundry-incubator/auctioneer/handlers"
 	"github.com/cloudfoundry-incubator/cf-debug-server"
 	cf_lager "github.com/cloudfoundry-incubator/cf-lager"
 	"github.com/cloudfoundry-incubator/cf_http"
+	"github.com/cloudfoundry-incubator/consuladapter"
 	Bbs "github.com/cloudfoundry-incubator/runtime-schema/bbs"
 	"github.com/cloudfoundry-incubator/runtime-schema/bbs/lock_bbs"
 	"github.com/cloudfoundry-incubator/runtime-schema/models"
@@ -48,10 +48,28 @@ var communicationTimeout = flag.Duration(
 	"Timeout applied to all HTTP requests.",
 )
 
-var heartbeatInterval = flag.Duration(
-	"heartbeatInterval",
-	lock_bbs.HEARTBEAT_INTERVAL,
-	"the interval between heartbeats to the lock",
+var consulCluster = flag.String(
+	"consulCluster",
+	"",
+	"comma-separated list of consul server addresses (ip:port)",
+)
+
+var consulScheme = flag.String(
+	"consulScheme",
+	"http",
+	"protocol scheme for communication with consul servers",
+)
+
+var lockTTL = flag.Duration(
+	"lockTTL",
+	lock_bbs.LockTTL,
+	"TTL for service lock",
+)
+
+var heartbeatRetryInterval = flag.Duration(
+	"heartbeatRetryInterval",
+	lock_bbs.RetryInterval,
+	"interval to wait before retrying a failed lock acquisition",
 )
 
 var listenAddr = flag.String(
@@ -75,8 +93,18 @@ func main() {
 
 	logger, reconfigurableSink := cf_lager.New("auctioneer")
 	initializeDropsonde(logger)
-	bbs := initializeBBS(logger)
-	auctionRunner := initializeAuctionRunner(bbs, logger)
+
+	consulAdapter, err := consuladapter.NewAdapter(
+		strings.Split(*consulCluster, ","),
+		*consulScheme,
+	)
+	if err != nil {
+		logger.Fatal("failed-building-consul-adapter", err)
+	}
+
+	bbs := initializeBBS(logger, consulAdapter)
+
+	auctionRunner := initializeAuctionRunner(bbs, consulAdapter, logger)
 	auctionServer := initializeAuctionServer(auctionRunner, logger)
 	heartbeater := initializeHeartbeater(bbs, logger)
 
@@ -100,7 +128,7 @@ func main() {
 
 	logger.Info("started")
 
-	err := <-monitor.Wait()
+	err = <-monitor.Wait()
 	if err != nil {
 		logger.Error("exited-with-failure", err)
 		os.Exit(1)
@@ -109,7 +137,7 @@ func main() {
 	logger.Info("exited")
 }
 
-func initializeAuctionRunner(bbs Bbs.AuctioneerBBS, logger lager.Logger) auctiontypes.AuctionRunner {
+func initializeAuctionRunner(bbs Bbs.AuctioneerBBS, consulAdapter consuladapter.Adapter, logger lager.Logger) auctiontypes.AuctionRunner {
 	httpClient := cf_http.NewClient()
 	httpClient.Transport = &http.Transport{
 		Dial: (&net.Dialer{
@@ -128,7 +156,7 @@ func initializeAuctionRunner(bbs Bbs.AuctioneerBBS, logger lager.Logger) auction
 	)
 }
 
-func initializeBBS(logger lager.Logger) Bbs.AuctioneerBBS {
+func initializeBBS(logger lager.Logger, consulAdapter consuladapter.Adapter) Bbs.AuctioneerBBS {
 	etcdAdapter := etcdstoreadapter.NewETCDStoreAdapter(
 		strings.Split(*etcdCluster, ","),
 		workpool.NewWorkPool(10),
@@ -139,7 +167,7 @@ func initializeBBS(logger lager.Logger) Bbs.AuctioneerBBS {
 		logger.Fatal("failed-to-connect-to-etcd", err)
 	}
 
-	return Bbs.NewAuctioneerBBS(etcdAdapter, clock.NewClock(), logger)
+	return Bbs.NewAuctioneerBBS(etcdAdapter, consulAdapter, clock.NewClock(), logger)
 }
 
 func initializeDropsonde(logger lager.Logger) {
@@ -168,7 +196,7 @@ func initializeHeartbeater(bbs Bbs.AuctioneerBBS, logger lager.Logger) ifrit.Run
 	address := fmt.Sprintf("%s://%s:%s", serverProtocol, localIP, port)
 
 	auctioneerPresence := models.NewAuctioneerPresence(uuid.String(), address)
-	heartbeater, err := bbs.NewAuctioneerLock(auctioneerPresence, *heartbeatInterval)
+	heartbeater, err := bbs.NewAuctioneerLock(auctioneerPresence, *lockTTL, *heartbeatRetryInterval)
 	if err != nil {
 		logger.Fatal("Couldn't create heartbeater", err)
 	}

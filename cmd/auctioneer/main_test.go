@@ -6,7 +6,7 @@ import (
 	"github.com/cloudfoundry-incubator/runtime-schema/bbs/shared"
 	"github.com/cloudfoundry-incubator/runtime-schema/diego_errors"
 	"github.com/cloudfoundry-incubator/runtime-schema/models"
-	"github.com/cloudfoundry/storeadapter"
+	"github.com/hashicorp/consul/consul/structs"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/tedsuo/ifrit"
@@ -120,11 +120,7 @@ var _ = Describe("Auctioneer", func() {
 	Context("when the auctioneer loses the lock", func() {
 		BeforeEach(func() {
 			auctioneer = ginkgomon.Invoke(runner)
-			err := etcdClient.Update(storeadapter.StoreNode{
-				Key:   shared.LockSchemaPath("auctioneer_lock"),
-				Value: []byte("something-else"),
-			})
-			Ω(err).ShouldNot(HaveOccurred())
+			consulRunner.Reset()
 		})
 
 		It("exits with an error", func() {
@@ -141,10 +137,11 @@ var _ = Describe("Auctioneer", func() {
 			presenceJSON, err := models.ToJSON(presence)
 			Ω(err).ShouldNot(HaveOccurred())
 
-			err = etcdClient.Create(storeadapter.StoreNode{
-				Key:   shared.LockSchemaPath("auctioneer_lock"),
-				Value: presenceJSON,
-			})
+			_, err = consulAdapter.AcquireAndMaintainLock(
+				shared.LockSchemaPath("auctioneer_lock"),
+				presenceJSON,
+				structs.SessionTTLMin,
+				nil)
 			Ω(err).ShouldNot(HaveOccurred())
 
 			auctioneer = ifrit.Background(runner)
