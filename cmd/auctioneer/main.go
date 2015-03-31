@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"strings"
@@ -15,7 +16,7 @@ import (
 
 	"github.com/cloudfoundry-incubator/auctioneer/handlers"
 	"github.com/cloudfoundry-incubator/cf-debug-server"
-	"github.com/cloudfoundry-incubator/cf-lager"
+	cf_lager "github.com/cloudfoundry-incubator/cf-lager"
 	"github.com/cloudfoundry-incubator/cf_http"
 	Bbs "github.com/cloudfoundry-incubator/runtime-schema/bbs"
 	"github.com/cloudfoundry-incubator/runtime-schema/bbs/lock_bbs"
@@ -110,7 +111,11 @@ func main() {
 
 func initializeAuctionRunner(bbs Bbs.AuctioneerBBS, logger lager.Logger) auctiontypes.AuctionRunner {
 	httpClient := cf_http.NewClient()
-	httpClient.Transport = &http.Transport{}
+	httpClient.Transport = &http.Transport{
+		Dial: (&net.Dialer{
+			Timeout: 5 * time.Second,
+		}).Dial,
+	}
 
 	delegate := auctionrunnerdelegate.New(httpClient, bbs, logger)
 	metricEmitter := auctionmetricemitterdelegate.New()

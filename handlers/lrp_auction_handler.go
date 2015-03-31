@@ -43,15 +43,19 @@ func (h *LRPAuctionHandler) Create(w http.ResponseWriter, r *http.Request, logge
 	}
 
 	validStarts := make([]models.LRPStartRequest, 0, len(starts))
+	lrpGuids := make(map[string][]uint)
 	for _, start := range starts {
 		if err := start.Validate(); err == nil {
 			validStarts = append(validStarts, start)
+			indices := lrpGuids[start.DesiredLRP.ProcessGuid]
+			indices = append(indices, start.Indices...)
+			lrpGuids[start.DesiredLRP.ProcessGuid] = indices
 		} else {
 			logger.Error("start-validate-failed", err, lager.Data{"lrp-start": start})
 		}
 	}
 
 	h.runner.ScheduleLRPsForAuctions(validStarts)
-	logger.Info("submitted")
+	logger.Info("submitted", lager.Data{"lrps": lrpGuids})
 	writeStatusAcceptedResponse(w)
 }

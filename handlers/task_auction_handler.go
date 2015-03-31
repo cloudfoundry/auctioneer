@@ -43,9 +43,11 @@ func (h *TaskAuctionHandler) Create(w http.ResponseWriter, r *http.Request, logg
 	}
 
 	validTasks := make([]models.Task, 0, len(tasks))
+	taskGuids := make([]string, 0, len(tasks))
 	for _, t := range tasks {
 		if err := t.Validate(); err == nil {
 			validTasks = append(validTasks, t)
+			taskGuids = append(taskGuids, t.TaskGuid)
 		} else {
 			logger.Error("task-validate-failed", err, lager.Data{"task": t})
 		}
@@ -53,6 +55,6 @@ func (h *TaskAuctionHandler) Create(w http.ResponseWriter, r *http.Request, logg
 
 	h.runner.ScheduleTasksForAuctions(validTasks)
 
-	logger.Info("submitted")
+	logger.Info("submitted", lager.Data{"tasks": taskGuids})
 	writeStatusAcceptedResponse(w)
 }
