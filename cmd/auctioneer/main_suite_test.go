@@ -3,7 +3,6 @@ package main_test
 import (
 	"fmt"
 	"os/exec"
-	"strings"
 
 	"github.com/cloudfoundry-incubator/consuladapter"
 	Bbs "github.com/cloudfoundry-incubator/runtime-schema/bbs"
@@ -43,8 +42,7 @@ var etcdPort int
 var etcdRunner *etcdstorerunner.ETCDClusterRunner
 var etcdClient storeadapter.StoreAdapter
 
-var consulPort int
-var consulRunner consuladapter.ClusterRunner
+var consulRunner *consuladapter.ClusterRunner
 var consulAdapter consuladapter.Adapter
 
 var auctioneerClient cb.AuctioneerClient
@@ -75,9 +73,8 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	etcdRunner = etcdstorerunner.NewETCDClusterRunner(etcdPort, 1)
 	etcdClient = etcdRunner.Adapter()
 
-	consulPort = 9001 + config.GinkgoConfig.ParallelNode*consuladapter.PortOffsetLength
 	consulRunner = consuladapter.NewClusterRunner(
-		consulPort,
+		9001+config.GinkgoConfig.ParallelNode*consuladapter.PortOffsetLength,
 		1,
 		"http",
 	)
@@ -104,8 +101,7 @@ var _ = BeforeEach(func() {
 			"-etcdCluster", fmt.Sprintf("http://127.0.0.1:%d", etcdPort),
 			"-listenAddr", fmt.Sprintf("0.0.0.0:%d", auctioneerServerPort),
 			"-heartbeatRetryInterval", "1s",
-			"-consulCluster", strings.Join(consulRunner.Addresses(), ","),
-			"-consulScheme", "http",
+			"-consulCluster", consulRunner.ConsulCluster(),
 		),
 		StartCheck: "auctioneer.started",
 	})

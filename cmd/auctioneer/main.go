@@ -54,12 +54,6 @@ var consulCluster = flag.String(
 	"comma-separated list of consul server addresses (ip:port)",
 )
 
-var consulScheme = flag.String(
-	"consulScheme",
-	"http",
-	"protocol scheme for communication with consul servers",
-)
-
 var lockTTL = flag.Duration(
 	"lockTTL",
 	lock_bbs.LockTTL,
@@ -94,10 +88,12 @@ func main() {
 	logger, reconfigurableSink := cf_lager.New("auctioneer")
 	initializeDropsonde(logger)
 
-	consulAdapter, err := consuladapter.NewAdapter(
-		strings.Split(*consulCluster, ","),
-		*consulScheme,
-	)
+	consulScheme, consulAddresses, err := consuladapter.Parse(*consulCluster)
+	if err != nil {
+		logger.Fatal("failed-parsing-consul-cluster", err)
+	}
+
+	consulAdapter, err := consuladapter.NewAdapter(consulAddresses, consulScheme)
 	if err != nil {
 		logger.Fatal("failed-building-consul-adapter", err)
 	}
