@@ -92,7 +92,7 @@ var _ = BeforeEach(func() {
 	consulRunner.Reset()
 	consulAdapter = consulRunner.NewAdapter()
 
-	bbs = Bbs.NewBBS(etcdClient, consulAdapter, clock.NewClock(), logger)
+	bbs = Bbs.NewBBS(etcdClient, consulAdapter, "http://receptor.bogus.com", clock.NewClock(), logger)
 
 	runner = ginkgomon.New(ginkgomon.Config{
 		Name: "auctioneer",

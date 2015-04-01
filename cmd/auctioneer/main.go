@@ -66,6 +66,12 @@ var heartbeatRetryInterval = flag.Duration(
 	"interval to wait before retrying a failed lock acquisition",
 )
 
+var receptorTaskHandlerURL = flag.String(
+	"receptorTaskHandlerURL",
+	"http://127.0.0.1:1169",
+	"location of receptor task handler",
+)
+
 var listenAddr = flag.String(
 	"listenAddr",
 	"0.0.0.0:9016",
@@ -163,7 +169,7 @@ func initializeBBS(logger lager.Logger, consulAdapter consuladapter.Adapter) Bbs
 		logger.Fatal("failed-to-connect-to-etcd", err)
 	}
 
-	return Bbs.NewAuctioneerBBS(etcdAdapter, consulAdapter, clock.NewClock(), logger)
+	return Bbs.NewAuctioneerBBS(etcdAdapter, consulAdapter, *receptorTaskHandlerURL, clock.NewClock(), logger)
 }
 
 func initializeDropsonde(logger lager.Logger) {
