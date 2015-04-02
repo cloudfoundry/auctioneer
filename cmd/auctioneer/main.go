@@ -3,8 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"net"
-	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -141,11 +139,6 @@ func main() {
 
 func initializeAuctionRunner(bbs Bbs.AuctioneerBBS, consulAdapter consuladapter.Adapter, logger lager.Logger) auctiontypes.AuctionRunner {
 	httpClient := cf_http.NewClient()
-	httpClient.Transport = &http.Transport{
-		Dial: (&net.Dialer{
-			Timeout: 5 * time.Second,
-		}).Dial,
-	}
 
 	delegate := auctionrunnerdelegate.New(httpClient, bbs, logger)
 	metricEmitter := auctionmetricemitterdelegate.New()
