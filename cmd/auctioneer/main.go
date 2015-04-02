@@ -137,7 +137,7 @@ func main() {
 	logger.Info("exited")
 }
 
-func initializeAuctionRunner(bbs Bbs.AuctioneerBBS, consulAdapter consuladapter.Adapter, logger lager.Logger) auctiontypes.AuctionRunner {
+func initializeAuctionRunner(bbs Bbs.AuctioneerBBS, consulAdapter *consuladapter.Adapter, logger lager.Logger) auctiontypes.AuctionRunner {
 	httpClient := cf_http.NewClient()
 
 	delegate := auctionrunnerdelegate.New(httpClient, bbs, logger)
@@ -151,7 +151,7 @@ func initializeAuctionRunner(bbs Bbs.AuctioneerBBS, consulAdapter consuladapter.
 	)
 }
 
-func initializeBBS(logger lager.Logger, consulAdapter consuladapter.Adapter) Bbs.AuctioneerBBS {
+func initializeBBS(logger lager.Logger, consulAdapter *consuladapter.Adapter) Bbs.AuctioneerBBS {
 	etcdAdapter := etcdstoreadapter.NewETCDStoreAdapter(
 		strings.Split(*etcdCluster, ","),
 		workpool.NewWorkPool(10),

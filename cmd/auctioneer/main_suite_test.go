@@ -43,7 +43,7 @@ var etcdRunner *etcdstorerunner.ETCDClusterRunner
 var etcdClient storeadapter.StoreAdapter
 
 var consulRunner *consuladapter.ClusterRunner
-var consulAdapter consuladapter.Adapter
+var consulAdapter *consuladapter.Adapter
 
 var auctioneerClient cb.AuctioneerClient
 
