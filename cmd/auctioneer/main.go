@@ -92,19 +92,20 @@ func main() {
 	logger, reconfigurableSink := cf_lager.New("auctioneer")
 	initializeDropsonde(logger)
 
-	consulScheme, consulAddresses, err := consuladapter.Parse(*consulCluster)
+	client, err := consuladapter.NewClient(*consulCluster)
 	if err != nil {
-		logger.Fatal("failed-parsing-consul-cluster", err)
+		logger.Fatal("new-client-failed", err)
 	}
 
-	consulAdapter, err := consuladapter.NewAdapter(consulAddresses, consulScheme)
+	sessionMgr := consuladapter.NewSessionManager(client)
+	consulSession, err := consuladapter.NewSession("auctioneer", *lockTTL, client, sessionMgr)
 	if err != nil {
-		logger.Fatal("failed-building-consul-adapter", err)
+		logger.Fatal("consul-session-failed", err)
 	}
 
-	bbs := initializeBBS(logger, consulAdapter)
+	bbs := initializeBBS(logger, consulSession)
 
-	auctionRunner := initializeAuctionRunner(bbs, consulAdapter, logger)
+	auctionRunner := initializeAuctionRunner(bbs, consulSession, logger)
 	auctionServer := initializeAuctionServer(auctionRunner, logger)
 	heartbeater := initializeHeartbeater(bbs, logger)
 
@@ -137,7 +138,7 @@ func main() {
 	logger.Info("exited")
 }
 
-func initializeAuctionRunner(bbs Bbs.AuctioneerBBS, consulAdapter *consuladapter.Adapter, logger lager.Logger) auctiontypes.AuctionRunner {
+func initializeAuctionRunner(bbs Bbs.AuctioneerBBS, consulSession *consuladapter.Session, logger lager.Logger) auctiontypes.AuctionRunner {
 	httpClient := cf_http.NewClient()
 
 	delegate := auctionrunnerdelegate.New(httpClient, bbs, logger)
@@ -151,7 +152,7 @@ func initializeAuctionRunner(bbs Bbs.AuctioneerBBS, consulAdapter *consuladapter
 	)
 }
 
-func initializeBBS(logger lager.Logger, consulAdapter *consuladapter.Adapter) Bbs.AuctioneerBBS {
+func initializeBBS(logger lager.Logger, consulSession *consuladapter.Session) Bbs.AuctioneerBBS {
 	etcdAdapter := etcdstoreadapter.NewETCDStoreAdapter(
 		strings.Split(*etcdCluster, ","),
 		workpool.NewWorkPool(10),
@@ -162,7 +163,7 @@ func initializeBBS(logger lager.Logger, consulAdapter *consuladapter.Adapter) Bb
 		logger.Fatal("failed-to-connect-to-etcd", err)
 	}
 
-	return Bbs.NewAuctioneerBBS(etcdAdapter, consulAdapter, *receptorTaskHandlerURL, clock.NewClock(), logger)
+	return Bbs.NewAuctioneerBBS(etcdAdapter, consulSession, *receptorTaskHandlerURL, clock.NewClock(), logger)
 }
 
 func initializeDropsonde(logger lager.Logger) {
@@ -191,7 +192,7 @@ func initializeHeartbeater(bbs Bbs.AuctioneerBBS, logger lager.Logger) ifrit.Run
 	address := fmt.Sprintf("%s://%s:%s", serverProtocol, localIP, port)
 
 	auctioneerPresence := models.NewAuctioneerPresence(uuid.String(), address)
-	heartbeater, err := bbs.NewAuctioneerLock(auctioneerPresence, *lockTTL, *heartbeatRetryInterval)
+	heartbeater, err := bbs.NewAuctioneerLock(auctioneerPresence, *heartbeatRetryInterval)
 	if err != nil {
 		logger.Fatal("Couldn't create heartbeater", err)
 	}

@@ -6,7 +6,6 @@ import (
 	"github.com/cloudfoundry-incubator/runtime-schema/bbs/shared"
 	"github.com/cloudfoundry-incubator/runtime-schema/diego_errors"
 	"github.com/cloudfoundry-incubator/runtime-schema/models"
-	"github.com/hashicorp/consul/consul/structs"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/tedsuo/ifrit"
@@ -137,11 +136,7 @@ var _ = Describe("Auctioneer", func() {
 			presenceJSON, err := models.ToJSON(presence)
 			Ω(err).ShouldNot(HaveOccurred())
 
-			_, err = consulAdapter.AcquireAndMaintainLock(
-				shared.LockSchemaPath("auctioneer_lock"),
-				presenceJSON,
-				structs.SessionTTLMin,
-				nil)
+			err = consulSession.AcquireLock(shared.LockSchemaPath("auctioneer_lock"), presenceJSON)
 			Ω(err).ShouldNot(HaveOccurred())
 
 			auctioneer = ifrit.Background(runner)

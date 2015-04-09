@@ -13,7 +13,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/cloudfoundry-incubator/auction/communication/http/routes"
-	"github.com/hashicorp/consul/consul/structs"
 
 	"github.com/cloudfoundry-incubator/auction/auctiontypes"
 	"github.com/cloudfoundry-incubator/auction/communication/http/auction_http_handlers"
@@ -77,7 +76,7 @@ func (f *FakeCell) SpinUp(bbs *Bbs.BBS) {
 
 	//start hearbeating to ETCD (via global test bbs)
 	capacity := models.NewCellCapacity(512, 1024, 124)
-	f.heartbeater = ifrit.Invoke(bbs.NewCellHeartbeat(models.NewCellPresence(f.cellID, f.server.URL, "az1", capacity), structs.SessionTTLMin, time.Second))
+	f.heartbeater = ifrit.Invoke(bbs.NewCellPresence(models.NewCellPresence(f.cellID, f.server.URL, "az1", capacity), time.Second))
 }
 
 func (f *FakeCell) Stop() {

@@ -43,7 +43,7 @@ var etcdRunner *etcdstorerunner.ETCDClusterRunner
 var etcdClient storeadapter.StoreAdapter
 
 var consulRunner *consuladapter.ClusterRunner
-var consulAdapter *consuladapter.Adapter
+var consulSession *consuladapter.Session
 
 var auctioneerClient cb.AuctioneerClient
 
@@ -84,16 +84,16 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	logger = lagertest.NewTestLogger("test")
 
 	consulRunner.Start()
+	consulRunner.WaitUntilReady()
 })
 
 var _ = BeforeEach(func() {
 	etcdRunner.Start()
 
-	consulRunner.WaitUntilReady()
 	consulRunner.Reset()
-	consulAdapter = consulRunner.NewAdapter()
+	consulSession = consulRunner.NewSession("a-session")
 
-	bbs = Bbs.NewBBS(etcdClient, consulAdapter, "http://receptor.bogus.com", clock.NewClock(), logger)
+	bbs = Bbs.NewBBS(etcdClient, consulSession, "http://receptor.bogus.com", clock.NewClock(), logger)
 
 	runner = ginkgomon.New(ginkgomon.Config{
 		Name: "auctioneer",
