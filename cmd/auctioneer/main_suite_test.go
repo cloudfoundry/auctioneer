@@ -101,7 +101,7 @@ var _ = BeforeEach(func() {
 			auctioneerPath,
 			"-etcdCluster", fmt.Sprintf("http://127.0.0.1:%d", etcdPort),
 			"-listenAddr", fmt.Sprintf("0.0.0.0:%d", auctioneerServerPort),
-			"-heartbeatRetryInterval", "1s",
+			"-lockRetryInterval", "1s",
 			"-consulCluster", consulRunner.ConsulCluster(),
 		),
 		StartCheck: "auctioneer.started",

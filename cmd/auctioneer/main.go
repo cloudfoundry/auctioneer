@@ -58,8 +58,8 @@ var lockTTL = flag.Duration(
 	"TTL for service lock",
 )
 
-var heartbeatRetryInterval = flag.Duration(
-	"heartbeatRetryInterval",
+var lockRetryInterval = flag.Duration(
+	"lockRetryInterval",
 	lock_bbs.RetryInterval,
 	"interval to wait before retrying a failed lock acquisition",
 )
@@ -107,14 +107,14 @@ func main() {
 
 	auctionRunner := initializeAuctionRunner(bbs, consulSession, logger)
 	auctionServer := initializeAuctionServer(auctionRunner, logger)
-	heartbeater := initializeHeartbeater(bbs, logger)
+	lockMaintainer := initializeLockMaintainer(bbs, logger)
 
 	cf_http.Initialize(*communicationTimeout)
 
 	members := grouper.Members{
 		{"auction-runner", auctionRunner},
 		{"auction-server", auctionServer},
-		{"heartbeater", heartbeater},
+		{"lock-maintainer", lockMaintainer},
 	}
 
 	if dbgAddr := cf_debug_server.DebugAddress(flag.CommandLine); dbgAddr != "" {
@@ -177,7 +177,7 @@ func initializeAuctionServer(runner auctiontypes.AuctionRunner, logger lager.Log
 	return http_server.New(*listenAddr, handlers.New(runner, logger))
 }
 
-func initializeHeartbeater(bbs Bbs.AuctioneerBBS, logger lager.Logger) ifrit.Runner {
+func initializeLockMaintainer(bbs Bbs.AuctioneerBBS, logger lager.Logger) ifrit.Runner {
 	uuid, err := uuid.NewV4()
 	if err != nil {
 		logger.Fatal("Couldn't generate uuid", err)
@@ -192,10 +192,10 @@ func initializeHeartbeater(bbs Bbs.AuctioneerBBS, logger lager.Logger) ifrit.Run
 	address := fmt.Sprintf("%s://%s:%s", serverProtocol, localIP, port)
 
 	auctioneerPresence := models.NewAuctioneerPresence(uuid.String(), address)
-	heartbeater, err := bbs.NewAuctioneerLock(auctioneerPresence, *heartbeatRetryInterval)
+	lockMaintainer, err := bbs.NewAuctioneerLock(auctioneerPresence, *lockRetryInterval)
 	if err != nil {
-		logger.Fatal("Couldn't create heartbeater", err)
+		logger.Fatal("Couldn't create lock maintainer", err)
 	}
 
-	return heartbeater
+	return lockMaintainer
 }
