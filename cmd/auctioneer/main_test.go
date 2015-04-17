@@ -8,6 +8,7 @@ import (
 	"github.com/cloudfoundry-incubator/runtime-schema/models"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gexec"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/ginkgomon"
 )
@@ -28,6 +29,21 @@ var exampleDesiredLRP = models.DesiredLRP{
 }
 
 var _ = Describe("Auctioneer", func() {
+	Context("when etcd is down", func() {
+		BeforeEach(func() {
+			etcdRunner.Stop()
+			auctioneer = ginkgomon.Invoke(runner)
+		})
+
+		AfterEach(func() {
+			etcdRunner.Start()
+		})
+
+		It("starts", func() {
+			Consistently(runner).ShouldNot(Exit())
+		})
+	})
+
 	Context("when a start auction message arrives", func() {
 		BeforeEach(func() {
 			auctioneer = ginkgomon.Invoke(runner)

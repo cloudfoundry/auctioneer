@@ -158,11 +158,6 @@ func initializeBBS(logger lager.Logger, consulSession *consuladapter.Session) Bb
 		workpool.NewWorkPool(10),
 	)
 
-	err := etcdAdapter.Connect()
-	if err != nil {
-		logger.Fatal("failed-to-connect-to-etcd", err)
-	}
-
 	return Bbs.NewAuctioneerBBS(etcdAdapter, consulSession, *receptorTaskHandlerURL, clock.NewClock(), logger)
 }
 
