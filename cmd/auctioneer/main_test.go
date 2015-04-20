@@ -171,8 +171,9 @@ var _ = Describe("Auctioneer", func() {
 			err := bbs.DesireTask(logger, task)
 			Ω(err).ShouldNot(HaveOccurred())
 
-			err = auctioneerClient.RequestTaskAuctions(auctioneerAddress, []models.Task{task})
-			Ω(err).ShouldNot(HaveOccurred())
+			Eventually(func() error {
+				return auctioneerClient.RequestTaskAuctions(auctioneerAddress, []models.Task{task})
+			}).ShouldNot(HaveOccurred())
 		})
 	})
 })
