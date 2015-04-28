@@ -58,18 +58,18 @@ var _ = Describe("LRPAuctionHandler", func() {
 			})
 
 			It("responds with 202", func() {
-				Ω(responseRecorder.Code).Should(Equal(http.StatusAccepted))
+				Expect(responseRecorder.Code).To(Equal(http.StatusAccepted))
 			})
 
 			It("responds with an empty JSON body", func() {
-				Ω(responseRecorder.Body.String()).Should(Equal("{}"))
+				Expect(responseRecorder.Body.String()).To(Equal("{}"))
 			})
 
 			It("should submit the start auction to the auction runner", func() {
-				Ω(runner.ScheduleLRPsForAuctionsCallCount()).Should(Equal(1))
+				Expect(runner.ScheduleLRPsForAuctionsCallCount()).To(Equal(1))
 
 				submittedStart := runner.ScheduleLRPsForAuctionsArgsForCall(0)
-				Ω(submittedStart).Should(Equal(starts))
+				Expect(submittedStart).To(Equal(starts))
 			})
 		})
 
@@ -83,18 +83,18 @@ var _ = Describe("LRPAuctionHandler", func() {
 			})
 
 			It("responds with 400", func() {
-				Ω(responseRecorder.Code).Should(Equal(http.StatusBadRequest))
+				Expect(responseRecorder.Code).To(Equal(http.StatusBadRequest))
 			})
 
 			It("responds with a JSON body containing the error", func() {
 				handlerError := handlers.HandlerError{}
 				err := json.NewDecoder(responseRecorder.Body).Decode(&handlerError)
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(handlerError.Error).ShouldNot(BeEmpty())
+				Expect(err).NotTo(HaveOccurred())
+				Expect(handlerError.Error).NotTo(BeEmpty())
 			})
 
 			It("should not submit the start auction to the auction runner", func() {
-				Ω(runner.ScheduleLRPsForAuctionsCallCount()).Should(Equal(0))
+				Expect(runner.ScheduleLRPsForAuctionsCallCount()).To(Equal(0))
 			})
 		})
 
@@ -104,18 +104,18 @@ var _ = Describe("LRPAuctionHandler", func() {
 			})
 
 			It("responds with 400", func() {
-				Ω(responseRecorder.Code).Should(Equal(http.StatusBadRequest))
+				Expect(responseRecorder.Code).To(Equal(http.StatusBadRequest))
 			})
 
 			It("responds with a JSON body containing the error", func() {
 				handlerError := handlers.HandlerError{}
 				err := json.NewDecoder(responseRecorder.Body).Decode(&handlerError)
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(handlerError.Error).ShouldNot(BeEmpty())
+				Expect(err).NotTo(HaveOccurred())
+				Expect(handlerError.Error).NotTo(BeEmpty())
 			})
 
 			It("should not submit the start auction to the auction runner", func() {
-				Ω(runner.ScheduleLRPsForAuctionsCallCount()).Should(Equal(0))
+				Expect(runner.ScheduleLRPsForAuctionsCallCount()).To(Equal(0))
 			})
 		})
 
@@ -127,18 +127,18 @@ var _ = Describe("LRPAuctionHandler", func() {
 			})
 
 			It("responds with 500", func() {
-				Ω(responseRecorder.Code).Should(Equal(http.StatusInternalServerError))
+				Expect(responseRecorder.Code).To(Equal(http.StatusInternalServerError))
 			})
 
 			It("responds with a JSON body containing the error", func() {
 				handlerError := handlers.HandlerError{}
 				err := json.NewDecoder(responseRecorder.Body).Decode(&handlerError)
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(handlerError.Error).Should(Equal(ErrBadRead.Error()))
+				Expect(err).NotTo(HaveOccurred())
+				Expect(handlerError.Error).To(Equal(ErrBadRead.Error()))
 			})
 
 			It("should not submit the start auction to the auction runner", func() {
-				Ω(runner.ScheduleLRPsForAuctionsCallCount()).Should(Equal(0))
+				Expect(runner.ScheduleLRPsForAuctionsCallCount()).To(Equal(0))
 			})
 		})
 	})

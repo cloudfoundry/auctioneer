@@ -52,18 +52,18 @@ var _ = Describe("Auctioneer", func() {
 				DesiredLRP: exampleDesiredLRP,
 				Indices:    []uint{0},
 			}})
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			err = auctioneerClient.RequestLRPAuctions(auctioneerAddress, []models.LRPStartRequest{{
 				DesiredLRP: exampleDesiredLRP,
 				Indices:    []uint{1},
 			}})
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("should start the process running on reps of the appropriate stack", func() {
 			Eventually(lucidCell.LRPs).Should(HaveLen(2))
-			Ω(dotNetCell.LRPs()).Should(BeEmpty())
+			Expect(dotNetCell.LRPs()).To(BeEmpty())
 		})
 	})
 
@@ -83,15 +83,15 @@ var _ = Describe("Auctioneer", func() {
 					Domain:   "test",
 				}
 				err := bbs.DesireTask(logger, task)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				err = auctioneerClient.RequestTaskAuctions(auctioneerAddress, []models.Task{task})
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 			})
 
 			It("should start the task running on reps of the appropriate stack", func() {
 				Eventually(lucidCell.Tasks).Should(HaveLen(1))
-				Ω(dotNetCell.Tasks()).Should(BeEmpty())
+				Expect(dotNetCell.Tasks()).To(BeEmpty())
 			})
 		})
 
@@ -107,10 +107,10 @@ var _ = Describe("Auctioneer", func() {
 				}
 
 				err := bbs.DesireTask(logger, task)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				err = auctioneerClient.RequestTaskAuctions(auctioneerAddress, []models.Task{task})
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 			})
 
 			It("should not start the task on any rep", func() {
@@ -125,9 +125,9 @@ var _ = Describe("Auctioneer", func() {
 
 				completedTasks, _ := bbs.CompletedTasks(logger)
 				completedTask := completedTasks[0]
-				Ω(completedTask.TaskGuid).Should(Equal("task-guid"))
-				Ω(completedTask.Failed).Should(BeTrue())
-				Ω(completedTask.FailureReason).Should(Equal(diego_errors.INSUFFICIENT_RESOURCES_MESSAGE))
+				Expect(completedTask.TaskGuid).To(Equal("task-guid"))
+				Expect(completedTask.Failed).To(BeTrue())
+				Expect(completedTask.FailureReason).To(Equal(diego_errors.INSUFFICIENT_RESOURCES_MESSAGE))
 			})
 		})
 	})
@@ -150,10 +150,10 @@ var _ = Describe("Auctioneer", func() {
 				AuctioneerAddress: "existing-auctioneer-address",
 			}
 			presenceJSON, err := models.ToJSON(presence)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			err = consulSession.AcquireLock(shared.LockSchemaPath("auctioneer_lock"), presenceJSON)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			auctioneer = ifrit.Background(runner)
 		})
@@ -169,7 +169,7 @@ var _ = Describe("Auctioneer", func() {
 				Domain:   "test",
 			}
 			err := bbs.DesireTask(logger, task)
-			Ω(err).ShouldNot(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
 			Eventually(func() error {
 				return auctioneerClient.RequestTaskAuctions(auctioneerAddress, []models.Task{task})

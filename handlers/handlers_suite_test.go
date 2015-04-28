@@ -30,12 +30,12 @@ func newTestRequest(body interface{}) *http.Request {
 		reader = bytes.NewReader(body)
 	default:
 		jsonBytes, err := json.Marshal(body)
-		Ω(err).ShouldNot(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 		reader = bytes.NewReader(jsonBytes)
 	}
 
 	request, err := http.NewRequest("", "", reader)
-	Ω(err).ToNot(HaveOccurred())
+	Expect(err).NotTo(HaveOccurred())
 	return request
 }
 

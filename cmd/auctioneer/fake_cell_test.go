@@ -71,7 +71,7 @@ func (f *FakeCell) SpinUp(bbs *Bbs.BBS) {
 	logger.RegisterSink(lager.NewWriterSink(GinkgoWriter, lager.INFO))
 	handlers := auction_http_handlers.New(f.SimulationRep, logger)
 	router, err := rata.NewRouter(routes.Routes, handlers)
-	Ω(err).ShouldNot(HaveOccurred())
+	Expect(err).NotTo(HaveOccurred())
 	f.server = httptest.NewServer(router)
 
 	//start hearbeating to ETCD (via global test bbs)

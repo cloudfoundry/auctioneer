@@ -50,24 +50,25 @@ var _ = Describe("Handlers", func() {
 				reqGen := rata.NewRequestGenerator("http://localhost", auctioneer.Routes)
 
 				payload, err := json.Marshal(tasks)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				req, err := reqGen.CreateRequest(auctioneer.CreateTaskAuctionsRoute, rata.Params{}, bytes.NewBuffer(payload))
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				handler.ServeHTTP(responseRecorder, req)
 			})
 
 			It("responds with 202", func() {
-				Ω(responseRecorder.Code).Should(Equal(http.StatusAccepted))
+				Expect(responseRecorder.Code).To(Equal(http.StatusAccepted))
 			})
 
 			It("logs with the correct session nesting", func() {
-				Ω(logger.TestSink.LogMessages()).Should(Equal([]string{
+				Expect(logger.TestSink.LogMessages()).To(Equal([]string{
 					"test.request.serving",
 					"test.request.task-auction-handler.create.submitted",
 					"test.request.done",
 				}))
+
 			})
 		})
 	})
@@ -97,24 +98,25 @@ var _ = Describe("Handlers", func() {
 				reqGen := rata.NewRequestGenerator("http://localhost", auctioneer.Routes)
 
 				payload, err := json.Marshal(starts)
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				req, err := reqGen.CreateRequest(auctioneer.CreateLRPAuctionsRoute, rata.Params{}, bytes.NewBuffer(payload))
-				Ω(err).ShouldNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				handler.ServeHTTP(responseRecorder, req)
 			})
 
 			It("responds with 202", func() {
-				Ω(responseRecorder.Code).Should(Equal(http.StatusAccepted))
+				Expect(responseRecorder.Code).To(Equal(http.StatusAccepted))
 			})
 
 			It("logs with the correct session nesting", func() {
-				Ω(logger.TestSink.LogMessages()).Should(Equal([]string{
+				Expect(logger.TestSink.LogMessages()).To(Equal([]string{
 					"test.request.serving",
 					"test.request.lrp-auction-handler.create.submitted",
 					"test.request.done",
 				}))
+
 			})
 		})
 	})

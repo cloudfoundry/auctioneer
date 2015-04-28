@@ -61,7 +61,7 @@ func TestAuctioneer(t *testing.T) {
 
 var _ = SynchronizedBeforeSuite(func() []byte {
 	compiledAuctioneerPath, err := gexec.Build("github.com/cloudfoundry-incubator/auctioneer/cmd/auctioneer", "-race")
-	Ω(err).ShouldNot(HaveOccurred())
+	Expect(err).NotTo(HaveOccurred())
 	return []byte(compiledAuctioneerPath)
 }, func(compiledAuctioneerPath []byte) {
 	auctioneerPath = string(compiledAuctioneerPath)

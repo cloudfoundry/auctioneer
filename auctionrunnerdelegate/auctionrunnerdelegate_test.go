@@ -70,17 +70,17 @@ var _ = Describe("Auction Runner Delegate", func() {
 
 			It("returns correctly configured auction_http_clients", func() {
 				cells, err := delegate.FetchCellReps()
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(cells).Should(HaveLen(2))
-				Ω(cells).Should(HaveKey("cell-A"))
-				Ω(cells).Should(HaveKey("cell-B"))
+				Expect(err).NotTo(HaveOccurred())
+				Expect(cells).To(HaveLen(2))
+				Expect(cells).To(HaveKey("cell-A"))
+				Expect(cells).To(HaveKey("cell-B"))
 
-				Ω(calledA).ShouldNot(BeClosed())
-				Ω(calledB).ShouldNot(BeClosed())
+				Expect(calledA).NotTo(BeClosed())
+				Expect(calledB).NotTo(BeClosed())
 				cells["cell-A"].State()
-				Ω(calledA).Should(BeClosed())
+				Expect(calledA).To(BeClosed())
 				cells["cell-B"].State()
-				Ω(calledB).Should(BeClosed())
+				Expect(calledB).To(BeClosed())
 			})
 		})
 
@@ -91,8 +91,8 @@ var _ = Describe("Auction Runner Delegate", func() {
 
 			It("should error", func() {
 				cells, err := delegate.FetchCellReps()
-				Ω(err).Should(MatchError(errors.New("boom")))
-				Ω(cells).Should(BeEmpty())
+				Expect(err).To(MatchError(errors.New("boom")))
+				Expect(cells).To(BeEmpty())
 			})
 		})
 	})
@@ -135,22 +135,22 @@ var _ = Describe("Auction Runner Delegate", func() {
 		})
 
 		It("should mark all failed tasks as COMPLETE with the appropriate failure reason", func() {
-			Ω(bbs.FailTaskCallCount()).Should(Equal(1))
+			Expect(bbs.FailTaskCallCount()).To(Equal(1))
 			failTaskLogger, taskGuid, failureReason := bbs.FailTaskArgsForCall(0)
-			Ω(failTaskLogger).Should(Equal(logger))
-			Ω(taskGuid).Should(Equal("failed-task"))
-			Ω(failureReason).Should(Equal(diego_errors.INSUFFICIENT_RESOURCES_MESSAGE))
+			Expect(failTaskLogger).To(Equal(logger))
+			Expect(taskGuid).To(Equal("failed-task"))
+			Expect(failureReason).To(Equal(diego_errors.INSUFFICIENT_RESOURCES_MESSAGE))
 		})
 
 		It("should mark all failed LRPs as UNCLAIMED with the appropriate placement error", func() {
-			Ω(bbs.FailActualLRPCallCount()).Should(Equal(2))
+			Expect(bbs.FailActualLRPCallCount()).To(Equal(2))
 			_, lrpKey, errorMessage := bbs.FailActualLRPArgsForCall(0)
-			Ω(lrpKey).Should(Equal(models.NewActualLRPKey("insufficient-capacity", 0, "domain")))
-			Ω(errorMessage).Should(Equal(diego_errors.INSUFFICIENT_RESOURCES_MESSAGE))
+			Expect(lrpKey).To(Equal(models.NewActualLRPKey("insufficient-capacity", 0, "domain")))
+			Expect(errorMessage).To(Equal(diego_errors.INSUFFICIENT_RESOURCES_MESSAGE))
 
 			_, lrpKey1, errorMessage1 := bbs.FailActualLRPArgsForCall(1)
-			Ω(lrpKey1).Should(Equal(models.NewActualLRPKey("incompatible-stacks", 0, "domain")))
-			Ω(errorMessage1).Should(Equal(diego_errors.CELL_MISMATCH_MESSAGE))
+			Expect(lrpKey1).To(Equal(models.NewActualLRPKey("incompatible-stacks", 0, "domain")))
+			Expect(errorMessage1).To(Equal(diego_errors.CELL_MISMATCH_MESSAGE))
 
 		})
 	})

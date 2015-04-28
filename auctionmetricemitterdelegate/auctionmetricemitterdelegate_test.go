@@ -57,10 +57,10 @@ var _ = Describe("Auction Metric Emitter Delegate", func() {
 				},
 			})
 
-			Ω(metricSender.GetCounter("AuctioneerLRPAuctionsStarted")).Should(BeNumerically("==", 1))
-			Ω(metricSender.GetCounter("AuctioneerTaskAuctionsStarted")).Should(BeNumerically("==", 1))
-			Ω(metricSender.GetCounter("AuctioneerLRPAuctionsFailed")).Should(BeNumerically("==", 2))
-			Ω(metricSender.GetCounter("AuctioneerTaskAuctionsFailed")).Should(BeNumerically("==", 1))
+			Expect(metricSender.GetCounter("AuctioneerLRPAuctionsStarted")).To(BeNumerically("==", 1))
+			Expect(metricSender.GetCounter("AuctioneerTaskAuctionsStarted")).To(BeNumerically("==", 1))
+			Expect(metricSender.GetCounter("AuctioneerLRPAuctionsFailed")).To(BeNumerically("==", 2))
+			Expect(metricSender.GetCounter("AuctioneerTaskAuctionsFailed")).To(BeNumerically("==", 1))
 		})
 	})
 
@@ -69,8 +69,8 @@ var _ = Describe("Auction Metric Emitter Delegate", func() {
 			delegate.FetchStatesCompleted(1 * time.Second)
 
 			sentMetric := metricSender.GetValue("AuctioneerFetchStatesDuration")
-			Ω(sentMetric.Value).Should(Equal(1e+09))
-			Ω(sentMetric.Unit).Should(Equal("nanos"))
+			Expect(sentMetric.Value).To(Equal(1e+09))
+			Expect(sentMetric.Unit).To(Equal("nanos"))
 		})
 	})
 })
