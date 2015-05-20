@@ -143,19 +143,29 @@ func initializeAuctionRunner(bbs Bbs.AuctioneerBBS, consulSession *consuladapter
 
 	delegate := auctionrunnerdelegate.New(httpClient, bbs, logger)
 	metricEmitter := auctionmetricemitterdelegate.New()
+	workPool, err := workpool.NewWorkPool(auctionRunnerWorkPoolSize)
+	if err != nil {
+		logger.Fatal("failed-to-construct-auction-runner-workpool", err, lager.Data{"num-workers": auctionRunnerWorkPoolSize}) // should never happen
+	}
+
 	return auctionrunner.New(
 		delegate,
 		metricEmitter,
 		clock.NewClock(),
-		workpool.NewWorkPool(auctionRunnerWorkPoolSize),
+		workPool,
 		logger,
 	)
 }
 
 func initializeBBS(logger lager.Logger, consulSession *consuladapter.Session) Bbs.AuctioneerBBS {
+	workPool, err := workpool.NewWorkPool(10)
+	if err != nil {
+		logger.Fatal("failed-to-construct-etcd-client-workpool", err, lager.Data{"num-workers": 10}) // should never happen
+	}
+
 	etcdAdapter := etcdstoreadapter.NewETCDStoreAdapter(
 		strings.Split(*etcdCluster, ","),
-		workpool.NewWorkPool(10),
+		workPool,
 	)
 
 	return Bbs.NewAuctioneerBBS(etcdAdapter, consulSession, *receptorTaskHandlerURL, clock.NewClock(), logger)
