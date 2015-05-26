@@ -20,7 +20,7 @@ var _ = Describe("Auction Metric Emitter Delegate", func() {
 
 	BeforeEach(func() {
 		metricSender = fake.NewFakeMetricSender()
-		metrics.Initialize(metricSender)
+		metrics.Initialize(metricSender, nil)
 
 		delegate = auctionmetricemitterdelegate.New()
 	})

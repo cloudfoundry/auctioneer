@@ -30,7 +30,7 @@ var _ = Describe("Auction Runner Delegate", func() {
 
 	BeforeEach(func() {
 		metricSender = fake.NewFakeMetricSender()
-		metrics.Initialize(metricSender)
+		metrics.Initialize(metricSender, nil)
 
 		bbs = &fake_bbs.FakeAuctioneerBBS{}
 		logger = lagertest.NewTestLogger("delegate")
