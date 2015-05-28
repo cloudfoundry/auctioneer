@@ -30,9 +30,9 @@ var auctioneerPath string
 
 var dotNetStack = "dot-net"
 var dotNetRootFSURL = models.PreloadedRootFS(dotNetStack)
-var lucidStack = "lucid64"
-var lucidRootFSURL = models.PreloadedRootFS(lucidStack)
-var dotNetCell, lucidCell *FakeCell
+var linuxStack = "linux"
+var linuxRootFSURL = models.PreloadedRootFS(linuxStack)
+var dotNetCell, linuxCell *FakeCell
 
 var auctioneerServerPort int
 var auctioneerAddress string
@@ -108,7 +108,7 @@ var _ = BeforeEach(func() {
 	})
 
 	dotNetCell = SpinUpFakeCell(bbs, "dot-net-cell", dotNetStack)
-	lucidCell = SpinUpFakeCell(bbs, "lucid-cell", lucidStack)
+	linuxCell = SpinUpFakeCell(bbs, "linux-cell", linuxStack)
 })
 
 var _ = AfterEach(func() {
@@ -117,7 +117,7 @@ var _ = AfterEach(func() {
 	etcdRunner.Stop()
 
 	dotNetCell.Stop()
-	lucidCell.Stop()
+	linuxCell.Stop()
 })
 
 var _ = SynchronizedAfterSuite(func() {

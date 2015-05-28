@@ -22,7 +22,7 @@ var exampleDesiredLRP = models.DesiredLRP{
 	ProcessGuid: "process-guid",
 	DiskMB:      1,
 	MemoryMB:    1,
-	RootFS:      lucidRootFSURL,
+	RootFS:      linuxRootFSURL,
 	Action:      dummyAction,
 	Domain:      "test",
 	Instances:   2,
@@ -62,7 +62,7 @@ var _ = Describe("Auctioneer", func() {
 		})
 
 		It("should start the process running on reps of the appropriate stack", func() {
-			Eventually(lucidCell.LRPs).Should(HaveLen(2))
+			Eventually(linuxCell.LRPs).Should(HaveLen(2))
 			Expect(dotNetCell.LRPs()).To(BeEmpty())
 		})
 	})
@@ -78,7 +78,7 @@ var _ = Describe("Auctioneer", func() {
 					TaskGuid: "task-guid",
 					DiskMB:   1,
 					MemoryMB: 1,
-					RootFS:   lucidRootFSURL,
+					RootFS:   linuxRootFSURL,
 					Action:   dummyAction,
 					Domain:   "test",
 				}
@@ -90,7 +90,7 @@ var _ = Describe("Auctioneer", func() {
 			})
 
 			It("should start the task running on reps of the appropriate stack", func() {
-				Eventually(lucidCell.Tasks).Should(HaveLen(1))
+				Eventually(linuxCell.Tasks).Should(HaveLen(1))
 				Expect(dotNetCell.Tasks()).To(BeEmpty())
 			})
 		})
@@ -101,7 +101,7 @@ var _ = Describe("Auctioneer", func() {
 					TaskGuid: "task-guid",
 					DiskMB:   1000,
 					MemoryMB: 1000,
-					RootFS:   lucidRootFSURL,
+					RootFS:   linuxRootFSURL,
 					Action:   dummyAction,
 					Domain:   "test",
 				}
@@ -114,7 +114,7 @@ var _ = Describe("Auctioneer", func() {
 			})
 
 			It("should not start the task on any rep", func() {
-				Consistently(lucidCell.Tasks).Should(BeEmpty())
+				Consistently(linuxCell.Tasks).Should(BeEmpty())
 				Consistently(dotNetCell.Tasks).Should(BeEmpty())
 			})
 
@@ -164,7 +164,7 @@ var _ = Describe("Auctioneer", func() {
 				TaskGuid: "task-guid",
 				DiskMB:   1,
 				MemoryMB: 1,
-				RootFS:   lucidRootFSURL,
+				RootFS:   linuxRootFSURL,
 				Action:   dummyAction,
 				Domain:   "test",
 			}
