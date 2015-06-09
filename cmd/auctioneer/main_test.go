@@ -155,7 +155,10 @@ var _ = Describe("Auctioneer", func() {
 			err = consulSession.AcquireLock(shared.LockSchemaPath("auctioneer_lock"), presenceJSON)
 			Expect(err).NotTo(HaveOccurred())
 
+			runner.StartCheck = "auctioneer.lock-bbs.lock.acquiring-lock"
+
 			auctioneer = ifrit.Background(runner)
+			Eventually(auctioneer.Ready()).Should(BeClosed())
 		})
 
 		It("should not advertise its presence, but should be reachable", func() {
