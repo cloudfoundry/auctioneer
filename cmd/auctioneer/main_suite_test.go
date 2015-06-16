@@ -70,8 +70,8 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	auctioneerAddress = fmt.Sprintf("http://127.0.0.1:%d", auctioneerServerPort)
 
 	etcdPort = 5001 + GinkgoParallelNode()
-	etcdRunner = etcdstorerunner.NewETCDClusterRunner(etcdPort, 1)
-	etcdClient = etcdRunner.Adapter()
+	etcdRunner = etcdstorerunner.NewETCDClusterRunner(etcdPort, 1, nil)
+	etcdClient = etcdRunner.Adapter(nil)
 
 	consulRunner = consuladapter.NewClusterRunner(
 		9001+config.GinkgoConfig.ParallelNode*consuladapter.PortOffsetLength,

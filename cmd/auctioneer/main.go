@@ -34,12 +34,6 @@ import (
 	"github.com/tedsuo/ifrit/sigmon"
 )
 
-var etcdCluster = flag.String(
-	"etcdCluster",
-	"http://127.0.0.1:4001",
-	"comma-separated list of etcd addresses (http://ip:port)",
-)
-
 var communicationTimeout = flag.Duration(
 	"communicationTimeout",
 	10*time.Second,
@@ -87,10 +81,16 @@ const (
 func main() {
 	cf_debug_server.AddFlags(flag.CommandLine)
 	cf_lager.AddFlags(flag.CommandLine)
+	etcdFlags := etcdstoreadapter.AddFlags(flag.CommandLine)
 	flag.Parse()
 
 	logger, reconfigurableSink := cf_lager.New("auctioneer")
 	initializeDropsonde(logger)
+
+	etcdOptions, err := etcdFlags.Validate()
+	if err != nil {
+		logger.Fatal("etcd-validation-failed", err)
+	}
 
 	client, err := consuladapter.NewClient(*consulCluster)
 	if err != nil {
@@ -103,7 +103,7 @@ func main() {
 		logger.Fatal("consul-session-failed", err)
 	}
 
-	bbs := initializeBBS(logger, consulSession)
+	bbs := initializeBBS(etcdOptions, logger, consulSession)
 
 	auctionRunner := initializeAuctionRunner(bbs, consulSession, logger)
 	auctionServer := initializeAuctionServer(auctionRunner, logger)
@@ -157,16 +157,17 @@ func initializeAuctionRunner(bbs Bbs.AuctioneerBBS, consulSession *consuladapter
 	)
 }
 
-func initializeBBS(logger lager.Logger, consulSession *consuladapter.Session) Bbs.AuctioneerBBS {
+func initializeBBS(etcdOptions *etcdstoreadapter.ETCDOptions, logger lager.Logger, consulSession *consuladapter.Session) Bbs.AuctioneerBBS {
 	workPool, err := workpool.NewWorkPool(10)
 	if err != nil {
 		logger.Fatal("failed-to-construct-etcd-client-workpool", err, lager.Data{"num-workers": 10}) // should never happen
 	}
 
-	etcdAdapter := etcdstoreadapter.NewETCDStoreAdapter(
-		strings.Split(*etcdCluster, ","),
-		workPool,
-	)
+	etcdAdapter, err := etcdstoreadapter.New(etcdOptions, workPool)
+
+	if err != nil {
+		logger.Fatal("failed-to-construct-etcd-tls-client", err)
+	}
 
 	return Bbs.NewAuctioneerBBS(etcdAdapter, consulSession, *receptorTaskHandlerURL, clock.NewClock(), logger)
 }
