@@ -14,6 +14,7 @@ import (
 )
 
 var dummyAction = &models.RunAction{
+	User: "me",
 	Path: "cat",
 	Args: []string{"/tmp/file"},
 }

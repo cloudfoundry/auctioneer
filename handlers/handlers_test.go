@@ -43,6 +43,7 @@ var _ = Describe("Handlers", func() {
 					Domain:   "some-domain",
 					RootFS:   "some:rootfs",
 					Action: &models.RunAction{
+						User: "me",
 						Path: "ls",
 					}},
 				}

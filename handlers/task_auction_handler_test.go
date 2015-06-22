@@ -42,6 +42,7 @@ var _ = Describe("TaskAuctionHandler", func() {
 					Domain:   "some-domain",
 					RootFS:   "some:rootfs",
 					Action: &models.RunAction{
+						User: "me",
 						Path: "ls",
 					},
 				}}
