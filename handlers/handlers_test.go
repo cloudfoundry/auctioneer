@@ -92,6 +92,7 @@ var _ = Describe("Handlers", func() {
 						Action: &models.DownloadAction{
 							From: "http://example.com",
 							To:   "/tmp/internet",
+							User: "diego",
 						},
 					},
 				}}

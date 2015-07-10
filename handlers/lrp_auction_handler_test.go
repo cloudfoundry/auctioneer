@@ -50,6 +50,7 @@ var _ = Describe("LRPAuctionHandler", func() {
 						Action: &models.DownloadAction{
 							From: "http://example.com",
 							To:   "/tmp/internet",
+							User: "diego",
 						},
 					},
 				}}
