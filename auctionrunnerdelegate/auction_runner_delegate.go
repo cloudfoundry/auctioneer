@@ -4,29 +4,32 @@ import (
 	"net/http"
 
 	"github.com/cloudfoundry-incubator/auction/communication/http/auction_http_client"
+	"github.com/cloudfoundry-incubator/bbs"
+	"github.com/cloudfoundry-incubator/bbs/models"
 
 	"github.com/cloudfoundry-incubator/auction/auctiontypes"
-	"github.com/cloudfoundry-incubator/runtime-schema/bbs"
-	"github.com/cloudfoundry-incubator/runtime-schema/models"
+	legacybbs "github.com/cloudfoundry-incubator/runtime-schema/bbs"
 	"github.com/pivotal-golang/lager"
 )
 
 type AuctionRunnerDelegate struct {
-	client *http.Client
-	bbs    bbs.AuctioneerBBS
-	logger lager.Logger
+	client    *http.Client
+	bbsClient bbs.Client
+	legacyBBS legacybbs.AuctioneerBBS
+	logger    lager.Logger
 }
 
-func New(client *http.Client, bbs bbs.AuctioneerBBS, logger lager.Logger) *AuctionRunnerDelegate {
+func New(client *http.Client, bbsClient bbs.Client, legacyBBS legacybbs.AuctioneerBBS, logger lager.Logger) *AuctionRunnerDelegate {
 	return &AuctionRunnerDelegate{
-		client: client,
-		bbs:    bbs,
-		logger: logger,
+		client:    client,
+		bbsClient: bbsClient,
+		legacyBBS: legacyBBS,
+		logger:    logger,
 	}
 }
 
 func (a *AuctionRunnerDelegate) FetchCellReps() (map[string]auctiontypes.CellRep, error) {
-	cells, err := a.bbs.Cells()
+	cells, err := a.legacyBBS.Cells()
 	cellReps := map[string]auctiontypes.CellRep{}
 	if err != nil {
 		return cellReps, err
@@ -41,7 +44,7 @@ func (a *AuctionRunnerDelegate) FetchCellReps() (map[string]auctiontypes.CellRep
 
 func (a *AuctionRunnerDelegate) AuctionCompleted(results auctiontypes.AuctionResults) {
 	for _, task := range results.FailedTasks {
-		err := a.bbs.FailTask(a.logger, task.Identifier(), task.PlacementError)
+		err := a.legacyBBS.FailTask(a.logger, task.Identifier(), task.PlacementError)
 		if err != nil {
 			a.logger.Error("failed-to-fail-task", err, lager.Data{
 				"task":           task,
@@ -51,7 +54,8 @@ func (a *AuctionRunnerDelegate) AuctionCompleted(results auctiontypes.AuctionRes
 	}
 
 	for _, lrp := range results.FailedLRPs {
-		err := a.bbs.FailActualLRP(a.logger, models.NewActualLRPKey(lrp.DesiredLRP.ProcessGuid, lrp.Index, lrp.DesiredLRP.Domain), lrp.PlacementError)
+		key := models.NewActualLRPKey(lrp.DesiredLRP.ProcessGuid, int32(lrp.Index), lrp.DesiredLRP.Domain)
+		err := a.bbsClient.FailActualLRP(&key, lrp.PlacementError)
 		if err != nil {
 			a.logger.Error("failed-to-fail-LRP", err, lager.Data{
 				"lrp":            lrp,

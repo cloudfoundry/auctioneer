@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -12,11 +13,12 @@ import (
 	"github.com/cloudfoundry-incubator/auctioneer/auctionmetricemitterdelegate"
 	"github.com/cloudfoundry-incubator/auctioneer/auctionrunnerdelegate"
 	"github.com/cloudfoundry-incubator/auctioneer/handlers"
+	"github.com/cloudfoundry-incubator/bbs"
 	"github.com/cloudfoundry-incubator/cf-debug-server"
 	cf_lager "github.com/cloudfoundry-incubator/cf-lager"
 	"github.com/cloudfoundry-incubator/cf_http"
 	"github.com/cloudfoundry-incubator/consuladapter"
-	Bbs "github.com/cloudfoundry-incubator/runtime-schema/bbs"
+	legacybbs "github.com/cloudfoundry-incubator/runtime-schema/bbs"
 	"github.com/cloudfoundry-incubator/runtime-schema/bbs/lock_bbs"
 	"github.com/cloudfoundry-incubator/runtime-schema/models"
 	"github.com/pivotal-golang/lager"
@@ -70,6 +72,12 @@ var listenAddr = flag.String(
 	"host:port to serve auction and LRP stop requests on",
 )
 
+var bbsAddress = flag.String(
+	"bbsAddress",
+	"",
+	"Address to the BBS Server",
+)
+
 const (
 	auctionRunnerTimeout      = 10 * time.Second
 	auctionRunnerWorkPoolSize = 1000
@@ -92,6 +100,10 @@ func main() {
 		logger.Fatal("etcd-validation-failed", err)
 	}
 
+	if err := validateBBSAddress(); err != nil {
+		logger.Fatal("invalid-bbs-address", err)
+	}
+
 	client, err := consuladapter.NewClient(*consulCluster)
 	if err != nil {
 		logger.Fatal("new-client-failed", err)
@@ -103,11 +115,13 @@ func main() {
 		logger.Fatal("consul-session-failed", err)
 	}
 
-	bbs := initializeBBS(etcdOptions, logger, consulSession)
+	legacyBBS := initializeBBS(etcdOptions, logger, consulSession)
 
-	auctionRunner := initializeAuctionRunner(bbs, consulSession, logger)
+	bbsClient := bbs.NewClient(*bbsAddress)
+
+	auctionRunner := initializeAuctionRunner(bbsClient, legacyBBS, consulSession, logger)
 	auctionServer := initializeAuctionServer(auctionRunner, logger)
-	lockMaintainer := initializeLockMaintainer(bbs, logger)
+	lockMaintainer := initializeLockMaintainer(legacyBBS, logger)
 
 	cf_http.Initialize(*communicationTimeout)
 
@@ -138,10 +152,10 @@ func main() {
 	logger.Info("exited")
 }
 
-func initializeAuctionRunner(bbs Bbs.AuctioneerBBS, consulSession *consuladapter.Session, logger lager.Logger) auctiontypes.AuctionRunner {
+func initializeAuctionRunner(bbsClient bbs.Client, legacyBBS legacybbs.AuctioneerBBS, consulSession *consuladapter.Session, logger lager.Logger) auctiontypes.AuctionRunner {
 	httpClient := cf_http.NewClient()
 
-	delegate := auctionrunnerdelegate.New(httpClient, bbs, logger)
+	delegate := auctionrunnerdelegate.New(httpClient, bbsClient, legacyBBS, logger)
 	metricEmitter := auctionmetricemitterdelegate.New()
 	workPool, err := workpool.NewWorkPool(auctionRunnerWorkPoolSize)
 	if err != nil {
@@ -157,7 +171,7 @@ func initializeAuctionRunner(bbs Bbs.AuctioneerBBS, consulSession *consuladapter
 	)
 }
 
-func initializeBBS(etcdOptions *etcdstoreadapter.ETCDOptions, logger lager.Logger, consulSession *consuladapter.Session) Bbs.AuctioneerBBS {
+func initializeBBS(etcdOptions *etcdstoreadapter.ETCDOptions, logger lager.Logger, consulSession *consuladapter.Session) legacybbs.AuctioneerBBS {
 	workPool, err := workpool.NewWorkPool(10)
 	if err != nil {
 		logger.Fatal("failed-to-construct-etcd-client-workpool", err, lager.Data{"num-workers": 10}) // should never happen
@@ -169,7 +183,7 @@ func initializeBBS(etcdOptions *etcdstoreadapter.ETCDOptions, logger lager.Logge
 		logger.Fatal("failed-to-construct-etcd-tls-client", err)
 	}
 
-	return Bbs.NewAuctioneerBBS(etcdAdapter, consulSession, *receptorTaskHandlerURL, clock.NewClock(), logger)
+	return legacybbs.NewAuctioneerBBS(etcdAdapter, consulSession, *receptorTaskHandlerURL, clock.NewClock(), logger)
 }
 
 func initializeDropsonde(logger lager.Logger) {
@@ -183,7 +197,7 @@ func initializeAuctionServer(runner auctiontypes.AuctionRunner, logger lager.Log
 	return http_server.New(*listenAddr, handlers.New(runner, logger))
 }
 
-func initializeLockMaintainer(bbs Bbs.AuctioneerBBS, logger lager.Logger) ifrit.Runner {
+func initializeLockMaintainer(bbs legacybbs.AuctioneerBBS, logger lager.Logger) ifrit.Runner {
 	uuid, err := uuid.NewV4()
 	if err != nil {
 		logger.Fatal("Couldn't generate uuid", err)
@@ -204,4 +218,11 @@ func initializeLockMaintainer(bbs Bbs.AuctioneerBBS, logger lager.Logger) ifrit.
 	}
 
 	return lockMaintainer
+}
+
+func validateBBSAddress() error {
+	if *bbsAddress == "" {
+		return errors.New("bbsAddress is required")
+	}
+	return nil
 }

@@ -5,6 +5,8 @@ import (
 	"net/http"
 
 	"github.com/cloudfoundry-incubator/auction/auctiontypes"
+	"github.com/cloudfoundry-incubator/bbs/fake_bbs"
+	"github.com/cloudfoundry-incubator/bbs/models"
 	"github.com/cloudfoundry/dropsonde/metric_sender/fake"
 	"github.com/cloudfoundry/dropsonde/metrics"
 
@@ -14,27 +16,31 @@ import (
 	"github.com/pivotal-golang/lager/lagertest"
 
 	"github.com/cloudfoundry-incubator/auctioneer/auctionrunnerdelegate"
-	"github.com/cloudfoundry-incubator/runtime-schema/bbs/fake_bbs"
+	fake_legacy_bbs "github.com/cloudfoundry-incubator/runtime-schema/bbs/fake_bbs"
 	"github.com/cloudfoundry-incubator/runtime-schema/diego_errors"
-	"github.com/cloudfoundry-incubator/runtime-schema/models"
+	oldmodels "github.com/cloudfoundry-incubator/runtime-schema/models"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Auction Runner Delegate", func() {
-	var delegate *auctionrunnerdelegate.AuctionRunnerDelegate
-	var bbs *fake_bbs.FakeAuctioneerBBS
-	var metricSender *fake.FakeMetricSender
-	var logger lager.Logger
+	var (
+		delegate     *auctionrunnerdelegate.AuctionRunnerDelegate
+		bbsClient    *fake_bbs.FakeClient
+		legacyBBS    *fake_legacy_bbs.FakeAuctioneerBBS
+		metricSender *fake.FakeMetricSender
+		logger       lager.Logger
+	)
 
 	BeforeEach(func() {
 		metricSender = fake.NewFakeMetricSender()
 		metrics.Initialize(metricSender, nil)
 
-		bbs = &fake_bbs.FakeAuctioneerBBS{}
+		bbsClient = &fake_bbs.FakeClient{}
+		legacyBBS = &fake_legacy_bbs.FakeAuctioneerBBS{}
 		logger = lagertest.NewTestLogger("delegate")
-		delegate = auctionrunnerdelegate.New(&http.Client{}, bbs, logger)
+		delegate = auctionrunnerdelegate.New(&http.Client{}, bbsClient, legacyBBS, logger)
 	})
 
 	Describe("fetching cell reps", func() {
@@ -57,9 +63,9 @@ var _ = Describe("Auction Runner Delegate", func() {
 					close(calledB)
 				})
 
-				bbs.CellsReturns([]models.CellPresence{
-					models.NewCellPresence("cell-A", serverA.URL(), "zone-1", models.NewCellCapacity(123, 456, 789), []string{}, []string{}),
-					models.NewCellPresence("cell-B", serverB.URL(), "zone-2", models.NewCellCapacity(123, 456, 789), []string{}, []string{}),
+				legacyBBS.CellsReturns([]oldmodels.CellPresence{
+					oldmodels.NewCellPresence("cell-A", serverA.URL(), "zone-1", oldmodels.NewCellCapacity(123, 456, 789), []string{}, []string{}),
+					oldmodels.NewCellPresence("cell-B", serverB.URL(), "zone-2", oldmodels.NewCellCapacity(123, 456, 789), []string{}, []string{}),
 				}, nil)
 			})
 
@@ -86,7 +92,7 @@ var _ = Describe("Auction Runner Delegate", func() {
 
 		Context("when the BBS errors", func() {
 			BeforeEach(func() {
-				bbs.CellsReturns(nil, errors.New("boom"))
+				legacyBBS.CellsReturns(nil, errors.New("boom"))
 			})
 
 			It("should error", func() {
@@ -104,26 +110,26 @@ var _ = Describe("Auction Runner Delegate", func() {
 			results = auctiontypes.AuctionResults{
 				SuccessfulLRPs: []auctiontypes.LRPAuction{
 					{
-						DesiredLRP: models.DesiredLRP{ProcessGuid: "successful-start"},
+						DesiredLRP: oldmodels.DesiredLRP{ProcessGuid: "successful-start"},
 					},
 				},
 				SuccessfulTasks: []auctiontypes.TaskAuction{
-					{Task: models.Task{
+					{Task: oldmodels.Task{
 						TaskGuid: "successful-task",
 					}},
 				},
 				FailedLRPs: []auctiontypes.LRPAuction{
 					{
-						DesiredLRP:    models.DesiredLRP{ProcessGuid: "insufficient-capacity", Domain: "domain", Instances: 1},
+						DesiredLRP:    oldmodels.DesiredLRP{ProcessGuid: "insufficient-capacity", Domain: "domain", Instances: 1},
 						AuctionRecord: auctiontypes.AuctionRecord{PlacementError: diego_errors.INSUFFICIENT_RESOURCES_MESSAGE},
 					},
 					{
-						DesiredLRP:    models.DesiredLRP{ProcessGuid: "incompatible-stacks", Domain: "domain", Instances: 1},
+						DesiredLRP:    oldmodels.DesiredLRP{ProcessGuid: "incompatible-stacks", Domain: "domain", Instances: 1},
 						AuctionRecord: auctiontypes.AuctionRecord{PlacementError: diego_errors.CELL_MISMATCH_MESSAGE},
 					},
 				},
 				FailedTasks: []auctiontypes.TaskAuction{
-					{Task: models.Task{
+					{Task: oldmodels.Task{
 						TaskGuid: "failed-task",
 					},
 						AuctionRecord: auctiontypes.AuctionRecord{PlacementError: diego_errors.INSUFFICIENT_RESOURCES_MESSAGE},
@@ -135,21 +141,21 @@ var _ = Describe("Auction Runner Delegate", func() {
 		})
 
 		It("should mark all failed tasks as COMPLETE with the appropriate failure reason", func() {
-			Expect(bbs.FailTaskCallCount()).To(Equal(1))
-			failTaskLogger, taskGuid, failureReason := bbs.FailTaskArgsForCall(0)
+			Expect(legacyBBS.FailTaskCallCount()).To(Equal(1))
+			failTaskLogger, taskGuid, failureReason := legacyBBS.FailTaskArgsForCall(0)
 			Expect(failTaskLogger).To(Equal(logger))
 			Expect(taskGuid).To(Equal("failed-task"))
 			Expect(failureReason).To(Equal(diego_errors.INSUFFICIENT_RESOURCES_MESSAGE))
 		})
 
 		It("should mark all failed LRPs as UNCLAIMED with the appropriate placement error", func() {
-			Expect(bbs.FailActualLRPCallCount()).To(Equal(2))
-			_, lrpKey, errorMessage := bbs.FailActualLRPArgsForCall(0)
-			Expect(lrpKey).To(Equal(models.NewActualLRPKey("insufficient-capacity", 0, "domain")))
+			Expect(bbsClient.FailActualLRPCallCount()).To(Equal(2))
+			lrpKey, errorMessage := bbsClient.FailActualLRPArgsForCall(0)
+			Expect(*lrpKey).To(Equal(models.NewActualLRPKey("insufficient-capacity", 0, "domain")))
 			Expect(errorMessage).To(Equal(diego_errors.INSUFFICIENT_RESOURCES_MESSAGE))
 
-			_, lrpKey1, errorMessage1 := bbs.FailActualLRPArgsForCall(1)
-			Expect(lrpKey1).To(Equal(models.NewActualLRPKey("incompatible-stacks", 0, "domain")))
+			lrpKey1, errorMessage1 := bbsClient.FailActualLRPArgsForCall(1)
+			Expect(*lrpKey1).To(Equal(models.NewActualLRPKey("incompatible-stacks", 0, "domain")))
 			Expect(errorMessage1).To(Equal(diego_errors.CELL_MISMATCH_MESSAGE))
 
 		})

@@ -83,7 +83,7 @@ var _ = Describe("Auctioneer", func() {
 					Action:   dummyAction,
 					Domain:   "test",
 				}
-				err := bbs.DesireTask(logger, task)
+				err := legacyBBS.DesireTask(logger, task)
 				Expect(err).NotTo(HaveOccurred())
 
 				err = auctioneerClient.RequestTaskAuctions(auctioneerAddress, []models.Task{task})
@@ -107,7 +107,7 @@ var _ = Describe("Auctioneer", func() {
 					Domain:   "test",
 				}
 
-				err := bbs.DesireTask(logger, task)
+				err := legacyBBS.DesireTask(logger, task)
 				Expect(err).NotTo(HaveOccurred())
 
 				err = auctioneerClient.RequestTaskAuctions(auctioneerAddress, []models.Task{task})
@@ -121,10 +121,10 @@ var _ = Describe("Auctioneer", func() {
 
 			It("should mark the task as failed in the BBS", func() {
 				Eventually(func() ([]models.Task, error) {
-					return bbs.CompletedTasks(logger)
+					return legacyBBS.CompletedTasks(logger)
 				}).Should(HaveLen(1))
 
-				completedTasks, _ := bbs.CompletedTasks(logger)
+				completedTasks, _ := legacyBBS.CompletedTasks(logger)
 				completedTask := completedTasks[0]
 				Expect(completedTask.TaskGuid).To(Equal("task-guid"))
 				Expect(completedTask.Failed).To(BeTrue())
@@ -163,7 +163,7 @@ var _ = Describe("Auctioneer", func() {
 		})
 
 		It("should not advertise its presence, but should be reachable", func() {
-			Consistently(bbs.AuctioneerAddress, 3*time.Second).Should(Equal("existing-auctioneer-address"))
+			Consistently(legacyBBS.AuctioneerAddress, 3*time.Second).Should(Equal("existing-auctioneer-address"))
 			task := models.Task{
 				TaskGuid: "task-guid",
 				DiskMB:   1,
@@ -172,7 +172,7 @@ var _ = Describe("Auctioneer", func() {
 				Action:   dummyAction,
 				Domain:   "test",
 			}
-			err := bbs.DesireTask(logger, task)
+			err := legacyBBS.DesireTask(logger, task)
 			Expect(err).NotTo(HaveOccurred())
 
 			Eventually(func() error {

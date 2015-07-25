@@ -2,11 +2,15 @@ package main_test
 
 import (
 	"fmt"
+	"net/url"
 	"os/exec"
+	"strings"
 
+	"github.com/cloudfoundry-incubator/bbs"
+	bbstestrunner "github.com/cloudfoundry-incubator/bbs/cmd/bbs/testrunner"
 	"github.com/cloudfoundry-incubator/consuladapter"
 	"github.com/cloudfoundry-incubator/consuladapter/consulrunner"
-	Bbs "github.com/cloudfoundry-incubator/runtime-schema/bbs"
+	legacybbs "github.com/cloudfoundry-incubator/runtime-schema/bbs"
 	"github.com/cloudfoundry-incubator/runtime-schema/cb"
 	"github.com/cloudfoundry-incubator/runtime-schema/models"
 	"github.com/cloudfoundry/storeadapter"
@@ -48,7 +52,14 @@ var consulSession *consuladapter.Session
 
 var auctioneerClient cb.AuctioneerClient
 
-var bbs *Bbs.BBS
+var bbsArgs bbstestrunner.Args
+var bbsBinPath string
+var bbsURL *url.URL
+var bbsRunner *ginkgomon.Runner
+var bbsProcess ifrit.Process
+var bbsClient bbs.Client
+
+var legacyBBS *legacybbs.BBS
 var logger lager.Logger
 
 func TestAuctioneer(t *testing.T) {
@@ -61,10 +72,18 @@ func TestAuctioneer(t *testing.T) {
 }
 
 var _ = SynchronizedBeforeSuite(func() []byte {
+	bbsConfig, err := gexec.Build("github.com/cloudfoundry-incubator/bbs/cmd/bbs", "-race")
+	Expect(err).NotTo(HaveOccurred())
+
 	compiledAuctioneerPath, err := gexec.Build("github.com/cloudfoundry-incubator/auctioneer/cmd/auctioneer", "-race")
 	Expect(err).NotTo(HaveOccurred())
-	return []byte(compiledAuctioneerPath)
-}, func(compiledAuctioneerPath []byte) {
+	return []byte(strings.Join([]string{compiledAuctioneerPath, bbsConfig}, ","))
+}, func(pathsByte []byte) {
+	path := string(pathsByte)
+	compiledAuctioneerPath := strings.Split(path, ",")[0]
+	bbsBinPath = strings.Split(path, ",")[1]
+
+	bbsBinPath = strings.Split(path, ",")[1]
 	auctioneerPath = string(compiledAuctioneerPath)
 
 	auctioneerServerPort = 1800 + GinkgoParallelNode()
@@ -86,6 +105,23 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 
 	consulRunner.Start()
 	consulRunner.WaitUntilReady()
+
+	bbsAddress := fmt.Sprintf("127.0.0.1:%d", 13000+GinkgoParallelNode())
+
+	bbsURL = &url.URL{
+		Scheme: "http",
+		Host:   bbsAddress,
+	}
+
+	bbsClient = bbs.NewClient(bbsURL.String())
+
+	etcdUrl := fmt.Sprintf("http://127.0.0.1:%d", etcdPort)
+	bbsArgs = bbstestrunner.Args{
+		Address:     bbsAddress,
+		EtcdCluster: etcdUrl,
+	}
+	bbsRunner = bbstestrunner.New(bbsBinPath, bbsArgs)
+	bbsProcess = ginkgomon.Invoke(bbsRunner)
 })
 
 var _ = BeforeEach(func() {
@@ -94,12 +130,13 @@ var _ = BeforeEach(func() {
 	consulRunner.Reset()
 	consulSession = consulRunner.NewSession("a-session")
 
-	bbs = Bbs.NewBBS(etcdClient, consulSession, "http://receptor.bogus.com", clock.NewClock(), logger)
+	legacyBBS = legacybbs.NewBBS(etcdClient, consulSession, "http://receptor.bogus.com", clock.NewClock(), logger)
 
 	runner = ginkgomon.New(ginkgomon.Config{
 		Name: "auctioneer",
 		Command: exec.Command(
 			auctioneerPath,
+			"-bbsAddress", bbsURL.String(),
 			"-etcdCluster", fmt.Sprintf("http://127.0.0.1:%d", etcdPort),
 			"-listenAddr", fmt.Sprintf("0.0.0.0:%d", auctioneerServerPort),
 			"-lockRetryInterval", "1s",
@@ -108,12 +145,13 @@ var _ = BeforeEach(func() {
 		StartCheck: "auctioneer.started",
 	})
 
-	dotNetCell = SpinUpFakeCell(bbs, "dot-net-cell", dotNetStack)
-	linuxCell = SpinUpFakeCell(bbs, "linux-cell", linuxStack)
+	dotNetCell = SpinUpFakeCell(legacyBBS, "dot-net-cell", dotNetStack)
+	linuxCell = SpinUpFakeCell(legacyBBS, "linux-cell", linuxStack)
 })
 
 var _ = AfterEach(func() {
 	ginkgomon.Kill(auctioneer)
+	ginkgomon.Kill(bbsProcess)
 
 	etcdRunner.Stop()
 
