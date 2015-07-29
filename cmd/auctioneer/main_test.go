@@ -1,8 +1,6 @@
 package main_test
 
 import (
-	"time"
-
 	"github.com/cloudfoundry-incubator/bbs"
 	"github.com/cloudfoundry-incubator/bbs/models"
 	"github.com/cloudfoundry-incubator/runtime-schema/bbs/shared"
@@ -15,18 +13,18 @@ import (
 	"github.com/tedsuo/ifrit/ginkgomon"
 )
 
-var dummyAction = &oldmodels.RunAction{
+var dummyAction = &models.RunAction{
 	User: "me",
 	Path: "cat",
 	Args: []string{"/tmp/file"},
 }
 
-var exampleDesiredLRP = oldmodels.DesiredLRP{
+var exampleDesiredLRP = models.DesiredLRP{
 	ProcessGuid: "process-guid",
-	DiskMB:      1,
-	MemoryMB:    1,
-	RootFS:      linuxRootFSURL,
-	Action:      dummyAction,
+	DiskMb:      1,
+	MemoryMb:    1,
+	RootFs:      linuxRootFSURL,
+	Action:      models.WrapAction(dummyAction),
 	Domain:      "test",
 	Instances:   2,
 }
@@ -35,7 +33,7 @@ var _ = Describe("Auctioneer", func() {
 	Context("when etcd is down", func() {
 		BeforeEach(func() {
 			etcdRunner.Stop()
-			auctioneer = ginkgomon.Invoke(runner)
+			auctioneerProcess = ginkgomon.Invoke(runner)
 		})
 
 		AfterEach(func() {
@@ -49,16 +47,16 @@ var _ = Describe("Auctioneer", func() {
 
 	Context("when a start auction message arrives", func() {
 		BeforeEach(func() {
-			auctioneer = ginkgomon.Invoke(runner)
+			auctioneerProcess = ginkgomon.Invoke(runner)
 
-			err := auctioneerClient.RequestLRPAuctions(auctioneerAddress, []oldmodels.LRPStartRequest{{
-				DesiredLRP: exampleDesiredLRP,
+			err := auctioneerClient.RequestLRPAuctions([]*models.LRPStartRequest{{
+				DesiredLRP: &exampleDesiredLRP,
 				Indices:    []uint{0},
 			}})
 			Expect(err).NotTo(HaveOccurred())
 
-			err = auctioneerClient.RequestLRPAuctions(auctioneerAddress, []oldmodels.LRPStartRequest{{
-				DesiredLRP: exampleDesiredLRP,
+			err = auctioneerClient.RequestLRPAuctions([]*models.LRPStartRequest{{
+				DesiredLRP: &exampleDesiredLRP,
 				Indices:    []uint{1},
 			}})
 			Expect(err).NotTo(HaveOccurred())
@@ -72,7 +70,7 @@ var _ = Describe("Auctioneer", func() {
 
 	Context("when a task message arrives", func() {
 		BeforeEach(func() {
-			auctioneer = ginkgomon.Invoke(runner)
+			auctioneerProcess = ginkgomon.Invoke(runner)
 		})
 
 		Context("when there are sufficient resources to start the task", func() {
@@ -88,7 +86,7 @@ var _ = Describe("Auctioneer", func() {
 				err := legacyBBS.DesireTask(logger, task)
 				Expect(err).NotTo(HaveOccurred())
 
-				err = auctioneerClient.RequestTaskAuctions(auctioneerAddress, []oldmodels.Task{task})
+				err = auctioneerClient.RequestTaskAuctions([]oldmodels.Task{task})
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -112,7 +110,7 @@ var _ = Describe("Auctioneer", func() {
 				err := legacyBBS.DesireTask(logger, task)
 				Expect(err).NotTo(HaveOccurred())
 
-				err = auctioneerClient.RequestTaskAuctions(auctioneerAddress, []oldmodels.Task{task})
+				err = auctioneerClient.RequestTaskAuctions([]oldmodels.Task{task})
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -137,7 +135,7 @@ var _ = Describe("Auctioneer", func() {
 
 	Context("when the auctioneer loses the lock", func() {
 		BeforeEach(func() {
-			auctioneer = ginkgomon.Invoke(runner)
+			auctioneerProcess = ginkgomon.Invoke(runner)
 			consulRunner.Reset()
 		})
 
@@ -147,38 +145,37 @@ var _ = Describe("Auctioneer", func() {
 	})
 
 	Context("when the auctioneer cannot acquire the lock on startup", func() {
-		BeforeEach(func() {
-			presence := oldmodels.AuctioneerPresence{
-				AuctioneerID:      "existing-auctioneer-id",
-				AuctioneerAddress: "existing-auctioneer-address",
-			}
-			presenceJSON, err := oldmodels.ToJSON(presence)
-			Expect(err).NotTo(HaveOccurred())
+		task := oldmodels.Task{
+			TaskGuid: "task-guid",
+			DiskMB:   1,
+			MemoryMB: 1,
+			RootFS:   linuxRootFSURL,
+			Action:   dummyAction,
+			Domain:   "test",
+		}
 
-			err = consulSession.AcquireLock(shared.LockSchemaPath("auctioneer_lock"), presenceJSON)
+		BeforeEach(func() {
+			err := consulSession.AcquireLock(shared.LockSchemaPath("auctioneer_lock"), []byte{})
 			Expect(err).NotTo(HaveOccurred())
 
 			runner.StartCheck = "auctioneer.lock-bbs.lock.acquiring-lock"
 
-			auctioneer = ifrit.Background(runner)
-			Eventually(auctioneer.Ready()).Should(BeClosed())
+			auctioneerProcess = ifrit.Background(runner)
 		})
 
-		It("should not advertise its presence, but should be reachable", func() {
-			Consistently(legacyBBS.AuctioneerAddress, 3*time.Second).Should(Equal("existing-auctioneer-address"))
-			task := oldmodels.Task{
-				TaskGuid: "task-guid",
-				DiskMB:   1,
-				MemoryMB: 1,
-				RootFS:   linuxRootFSURL,
-				Action:   dummyAction,
-				Domain:   "test",
-			}
-			err := legacyBBS.DesireTask(logger, task)
+		It("should not advertise its presence, and should not be reachable", func() {
+			Eventually(func() error {
+				return auctioneerClient.RequestTaskAuctions([]oldmodels.Task{task})
+			}).Should(HaveOccurred())
+		})
+
+		It("should eventually come up in the event that the lock is released", func() {
+			consulSession.Destroy()
+			_, err := consulSession.Recreate()
 			Expect(err).NotTo(HaveOccurred())
 
 			Eventually(func() error {
-				return auctioneerClient.RequestTaskAuctions(auctioneerAddress, []oldmodels.Task{task})
+				return auctioneerClient.RequestTaskAuctions([]oldmodels.Task{task})
 			}).ShouldNot(HaveOccurred())
 		})
 	})

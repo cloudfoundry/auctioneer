@@ -6,12 +6,12 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/cloudfoundry-incubator/auctioneer"
 	"github.com/cloudfoundry-incubator/bbs"
 	bbstestrunner "github.com/cloudfoundry-incubator/bbs/cmd/bbs/testrunner"
 	"github.com/cloudfoundry-incubator/consuladapter"
 	"github.com/cloudfoundry-incubator/consuladapter/consulrunner"
 	legacybbs "github.com/cloudfoundry-incubator/runtime-schema/bbs"
-	"github.com/cloudfoundry-incubator/runtime-schema/cb"
 	"github.com/cloudfoundry-incubator/runtime-schema/models"
 	"github.com/cloudfoundry/storeadapter"
 	"github.com/cloudfoundry/storeadapter/storerunner/etcdstorerunner"
@@ -29,7 +29,7 @@ import (
 	"time"
 )
 
-var auctioneer ifrit.Process
+var auctioneerProcess ifrit.Process
 
 var auctioneerPath string
 
@@ -50,7 +50,7 @@ var etcdClient storeadapter.StoreAdapter
 var consulRunner *consulrunner.ClusterRunner
 var consulSession *consuladapter.Session
 
-var auctioneerClient cb.AuctioneerClient
+var auctioneerClient auctioneer.Client
 
 var bbsArgs bbstestrunner.Args
 var bbsBinPath string
@@ -99,7 +99,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 		"http",
 	)
 
-	auctioneerClient = cb.NewAuctioneerClient()
+	auctioneerClient = auctioneer.NewClient(auctioneerAddress)
 
 	logger = lagertest.NewTestLogger("test")
 
@@ -117,8 +117,9 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 
 	etcdUrl := fmt.Sprintf("http://127.0.0.1:%d", etcdPort)
 	bbsArgs = bbstestrunner.Args{
-		Address:     bbsAddress,
-		EtcdCluster: etcdUrl,
+		Address:           bbsAddress,
+		AuctioneerAddress: auctioneerAddress,
+		EtcdCluster:       etcdUrl,
 	}
 	bbsRunner = bbstestrunner.New(bbsBinPath, bbsArgs)
 	bbsProcess = ginkgomon.Invoke(bbsRunner)
@@ -150,7 +151,7 @@ var _ = BeforeEach(func() {
 })
 
 var _ = AfterEach(func() {
-	ginkgomon.Kill(auctioneer)
+	ginkgomon.Kill(auctioneerProcess)
 	ginkgomon.Kill(bbsProcess)
 
 	etcdRunner.Stop()

@@ -126,9 +126,9 @@ func main() {
 	cf_http.Initialize(*communicationTimeout)
 
 	members := grouper.Members{
+		{"lock-maintainer", lockMaintainer},
 		{"auction-runner", auctionRunner},
 		{"auction-server", auctionServer},
-		{"lock-maintainer", lockMaintainer},
 	}
 
 	if dbgAddr := cf_debug_server.DebugAddress(flag.CommandLine); dbgAddr != "" {
