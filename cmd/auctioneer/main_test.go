@@ -3,9 +3,11 @@ package main_test
 import (
 	"time"
 
+	"github.com/cloudfoundry-incubator/bbs"
+	"github.com/cloudfoundry-incubator/bbs/models"
 	"github.com/cloudfoundry-incubator/runtime-schema/bbs/shared"
 	"github.com/cloudfoundry-incubator/runtime-schema/diego_errors"
-	"github.com/cloudfoundry-incubator/runtime-schema/models"
+	oldmodels "github.com/cloudfoundry-incubator/runtime-schema/models"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
@@ -13,13 +15,13 @@ import (
 	"github.com/tedsuo/ifrit/ginkgomon"
 )
 
-var dummyAction = &models.RunAction{
+var dummyAction = &oldmodels.RunAction{
 	User: "me",
 	Path: "cat",
 	Args: []string{"/tmp/file"},
 }
 
-var exampleDesiredLRP = models.DesiredLRP{
+var exampleDesiredLRP = oldmodels.DesiredLRP{
 	ProcessGuid: "process-guid",
 	DiskMB:      1,
 	MemoryMB:    1,
@@ -49,13 +51,13 @@ var _ = Describe("Auctioneer", func() {
 		BeforeEach(func() {
 			auctioneer = ginkgomon.Invoke(runner)
 
-			err := auctioneerClient.RequestLRPAuctions(auctioneerAddress, []models.LRPStartRequest{{
+			err := auctioneerClient.RequestLRPAuctions(auctioneerAddress, []oldmodels.LRPStartRequest{{
 				DesiredLRP: exampleDesiredLRP,
 				Indices:    []uint{0},
 			}})
 			Expect(err).NotTo(HaveOccurred())
 
-			err = auctioneerClient.RequestLRPAuctions(auctioneerAddress, []models.LRPStartRequest{{
+			err = auctioneerClient.RequestLRPAuctions(auctioneerAddress, []oldmodels.LRPStartRequest{{
 				DesiredLRP: exampleDesiredLRP,
 				Indices:    []uint{1},
 			}})
@@ -75,7 +77,7 @@ var _ = Describe("Auctioneer", func() {
 
 		Context("when there are sufficient resources to start the task", func() {
 			BeforeEach(func() {
-				task := models.Task{
+				task := oldmodels.Task{
 					TaskGuid: "task-guid",
 					DiskMB:   1,
 					MemoryMB: 1,
@@ -86,7 +88,7 @@ var _ = Describe("Auctioneer", func() {
 				err := legacyBBS.DesireTask(logger, task)
 				Expect(err).NotTo(HaveOccurred())
 
-				err = auctioneerClient.RequestTaskAuctions(auctioneerAddress, []models.Task{task})
+				err = auctioneerClient.RequestTaskAuctions(auctioneerAddress, []oldmodels.Task{task})
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -98,7 +100,7 @@ var _ = Describe("Auctioneer", func() {
 
 		Context("when there are insufficient resources to start the task", func() {
 			BeforeEach(func() {
-				task := models.Task{
+				task := oldmodels.Task{
 					TaskGuid: "task-guid",
 					DiskMB:   1000,
 					MemoryMB: 1000,
@@ -110,7 +112,7 @@ var _ = Describe("Auctioneer", func() {
 				err := legacyBBS.DesireTask(logger, task)
 				Expect(err).NotTo(HaveOccurred())
 
-				err = auctioneerClient.RequestTaskAuctions(auctioneerAddress, []models.Task{task})
+				err = auctioneerClient.RequestTaskAuctions(auctioneerAddress, []oldmodels.Task{task})
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -120,11 +122,11 @@ var _ = Describe("Auctioneer", func() {
 			})
 
 			It("should mark the task as failed in the BBS", func() {
-				Eventually(func() ([]models.Task, error) {
-					return legacyBBS.CompletedTasks(logger)
+				Eventually(func() []*models.Task {
+					return getTasksByState(bbsClient, models.Task_Completed)
 				}).Should(HaveLen(1))
 
-				completedTasks, _ := legacyBBS.CompletedTasks(logger)
+				completedTasks := getTasksByState(bbsClient, models.Task_Completed)
 				completedTask := completedTasks[0]
 				Expect(completedTask.TaskGuid).To(Equal("task-guid"))
 				Expect(completedTask.Failed).To(BeTrue())
@@ -146,11 +148,11 @@ var _ = Describe("Auctioneer", func() {
 
 	Context("when the auctioneer cannot acquire the lock on startup", func() {
 		BeforeEach(func() {
-			presence := models.AuctioneerPresence{
+			presence := oldmodels.AuctioneerPresence{
 				AuctioneerID:      "existing-auctioneer-id",
 				AuctioneerAddress: "existing-auctioneer-address",
 			}
-			presenceJSON, err := models.ToJSON(presence)
+			presenceJSON, err := oldmodels.ToJSON(presence)
 			Expect(err).NotTo(HaveOccurred())
 
 			err = consulSession.AcquireLock(shared.LockSchemaPath("auctioneer_lock"), presenceJSON)
@@ -164,7 +166,7 @@ var _ = Describe("Auctioneer", func() {
 
 		It("should not advertise its presence, but should be reachable", func() {
 			Consistently(legacyBBS.AuctioneerAddress, 3*time.Second).Should(Equal("existing-auctioneer-address"))
-			task := models.Task{
+			task := oldmodels.Task{
 				TaskGuid: "task-guid",
 				DiskMB:   1,
 				MemoryMB: 1,
@@ -176,8 +178,21 @@ var _ = Describe("Auctioneer", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			Eventually(func() error {
-				return auctioneerClient.RequestTaskAuctions(auctioneerAddress, []models.Task{task})
+				return auctioneerClient.RequestTaskAuctions(auctioneerAddress, []oldmodels.Task{task})
 			}).ShouldNot(HaveOccurred())
 		})
 	})
 })
+
+func getTasksByState(client bbs.Client, state models.Task_State) []*models.Task {
+	tasks, err := client.Tasks()
+	Expect(err).NotTo(HaveOccurred())
+
+	filteredTasks := make([]*models.Task, 0)
+	for _, task := range tasks {
+		if task.State == state {
+			filteredTasks = append(filteredTasks, task)
+		}
+	}
+	return filteredTasks
+}
