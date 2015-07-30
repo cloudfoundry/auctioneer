@@ -121,12 +121,12 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 		AuctioneerAddress: auctioneerAddress,
 		EtcdCluster:       etcdUrl,
 	}
-	bbsRunner = bbstestrunner.New(bbsBinPath, bbsArgs)
-	bbsProcess = ginkgomon.Invoke(bbsRunner)
 })
 
 var _ = BeforeEach(func() {
 	etcdRunner.Start()
+	bbsRunner = bbstestrunner.New(bbsBinPath, bbsArgs)
+	bbsProcess = ginkgomon.Invoke(bbsRunner)
 
 	consulRunner.Reset()
 	consulSession = consulRunner.NewSession("a-session")
@@ -152,10 +152,8 @@ var _ = BeforeEach(func() {
 
 var _ = AfterEach(func() {
 	ginkgomon.Kill(auctioneerProcess)
-	ginkgomon.Kill(bbsProcess)
-
 	etcdRunner.Stop()
-
+	ginkgomon.Kill(bbsProcess)
 	dotNetCell.Stop()
 	linuxCell.Stop()
 })
