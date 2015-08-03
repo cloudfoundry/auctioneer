@@ -7,7 +7,7 @@ import (
 
 	fake_auction_runner "github.com/cloudfoundry-incubator/auction/auctiontypes/fakes"
 	"github.com/cloudfoundry-incubator/auctioneer/handlers"
-	"github.com/cloudfoundry-incubator/runtime-schema/models"
+	"github.com/cloudfoundry-incubator/bbs/models"
 	"github.com/pivotal-golang/lager"
 
 	. "github.com/onsi/ginkgo"
@@ -38,20 +38,20 @@ var _ = Describe("LRPAuctionHandler", func() {
 				starts = []models.LRPStartRequest{{
 					Indices: []uint{2, 3},
 
-					DesiredLRP: models.DesiredLRP{
+					DesiredLRP: &models.DesiredLRP{
 						Domain:      "tests",
 						ProcessGuid: "some-guid",
 
-						RootFS:    "docker:///docker.com/docker",
+						RootFs:    "docker:///docker.com/docker",
 						Instances: 1,
-						MemoryMB:  1024,
-						DiskMB:    512,
-						CPUWeight: 42,
-						Action: &models.DownloadAction{
+						MemoryMb:  1024,
+						DiskMb:    512,
+						CpuWeight: 42,
+						Action: models.WrapAction(&models.DownloadAction{
 							From: "http://example.com",
 							To:   "/tmp/internet",
 							User: "diego",
-						},
+						}),
 					},
 				}}
 

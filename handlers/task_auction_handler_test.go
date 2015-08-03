@@ -7,7 +7,7 @@ import (
 
 	fake_auction_runner "github.com/cloudfoundry-incubator/auction/auctiontypes/fakes"
 	"github.com/cloudfoundry-incubator/auctioneer/handlers"
-	"github.com/cloudfoundry-incubator/runtime-schema/models"
+	"github.com/cloudfoundry-incubator/bbs/models"
 	"github.com/pivotal-golang/lager"
 	"github.com/pivotal-golang/lager/lagertest"
 
@@ -34,17 +34,18 @@ var _ = Describe("TaskAuctionHandler", func() {
 
 	Describe("Create", func() {
 		Context("when the request body is a task", func() {
-			var tasks []models.Task
+			var tasks []*models.Task
 
 			BeforeEach(func() {
-				tasks = []models.Task{{
+				tasks = []*models.Task{{
 					TaskGuid: "the-task-guid",
 					Domain:   "some-domain",
-					RootFS:   "some:rootfs",
-					Action: &models.RunAction{
-						User: "me",
-						Path: "ls",
-					},
+					RootFs:   "some:rootfs",
+					Action: models.WrapAction(&models.RunAction{
+						User:           "me",
+						Path:           "ls",
+						ResourceLimits: &models.ResourceLimits{},
+					}),
 				}}
 
 				handler.Create(responseRecorder, newTestRequest(tasks), logger)
@@ -67,10 +68,10 @@ var _ = Describe("TaskAuctionHandler", func() {
 		})
 
 		Context("when the request body is a not a valid task", func() {
-			var tasks []models.Task
+			var tasks []*models.Task
 
 			BeforeEach(func() {
-				tasks = []models.Task{{TaskGuid: "the-task-guid"}}
+				tasks = []*models.Task{{TaskGuid: "the-task-guid"}}
 
 				handler.Create(responseRecorder, newTestRequest(tasks), logger)
 			})

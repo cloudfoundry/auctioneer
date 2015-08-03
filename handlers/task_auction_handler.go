@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/cloudfoundry-incubator/auction/auctiontypes"
-	"github.com/cloudfoundry-incubator/runtime-schema/models"
+	"github.com/cloudfoundry-incubator/bbs/models"
 	"github.com/pivotal-golang/lager"
 )
 
@@ -34,7 +34,7 @@ func (h *TaskAuctionHandler) Create(w http.ResponseWriter, r *http.Request, logg
 		return
 	}
 
-	tasks := []models.Task{}
+	tasks := []*models.Task{}
 	err = json.Unmarshal(payload, &tasks)
 	if err != nil {
 		logger.Error("malformed-json", err)
@@ -42,7 +42,7 @@ func (h *TaskAuctionHandler) Create(w http.ResponseWriter, r *http.Request, logg
 		return
 	}
 
-	validTasks := make([]models.Task, 0, len(tasks))
+	validTasks := make([]*models.Task, 0, len(tasks))
 	taskGuids := make([]string, 0, len(tasks))
 	for _, t := range tasks {
 		if err := t.Validate(); err == nil {

@@ -5,8 +5,8 @@ import (
 
 	"github.com/cloudfoundry-incubator/auction/auctiontypes"
 	"github.com/cloudfoundry-incubator/auctioneer/auctionmetricemitterdelegate"
+	"github.com/cloudfoundry-incubator/bbs/models"
 	"github.com/cloudfoundry-incubator/runtime-schema/diego_errors"
-	"github.com/cloudfoundry-incubator/runtime-schema/models"
 	"github.com/cloudfoundry/dropsonde/metric_sender/fake"
 	"github.com/cloudfoundry/dropsonde/metrics"
 
@@ -30,26 +30,26 @@ var _ = Describe("Auction Metric Emitter Delegate", func() {
 			delegate.AuctionCompleted(auctiontypes.AuctionResults{
 				SuccessfulLRPs: []auctiontypes.LRPAuction{
 					{
-						DesiredLRP: models.DesiredLRP{ProcessGuid: "successful-start"},
+						DesiredLRP: &models.DesiredLRP{ProcessGuid: "successful-start"},
 					},
 				},
 				SuccessfulTasks: []auctiontypes.TaskAuction{
-					{Task: models.Task{
+					{Task: &models.Task{
 						TaskGuid: "successful-task",
 					}},
 				},
 				FailedLRPs: []auctiontypes.LRPAuction{
 					{
-						DesiredLRP:    models.DesiredLRP{ProcessGuid: "insufficient-capacity", Domain: "domain", Instances: 1},
+						DesiredLRP:    &models.DesiredLRP{ProcessGuid: "insufficient-capacity", Domain: "domain", Instances: 1},
 						AuctionRecord: auctiontypes.AuctionRecord{PlacementError: diego_errors.INSUFFICIENT_RESOURCES_MESSAGE},
 					},
 					{
-						DesiredLRP:    models.DesiredLRP{ProcessGuid: "incompatible-stacks", Domain: "domain", Instances: 1},
+						DesiredLRP:    &models.DesiredLRP{ProcessGuid: "incompatible-stacks", Domain: "domain", Instances: 1},
 						AuctionRecord: auctiontypes.AuctionRecord{PlacementError: diego_errors.CELL_MISMATCH_MESSAGE},
 					},
 				},
 				FailedTasks: []auctiontypes.TaskAuction{
-					{Task: models.Task{
+					{Task: &models.Task{
 						TaskGuid: "failed-task",
 					},
 						AuctionRecord: auctiontypes.AuctionRecord{PlacementError: diego_errors.INSUFFICIENT_RESOURCES_MESSAGE},

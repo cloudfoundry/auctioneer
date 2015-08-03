@@ -110,26 +110,26 @@ var _ = Describe("Auction Runner Delegate", func() {
 			results = auctiontypes.AuctionResults{
 				SuccessfulLRPs: []auctiontypes.LRPAuction{
 					{
-						DesiredLRP: oldmodels.DesiredLRP{ProcessGuid: "successful-start"},
+						DesiredLRP: &models.DesiredLRP{ProcessGuid: "successful-start"},
 					},
 				},
 				SuccessfulTasks: []auctiontypes.TaskAuction{
-					{Task: oldmodels.Task{
+					{Task: &models.Task{
 						TaskGuid: "successful-task",
 					}},
 				},
 				FailedLRPs: []auctiontypes.LRPAuction{
 					{
-						DesiredLRP:    oldmodels.DesiredLRP{ProcessGuid: "insufficient-capacity", Domain: "domain", Instances: 1},
+						DesiredLRP:    &models.DesiredLRP{ProcessGuid: "insufficient-capacity", Domain: "domain", Instances: 1},
 						AuctionRecord: auctiontypes.AuctionRecord{PlacementError: diego_errors.INSUFFICIENT_RESOURCES_MESSAGE},
 					},
 					{
-						DesiredLRP:    oldmodels.DesiredLRP{ProcessGuid: "incompatible-stacks", Domain: "domain", Instances: 1},
+						DesiredLRP:    &models.DesiredLRP{ProcessGuid: "incompatible-stacks", Domain: "domain", Instances: 1},
 						AuctionRecord: auctiontypes.AuctionRecord{PlacementError: diego_errors.CELL_MISMATCH_MESSAGE},
 					},
 				},
 				FailedTasks: []auctiontypes.TaskAuction{
-					{Task: oldmodels.Task{
+					{Task: &models.Task{
 						TaskGuid: "failed-task",
 					},
 						AuctionRecord: auctiontypes.AuctionRecord{PlacementError: diego_errors.INSUFFICIENT_RESOURCES_MESSAGE},
