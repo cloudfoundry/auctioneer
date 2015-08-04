@@ -6,8 +6,8 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/cloudfoundry-incubator/auctioneer"
 	"github.com/cloudfoundry-incubator/bbs"
+	"github.com/cloudfoundry-incubator/bbs/auctionhandlers"
 	bbstestrunner "github.com/cloudfoundry-incubator/bbs/cmd/bbs/testrunner"
 	"github.com/cloudfoundry-incubator/consuladapter"
 	"github.com/cloudfoundry-incubator/consuladapter/consulrunner"
@@ -50,7 +50,7 @@ var etcdClient storeadapter.StoreAdapter
 var consulRunner *consulrunner.ClusterRunner
 var consulSession *consuladapter.Session
 
-var auctioneerClient auctioneer.Client
+var auctioneerClient auctionhandlers.Client
 
 var bbsArgs bbstestrunner.Args
 var bbsBinPath string
@@ -99,7 +99,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 		"http",
 	)
 
-	auctioneerClient = auctioneer.NewClient(auctioneerAddress)
+	auctioneerClient = auctionhandlers.NewClient(auctioneerAddress)
 
 	logger = lagertest.NewTestLogger("test")
 
