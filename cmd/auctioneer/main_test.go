@@ -3,9 +3,9 @@ package main_test
 import (
 	"github.com/cloudfoundry-incubator/bbs"
 	"github.com/cloudfoundry-incubator/bbs/models"
+	"github.com/cloudfoundry-incubator/bbs/models/internal/model_helpers"
 	"github.com/cloudfoundry-incubator/runtime-schema/bbs/shared"
 	"github.com/cloudfoundry-incubator/runtime-schema/diego_errors"
-	oldmodels "github.com/cloudfoundry-incubator/runtime-schema/models"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
@@ -27,6 +27,13 @@ var exampleDesiredLRP = models.DesiredLRP{
 	Action:      models.WrapAction(dummyAction),
 	Domain:      "test",
 	Instances:   2,
+}
+
+func exampleTaskDefinition() *models.TaskDefinition {
+	taskDef := model_helpers.NewValidTaskDefinition()
+	taskDef.RootFs = linuxRootFSURL
+	taskDef.Action = models.WrapAction(dummyAction)
+	return taskDef
 }
 
 var _ = Describe("Auctioneer", func() {
@@ -75,18 +82,10 @@ var _ = Describe("Auctioneer", func() {
 
 		Context("when there are sufficient resources to start the task", func() {
 			BeforeEach(func() {
-				task := oldmodels.Task{
-					TaskGuid: "task-guid",
-					DiskMB:   1,
-					MemoryMB: 1,
-					RootFS:   linuxRootFSURL,
-					Action:   dummyAction,
-					Domain:   "test",
-				}
-				err := legacyBBS.DesireTask(logger, task)
-				Expect(err).NotTo(HaveOccurred())
-
-				err = auctioneerClient.RequestTaskAuctions([]oldmodels.Task{task})
+				taskDef := exampleTaskDefinition()
+				taskDef.DiskMb = 1
+				taskDef.MemoryMb = 1
+				err := bbsClient.DesireTask("guid", "domain", taskDef)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -98,19 +97,11 @@ var _ = Describe("Auctioneer", func() {
 
 		Context("when there are insufficient resources to start the task", func() {
 			BeforeEach(func() {
-				task := oldmodels.Task{
-					TaskGuid: "task-guid",
-					DiskMB:   1000,
-					MemoryMB: 1000,
-					RootFS:   linuxRootFSURL,
-					Action:   dummyAction,
-					Domain:   "test",
-				}
+				taskDef := exampleTaskDefinition()
+				taskDef.DiskMb = 1000
+				taskDef.MemoryMb = 1000
 
-				err := legacyBBS.DesireTask(logger, task)
-				Expect(err).NotTo(HaveOccurred())
-
-				err = auctioneerClient.RequestTaskAuctions([]oldmodels.Task{task})
+				err := bbsClient.DesireTask("task-guid", "domain", taskDef)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -145,16 +136,14 @@ var _ = Describe("Auctioneer", func() {
 	})
 
 	Context("when the auctioneer cannot acquire the lock on startup", func() {
-		task := oldmodels.Task{
-			TaskGuid: "task-guid",
-			DiskMB:   1,
-			MemoryMB: 1,
-			RootFS:   linuxRootFSURL,
-			Action:   dummyAction,
-			Domain:   "test",
-		}
+		var task *models.Task
 
 		BeforeEach(func() {
+			task = &models.Task{
+				TaskDefinition: exampleTaskDefinition(),
+				TaskGuid:       "task-guid",
+				Domain:         "test",
+			}
 			err := consulSession.AcquireLock(shared.LockSchemaPath("auctioneer_lock"), []byte{})
 			Expect(err).NotTo(HaveOccurred())
 
@@ -165,7 +154,7 @@ var _ = Describe("Auctioneer", func() {
 
 		It("should not advertise its presence, and should not be reachable", func() {
 			Eventually(func() error {
-				return auctioneerClient.RequestTaskAuctions([]oldmodels.Task{task})
+				return auctioneerClient.RequestTaskAuctions([]*models.Task{task})
 			}).Should(HaveOccurred())
 		})
 
@@ -175,7 +164,7 @@ var _ = Describe("Auctioneer", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			Eventually(func() error {
-				return auctioneerClient.RequestTaskAuctions([]oldmodels.Task{task})
+				return auctioneerClient.RequestTaskAuctions([]*models.Task{task})
 			}).ShouldNot(HaveOccurred())
 		})
 	})
