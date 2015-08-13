@@ -141,9 +141,8 @@ var _ = Describe("Auction Runner Delegate", func() {
 		})
 
 		It("should mark all failed tasks as COMPLETE with the appropriate failure reason", func() {
-			Expect(legacyBBS.FailTaskCallCount()).To(Equal(1))
-			failTaskLogger, taskGuid, failureReason := legacyBBS.FailTaskArgsForCall(0)
-			Expect(failTaskLogger).To(Equal(logger))
+			Expect(bbsClient.FailTaskCallCount()).To(Equal(1))
+			taskGuid, failureReason := bbsClient.FailTaskArgsForCall(0)
 			Expect(taskGuid).To(Equal("failed-task"))
 			Expect(failureReason).To(Equal(diego_errors.INSUFFICIENT_RESOURCES_MESSAGE))
 		})

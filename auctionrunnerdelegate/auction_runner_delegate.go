@@ -44,7 +44,7 @@ func (a *AuctionRunnerDelegate) FetchCellReps() (map[string]auctiontypes.CellRep
 
 func (a *AuctionRunnerDelegate) AuctionCompleted(results auctiontypes.AuctionResults) {
 	for _, task := range results.FailedTasks {
-		err := a.legacyBBS.FailTask(a.logger, task.Identifier(), task.PlacementError)
+		err := a.bbsClient.FailTask(task.Task.TaskGuid, task.PlacementError)
 		if err != nil {
 			a.logger.Error("failed-to-fail-task", err, lager.Data{
 				"task":           task,
