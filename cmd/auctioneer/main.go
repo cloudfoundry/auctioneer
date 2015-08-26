@@ -60,12 +60,6 @@ var lockRetryInterval = flag.Duration(
 	"interval to wait before retrying a failed lock acquisition",
 )
 
-var receptorTaskHandlerURL = flag.String(
-	"receptorTaskHandlerURL",
-	"http://127.0.0.1:1169",
-	"location of receptor task handler",
-)
-
 var listenAddr = flag.String(
 	"listenAddr",
 	"0.0.0.0:9016",
@@ -183,7 +177,7 @@ func initializeBBS(etcdOptions *etcdstoreadapter.ETCDOptions, logger lager.Logge
 		logger.Fatal("failed-to-construct-etcd-tls-client", err)
 	}
 
-	return legacybbs.NewAuctioneerBBS(etcdAdapter, consulSession, *receptorTaskHandlerURL, clock.NewClock(), logger)
+	return legacybbs.NewAuctioneerBBS(etcdAdapter, consulSession, clock.NewClock(), logger)
 }
 
 func initializeDropsonde(logger lager.Logger) {

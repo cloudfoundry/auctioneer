@@ -132,7 +132,7 @@ var _ = BeforeEach(func() {
 	consulRunner.Reset()
 	consulSession = consulRunner.NewSession("a-session")
 
-	legacyBBS = legacybbs.NewBBS(etcdClient, consulSession, "http://receptor.bogus.com", clock.NewClock(), logger)
+	legacyBBS = legacybbs.NewBBS(etcdClient, consulSession, clock.NewClock(), logger)
 
 	runner = ginkgomon.New(ginkgomon.Config{
 		Name: "auctioneer",
