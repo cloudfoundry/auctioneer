@@ -86,6 +86,8 @@ func main() {
 	etcdFlags := etcdstoreadapter.AddFlags(flag.CommandLine)
 	flag.Parse()
 
+	cf_http.Initialize(*communicationTimeout)
+
 	logger, reconfigurableSink := cf_lager.New("auctioneer")
 	initializeDropsonde(logger)
 
@@ -116,8 +118,6 @@ func main() {
 	auctionRunner := initializeAuctionRunner(bbsClient, legacyBBS, consulSession, logger)
 	auctionServer := initializeAuctionServer(auctionRunner, logger)
 	lockMaintainer := initializeLockMaintainer(legacyBBS, logger)
-
-	cf_http.Initialize(*communicationTimeout)
 
 	members := grouper.Members{
 		{"lock-maintainer", lockMaintainer},
