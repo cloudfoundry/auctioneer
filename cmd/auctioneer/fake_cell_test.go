@@ -6,16 +6,15 @@ import (
 	"time"
 
 	"github.com/cloudfoundry-incubator/auction/simulation/simulationrep"
+	"github.com/cloudfoundry-incubator/rep"
 
 	"github.com/pivotal-golang/lager"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/cloudfoundry-incubator/auction/communication/http/routes"
-
 	"github.com/cloudfoundry-incubator/auction/auctiontypes"
-	"github.com/cloudfoundry-incubator/auction/communication/http/auction_http_handlers"
+	rephandlers "github.com/cloudfoundry-incubator/rep/handlers"
 	Bbs "github.com/cloudfoundry-incubator/runtime-schema/bbs"
 	"github.com/cloudfoundry-incubator/runtime-schema/models"
 	"github.com/tedsuo/ifrit"
@@ -69,8 +68,8 @@ func (f *FakeCell) SpinUp(bbs *Bbs.BBS) {
 	//spin up an http auction server
 	logger := lager.NewLogger(f.cellID)
 	logger.RegisterSink(lager.NewWriterSink(GinkgoWriter, lager.INFO))
-	handlers := auction_http_handlers.New(f.SimulationRep, logger)
-	router, err := rata.NewRouter(routes.Routes, handlers)
+	handlers := rephandlers.New(f.SimulationRep, logger)
+	router, err := rata.NewRouter(rep.Routes, handlers)
 	Expect(err).NotTo(HaveOccurred())
 	f.server = httptest.NewServer(router)
 

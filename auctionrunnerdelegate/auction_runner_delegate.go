@@ -3,9 +3,9 @@ package auctionrunnerdelegate
 import (
 	"net/http"
 
-	"github.com/cloudfoundry-incubator/auction/communication/http/auction_http_client"
 	"github.com/cloudfoundry-incubator/bbs"
 	"github.com/cloudfoundry-incubator/bbs/models"
+	"github.com/cloudfoundry-incubator/rep"
 
 	"github.com/cloudfoundry-incubator/auction/auctiontypes"
 	legacybbs "github.com/cloudfoundry-incubator/runtime-schema/bbs"
@@ -36,7 +36,7 @@ func (a *AuctionRunnerDelegate) FetchCellReps() (map[string]auctiontypes.CellRep
 	}
 
 	for _, cell := range cells {
-		cellReps[cell.CellID] = auction_http_client.New(a.client, cell.CellID, cell.RepAddress, a.logger.Session(cell.RepAddress))
+		cellReps[cell.CellID] = rep.NewClient(a.client, cell.CellID, cell.RepAddress, a.logger.Session(cell.RepAddress))
 	}
 
 	return cellReps, nil
