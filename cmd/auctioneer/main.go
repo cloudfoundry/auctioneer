@@ -12,8 +12,8 @@ import (
 
 	"github.com/cloudfoundry-incubator/auctioneer/auctionmetricemitterdelegate"
 	"github.com/cloudfoundry-incubator/auctioneer/auctionrunnerdelegate"
+	"github.com/cloudfoundry-incubator/auctioneer/handlers"
 	"github.com/cloudfoundry-incubator/bbs"
-	"github.com/cloudfoundry-incubator/bbs/auctionhandlers"
 	"github.com/cloudfoundry-incubator/cf-debug-server"
 	cf_lager "github.com/cloudfoundry-incubator/cf-lager"
 	"github.com/cloudfoundry-incubator/cf_http"
@@ -188,7 +188,7 @@ func initializeDropsonde(logger lager.Logger) {
 }
 
 func initializeAuctionServer(runner auctiontypes.AuctionRunner, logger lager.Logger) ifrit.Runner {
-	return http_server.New(*listenAddr, auctionhandlers.New(runner, logger))
+	return http_server.New(*listenAddr, handlers.New(runner, logger))
 }
 
 func initializeLockMaintainer(bbs legacybbs.AuctioneerBBS, logger lager.Logger) ifrit.Runner {
