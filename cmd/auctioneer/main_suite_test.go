@@ -118,6 +118,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	etcdUrl := fmt.Sprintf("http://127.0.0.1:%d", etcdPort)
 	bbsArgs = bbstestrunner.Args{
 		Address:           bbsAddress,
+		AdvertiseURL:      bbsURL.String(),
 		AuctioneerAddress: auctioneerAddress,
 		EtcdCluster:       etcdUrl,
 		ConsulCluster:     consulRunner.ConsulCluster(),
@@ -125,11 +126,12 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 })
 
 var _ = BeforeEach(func() {
+	consulRunner.Reset()
 	etcdRunner.Start()
+
 	bbsRunner = bbstestrunner.New(bbsBinPath, bbsArgs)
 	bbsProcess = ginkgomon.Invoke(bbsRunner)
 
-	consulRunner.Reset()
 	consulSession = consulRunner.NewSession("a-session")
 
 	legacyBBS = legacybbs.NewBBS(etcdClient, consulSession, clock.NewClock(), logger)
