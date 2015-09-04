@@ -1,8 +1,6 @@
 package auctionrunnerdelegate
 
 import (
-	"net/http"
-
 	"github.com/cloudfoundry-incubator/bbs"
 	"github.com/cloudfoundry-incubator/bbs/models"
 	"github.com/cloudfoundry-incubator/rep"
@@ -13,30 +11,30 @@ import (
 )
 
 type AuctionRunnerDelegate struct {
-	client    *http.Client
-	bbsClient bbs.Client
-	legacyBBS legacybbs.AuctioneerBBS
-	logger    lager.Logger
+	repClientFactory rep.ClientFactory
+	bbsClient        bbs.Client
+	legacyBBS        legacybbs.AuctioneerBBS
+	logger           lager.Logger
 }
 
-func New(client *http.Client, bbsClient bbs.Client, legacyBBS legacybbs.AuctioneerBBS, logger lager.Logger) *AuctionRunnerDelegate {
+func New(repClientFactory rep.ClientFactory, bbsClient bbs.Client, legacyBBS legacybbs.AuctioneerBBS, logger lager.Logger) *AuctionRunnerDelegate {
 	return &AuctionRunnerDelegate{
-		client:    client,
-		bbsClient: bbsClient,
-		legacyBBS: legacyBBS,
-		logger:    logger,
+		repClientFactory: repClientFactory,
+		bbsClient:        bbsClient,
+		legacyBBS:        legacyBBS,
+		logger:           logger,
 	}
 }
 
-func (a *AuctionRunnerDelegate) FetchCellReps() (map[string]auctiontypes.CellRep, error) {
+func (a *AuctionRunnerDelegate) FetchCellReps() (map[string]rep.Client, error) {
 	cells, err := a.legacyBBS.Cells()
-	cellReps := map[string]auctiontypes.CellRep{}
+	cellReps := map[string]rep.Client{}
 	if err != nil {
 		return cellReps, err
 	}
 
 	for _, cell := range cells {
-		cellReps[cell.CellID] = rep.NewClient(a.client, cell.CellID, cell.RepAddress, a.logger.Session(cell.RepAddress))
+		cellReps[cell.CellID] = a.repClientFactory.CreateClient(cell.RepAddress)
 	}
 
 	return cellReps, nil

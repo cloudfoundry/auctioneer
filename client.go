@@ -6,15 +6,14 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/cloudfoundry-incubator/bbs/models"
 	"github.com/cloudfoundry-incubator/cf_http"
 	"github.com/tedsuo/rata"
 )
 
 //go:generate counterfeiter -o auctioneerfakes/fake_client.go . Client
 type Client interface {
-	RequestLRPAuctions(lrpStart []*models.LRPStartRequest) error
-	RequestTaskAuctions(tasks []*models.Task) error
+	RequestLRPAuctions(lrpStart []*LRPStartRequest) error
+	RequestTaskAuctions(tasks []*TaskStartRequest) error
 }
 
 type auctioneerClient struct {
@@ -29,7 +28,7 @@ func NewClient(auctioneerURL string) Client {
 	}
 }
 
-func (c *auctioneerClient) RequestLRPAuctions(lrpStarts []*models.LRPStartRequest) error {
+func (c *auctioneerClient) RequestLRPAuctions(lrpStarts []*LRPStartRequest) error {
 	reqGen := rata.NewRequestGenerator(c.url, Routes)
 
 	payload, err := json.Marshal(lrpStarts)
@@ -57,7 +56,7 @@ func (c *auctioneerClient) RequestLRPAuctions(lrpStarts []*models.LRPStartReques
 	return nil
 }
 
-func (c *auctioneerClient) RequestTaskAuctions(tasks []*models.Task) error {
+func (c *auctioneerClient) RequestTaskAuctions(tasks []*TaskStartRequest) error {
 	reqGen := rata.NewRequestGenerator(c.url, Routes)
 
 	payload, err := json.Marshal(tasks)

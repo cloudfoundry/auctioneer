@@ -2,15 +2,13 @@ package auctionrunnerdelegate_test
 
 import (
 	"errors"
-	"net/http"
 
 	"github.com/cloudfoundry-incubator/auction/auctiontypes"
 	"github.com/cloudfoundry-incubator/bbs/fake_bbs"
 	"github.com/cloudfoundry-incubator/bbs/models"
+	"github.com/cloudfoundry-incubator/rep/repfakes"
 	"github.com/cloudfoundry/dropsonde/metric_sender/fake"
 	"github.com/cloudfoundry/dropsonde/metrics"
-
-	"github.com/onsi/gomega/ghttp"
 
 	"github.com/pivotal-golang/lager"
 	"github.com/pivotal-golang/lager/lagertest"
@@ -26,11 +24,13 @@ import (
 
 var _ = Describe("Auction Runner Delegate", func() {
 	var (
-		delegate     *auctionrunnerdelegate.AuctionRunnerDelegate
-		bbsClient    *fake_bbs.FakeClient
-		legacyBBS    *fake_legacy_bbs.FakeAuctioneerBBS
-		metricSender *fake.FakeMetricSender
-		logger       lager.Logger
+		delegate         *auctionrunnerdelegate.AuctionRunnerDelegate
+		bbsClient        *fake_bbs.FakeClient
+		legacyBBS        *fake_legacy_bbs.FakeAuctioneerBBS
+		metricSender     *fake.FakeMetricSender
+		repClientFactory *repfakes.FakeClientFactory
+		repClient        *repfakes.FakeClient
+		logger           lager.Logger
 	)
 
 	BeforeEach(func() {
@@ -39,54 +39,40 @@ var _ = Describe("Auction Runner Delegate", func() {
 
 		bbsClient = &fake_bbs.FakeClient{}
 		legacyBBS = &fake_legacy_bbs.FakeAuctioneerBBS{}
+		repClientFactory = &repfakes.FakeClientFactory{}
+		repClient = &repfakes.FakeClient{}
+		repClientFactory.CreateClientReturns(repClient)
 		logger = lagertest.NewTestLogger("delegate")
-		delegate = auctionrunnerdelegate.New(&http.Client{}, bbsClient, legacyBBS, logger)
+
+		delegate = auctionrunnerdelegate.New(repClientFactory, bbsClient, legacyBBS, logger)
 	})
 
 	Describe("fetching cell reps", func() {
 		Context("when the BSS succeeds", func() {
-			var serverA, serverB *ghttp.Server
-			var calledA, calledB chan struct{}
-
 			BeforeEach(func() {
-				serverA = ghttp.NewServer()
-				serverB = ghttp.NewServer()
-
-				calledA = make(chan struct{})
-				calledB = make(chan struct{})
-
-				serverA.RouteToHandler("GET", "/state", func(http.ResponseWriter, *http.Request) {
-					close(calledA)
-				})
-
-				serverB.RouteToHandler("GET", "/state", func(http.ResponseWriter, *http.Request) {
-					close(calledB)
-				})
-
 				legacyBBS.CellsReturns([]oldmodels.CellPresence{
-					oldmodels.NewCellPresence("cell-A", serverA.URL(), "zone-1", oldmodels.NewCellCapacity(123, 456, 789), []string{}, []string{}),
-					oldmodels.NewCellPresence("cell-B", serverB.URL(), "zone-2", oldmodels.NewCellCapacity(123, 456, 789), []string{}, []string{}),
+					oldmodels.NewCellPresence("cell-A", "cell-a.url", "zone-1", oldmodels.NewCellCapacity(123, 456, 789), []string{}, []string{}),
+					oldmodels.NewCellPresence("cell-B", "cell-b.url", "zone-1", oldmodels.NewCellCapacity(123, 456, 789), []string{}, []string{}),
 				}, nil)
 			})
 
-			AfterEach(func() {
-				serverA.Close()
-				serverB.Close()
+			It("creates rep clients with the correct addresses", func() {
+				_, err := delegate.FetchCellReps()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(repClientFactory.CreateClientCallCount()).To(Equal(2))
+				Expect(repClientFactory.CreateClientArgsForCall(0)).To(Equal("cell-a.url"))
+				Expect(repClientFactory.CreateClientArgsForCall(1)).To(Equal("cell-b.url"))
 			})
 
 			It("returns correctly configured auction_http_clients", func() {
-				cells, err := delegate.FetchCellReps()
+				reps, err := delegate.FetchCellReps()
 				Expect(err).NotTo(HaveOccurred())
-				Expect(cells).To(HaveLen(2))
-				Expect(cells).To(HaveKey("cell-A"))
-				Expect(cells).To(HaveKey("cell-B"))
+				Expect(reps).To(HaveLen(2))
+				Expect(reps).To(HaveKey("cell-A"))
+				Expect(reps).To(HaveKey("cell-B"))
 
-				Expect(calledA).NotTo(BeClosed())
-				Expect(calledB).NotTo(BeClosed())
-				cells["cell-A"].State()
-				Expect(calledA).To(BeClosed())
-				cells["cell-B"].State()
-				Expect(calledB).To(BeClosed())
+				Expect(reps["cell-A"]).To(Equal(repClient))
+				Expect(reps["cell-B"]).To(Equal(repClient))
 			})
 		})
 
