@@ -13,8 +13,10 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/cloudfoundry-incubator/auction/auctiontypes"
+	executorfakes "github.com/cloudfoundry-incubator/executor/fakes"
+	"github.com/cloudfoundry-incubator/rep/evacuation/evacuation_context/fake_evacuation_context"
 	rephandlers "github.com/cloudfoundry-incubator/rep/handlers"
+	"github.com/cloudfoundry-incubator/rep/lrp_stopper/fake_lrp_stopper"
 	Bbs "github.com/cloudfoundry-incubator/runtime-schema/bbs"
 	"github.com/cloudfoundry-incubator/runtime-schema/models"
 	"github.com/tedsuo/ifrit"
@@ -27,7 +29,7 @@ type FakeCell struct {
 	server      *httptest.Server
 	heartbeater ifrit.Process
 
-	SimulationRep auctiontypes.SimulationCellRep
+	SimulationRep rep.SimClient
 }
 
 func SpinUpFakeCell(bbs *Bbs.BBS, cellID string, stack string) *FakeCell {
@@ -41,7 +43,7 @@ func SpinUpFakeCell(bbs *Bbs.BBS, cellID string, stack string) *FakeCell {
 	return fakeRep
 }
 
-func (f *FakeCell) LRPs() ([]auctiontypes.LRP, error) {
+func (f *FakeCell) LRPs() ([]rep.LRP, error) {
 	state, err := f.SimulationRep.State()
 	if err != nil {
 		return nil, err
@@ -49,7 +51,7 @@ func (f *FakeCell) LRPs() ([]auctiontypes.LRP, error) {
 	return state.LRPs, nil
 }
 
-func (f *FakeCell) Tasks() ([]auctiontypes.Task, error) {
+func (f *FakeCell) Tasks() ([]rep.Task, error) {
 	state, err := f.SimulationRep.State()
 	if err != nil {
 		return nil, err
@@ -59,7 +61,7 @@ func (f *FakeCell) Tasks() ([]auctiontypes.Task, error) {
 
 func (f *FakeCell) SpinUp(bbs *Bbs.BBS) {
 	//make a test-friendly AuctionRepDelegate using the auction package's SimulationRepDelegate
-	f.SimulationRep = simulationrep.New(f.stack, "Z0", auctiontypes.Resources{
+	f.SimulationRep = simulationrep.New(f.stack, "Z0", rep.Resources{
 		DiskMB:     100,
 		MemoryMB:   100,
 		Containers: 100,
@@ -68,7 +70,12 @@ func (f *FakeCell) SpinUp(bbs *Bbs.BBS) {
 	//spin up an http auction server
 	logger := lager.NewLogger(f.cellID)
 	logger.RegisterSink(lager.NewWriterSink(GinkgoWriter, lager.INFO))
-	handlers := rephandlers.New(f.SimulationRep, logger)
+
+	fakeLRPStopper := new(fake_lrp_stopper.FakeLRPStopper)
+	fakeExecutorClient := new(executorfakes.FakeClient)
+	fakeEvacuatable := new(fake_evacuation_context.FakeEvacuatable)
+
+	handlers := rephandlers.New(f.SimulationRep, fakeLRPStopper, fakeExecutorClient, fakeEvacuatable, logger)
 	router, err := rata.NewRouter(rep.Routes, handlers)
 	Expect(err).NotTo(HaveOccurred())
 	f.server = httptest.NewServer(router)

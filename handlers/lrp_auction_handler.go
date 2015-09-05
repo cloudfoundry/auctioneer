@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/cloudfoundry-incubator/auction/auctiontypes"
-	"github.com/cloudfoundry-incubator/bbs/models"
+	"github.com/cloudfoundry-incubator/auctioneer"
 	"github.com/pivotal-golang/lager"
 )
 
@@ -34,7 +34,7 @@ func (h *LRPAuctionHandler) Create(w http.ResponseWriter, r *http.Request, logge
 		return
 	}
 
-	starts := []models.LRPStartRequest{}
+	starts := []auctioneer.LRPStartRequest{}
 	err = json.Unmarshal(payload, &starts)
 	if err != nil {
 		logger.Error("malformed-json", err)
@@ -42,14 +42,15 @@ func (h *LRPAuctionHandler) Create(w http.ResponseWriter, r *http.Request, logge
 		return
 	}
 
-	validStarts := make([]models.LRPStartRequest, 0, len(starts))
-	lrpGuids := make(map[string][]uint)
-	for _, start := range starts {
+	validStarts := make([]auctioneer.LRPStartRequest, 0, len(starts))
+	lrpGuids := make(map[string][]int)
+	for i := range starts {
+		start := &starts[i]
 		if err := start.Validate(); err == nil {
-			validStarts = append(validStarts, start)
-			indices := lrpGuids[start.DesiredLRP.ProcessGuid]
+			validStarts = append(validStarts, *start)
+			indices := lrpGuids[start.ProcessGuid]
 			indices = append(indices, start.Indices...)
-			lrpGuids[start.DesiredLRP.ProcessGuid] = indices
+			lrpGuids[start.ProcessGuid] = indices
 		} else {
 			logger.Error("start-validate-failed", err, lager.Data{"lrp-start": start})
 		}

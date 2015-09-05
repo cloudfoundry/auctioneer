@@ -6,8 +6,9 @@ import (
 	"net/http/httptest"
 
 	fake_auction_runner "github.com/cloudfoundry-incubator/auction/auctiontypes/fakes"
+	"github.com/cloudfoundry-incubator/auctioneer"
 	"github.com/cloudfoundry-incubator/auctioneer/handlers"
-	"github.com/cloudfoundry-incubator/bbs/models"
+	"github.com/cloudfoundry-incubator/rep"
 	"github.com/pivotal-golang/lager"
 
 	. "github.com/onsi/ginkgo"
@@ -32,26 +33,19 @@ var _ = Describe("LRPAuctionHandler", func() {
 
 	Describe("Create", func() {
 		Context("when the request body is an LRP start auction request", func() {
-			var starts []models.LRPStartRequest
+			var starts []auctioneer.LRPStartRequest
 
 			BeforeEach(func() {
-				starts = []models.LRPStartRequest{{
-					Indices: []uint{2, 3},
+				starts = []auctioneer.LRPStartRequest{{
+					Indices: []int{2, 3},
 
-					DesiredLRP: &models.DesiredLRP{
-						Domain:      "tests",
-						ProcessGuid: "some-guid",
+					Domain:      "tests",
+					ProcessGuid: "some-guid",
+					Resource: rep.Resource{
 
-						RootFs:    "docker:///docker.com/docker",
-						Instances: 1,
-						MemoryMb:  1024,
-						DiskMb:    512,
-						CpuWeight: 42,
-						Action: models.WrapAction(&models.DownloadAction{
-							From: "http://example.com",
-							To:   "/tmp/internet",
-							User: "diego",
-						}),
+						RootFs:   "docker:///docker.com/docker",
+						MemoryMB: 1024,
+						DiskMB:   512,
 					},
 				}}
 
@@ -75,10 +69,10 @@ var _ = Describe("LRPAuctionHandler", func() {
 		})
 
 		Context("when the start auction has invalid index", func() {
-			var start models.LRPStartRequest
+			var start auctioneer.LRPStartRequest
 
 			BeforeEach(func() {
-				start = models.LRPStartRequest{}
+				start = auctioneer.LRPStartRequest{}
 
 				handler.Create(responseRecorder, newTestRequest(start), logger)
 			})

@@ -6,7 +6,7 @@ import (
 	"github.com/cloudfoundry-incubator/auction/auctiontypes"
 	"github.com/cloudfoundry-incubator/auctioneer/auctionmetricemitterdelegate"
 	"github.com/cloudfoundry-incubator/bbs/models"
-	"github.com/cloudfoundry-incubator/runtime-schema/diego_errors"
+	"github.com/cloudfoundry-incubator/rep"
 	"github.com/cloudfoundry/dropsonde/metric_sender/fake"
 	"github.com/cloudfoundry/dropsonde/metrics"
 
@@ -27,32 +27,32 @@ var _ = Describe("Auction Metric Emitter Delegate", func() {
 
 	Describe("AuctionCompleted", func() {
 		It("should adjust the metric counters", func() {
+			resource := rep.NewResource(10, 10, "linux")
 			delegate.AuctionCompleted(auctiontypes.AuctionResults{
 				SuccessfulLRPs: []auctiontypes.LRPAuction{
 					{
-						DesiredLRP: &models.DesiredLRP{ProcessGuid: "successful-start"},
+						LRP: rep.NewLRP(models.NewActualLRPKey("successful-start", 0, "domain"), resource),
 					},
 				},
 				SuccessfulTasks: []auctiontypes.TaskAuction{
-					{Task: &models.Task{
-						TaskGuid: "successful-task",
-					}},
+					{
+						Task: rep.NewTask("successful-task", "domain", resource),
+					},
 				},
 				FailedLRPs: []auctiontypes.LRPAuction{
 					{
-						DesiredLRP:    &models.DesiredLRP{ProcessGuid: "insufficient-capacity", Domain: "domain", Instances: 1},
-						AuctionRecord: auctiontypes.AuctionRecord{PlacementError: diego_errors.INSUFFICIENT_RESOURCES_MESSAGE},
+						LRP:           rep.NewLRP(models.NewActualLRPKey("insufficient-capacity", 0, "domain"), resource),
+						AuctionRecord: auctiontypes.AuctionRecord{PlacementError: rep.ErrorInsufficientResources.Error()},
 					},
 					{
-						DesiredLRP:    &models.DesiredLRP{ProcessGuid: "incompatible-stacks", Domain: "domain", Instances: 1},
-						AuctionRecord: auctiontypes.AuctionRecord{PlacementError: diego_errors.CELL_MISMATCH_MESSAGE},
+						LRP:           rep.NewLRP(models.NewActualLRPKey("incompatible-stacks", 0, "domain"), resource),
+						AuctionRecord: auctiontypes.AuctionRecord{PlacementError: auctiontypes.ErrorCellMismatch.Error()},
 					},
 				},
 				FailedTasks: []auctiontypes.TaskAuction{
-					{Task: &models.Task{
-						TaskGuid: "failed-task",
-					},
-						AuctionRecord: auctiontypes.AuctionRecord{PlacementError: diego_errors.INSUFFICIENT_RESOURCES_MESSAGE},
+					{
+						Task:          rep.NewTask("failed-task", "domain", resource),
+						AuctionRecord: auctiontypes.AuctionRecord{PlacementError: rep.ErrorInsufficientResources.Error()},
 					},
 				},
 			})

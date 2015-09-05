@@ -1,9 +1,11 @@
 package main_test
 
 import (
+	"github.com/cloudfoundry-incubator/auctioneer"
 	"github.com/cloudfoundry-incubator/bbs"
 	"github.com/cloudfoundry-incubator/bbs/models"
 	"github.com/cloudfoundry-incubator/bbs/models/test/model_helpers"
+	"github.com/cloudfoundry-incubator/rep"
 	"github.com/cloudfoundry-incubator/runtime-schema/bbs/shared"
 	"github.com/cloudfoundry-incubator/runtime-schema/diego_errors"
 	. "github.com/onsi/ginkgo"
@@ -56,15 +58,27 @@ var _ = Describe("Auctioneer", func() {
 		BeforeEach(func() {
 			auctioneerProcess = ginkgomon.Invoke(runner)
 
-			err := auctioneerClient.RequestLRPAuctions([]*models.LRPStartRequest{{
-				DesiredLRP: &exampleDesiredLRP,
-				Indices:    []uint{0},
+			err := auctioneerClient.RequestLRPAuctions([]*auctioneer.LRPStartRequest{{
+				ProcessGuid: exampleDesiredLRP.ProcessGuid,
+				Domain:      exampleDesiredLRP.Domain,
+				Indices:     []int{0},
+				Resource: rep.Resource{
+					MemoryMB: 5,
+					DiskMB:   5,
+					RootFs:   exampleDesiredLRP.RootFs,
+				},
 			}})
 			Expect(err).NotTo(HaveOccurred())
 
-			err = auctioneerClient.RequestLRPAuctions([]*models.LRPStartRequest{{
-				DesiredLRP: &exampleDesiredLRP,
-				Indices:    []uint{1},
+			err = auctioneerClient.RequestLRPAuctions([]*auctioneer.LRPStartRequest{{
+				ProcessGuid: exampleDesiredLRP.ProcessGuid,
+				Domain:      exampleDesiredLRP.Domain,
+				Indices:     []int{1},
+				Resource: rep.Resource{
+					MemoryMB: 5,
+					DiskMB:   5,
+					RootFs:   exampleDesiredLRP.RootFs,
+				},
 			}})
 			Expect(err).NotTo(HaveOccurred())
 		})
@@ -136,13 +150,17 @@ var _ = Describe("Auctioneer", func() {
 	})
 
 	Context("when the auctioneer cannot acquire the lock on startup", func() {
-		var task *models.Task
+		var task *rep.Task
 
 		BeforeEach(func() {
-			task = &models.Task{
-				TaskDefinition: exampleTaskDefinition(),
-				TaskGuid:       "task-guid",
-				Domain:         "test",
+			task = &rep.Task{
+				TaskGuid: "task-guid",
+				Domain:   "test",
+				Resource: rep.Resource{
+					MemoryMB: 124,
+					DiskMB:   456,
+					RootFs:   "some-rootfs",
+				},
 			}
 			err := consulSession.AcquireLock(shared.LockSchemaPath("auctioneer_lock"), []byte{})
 			Expect(err).NotTo(HaveOccurred())
@@ -154,7 +172,9 @@ var _ = Describe("Auctioneer", func() {
 
 		It("should not advertise its presence, and should not be reachable", func() {
 			Eventually(func() error {
-				return auctioneerClient.RequestTaskAuctions([]*models.Task{task})
+				return auctioneerClient.RequestTaskAuctions([]*auctioneer.TaskStartRequest{
+					&auctioneer.TaskStartRequest{*task},
+				})
 			}).Should(HaveOccurred())
 		})
 
@@ -164,7 +184,9 @@ var _ = Describe("Auctioneer", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			Eventually(func() error {
-				return auctioneerClient.RequestTaskAuctions([]*models.Task{task})
+				return auctioneerClient.RequestTaskAuctions([]*auctioneer.TaskStartRequest{
+					&auctioneer.TaskStartRequest{*task},
+				})
 			}).ShouldNot(HaveOccurred())
 		})
 	})

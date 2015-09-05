@@ -18,6 +18,7 @@ import (
 	cf_lager "github.com/cloudfoundry-incubator/cf-lager"
 	"github.com/cloudfoundry-incubator/cf_http"
 	"github.com/cloudfoundry-incubator/consuladapter"
+	"github.com/cloudfoundry-incubator/rep"
 	legacybbs "github.com/cloudfoundry-incubator/runtime-schema/bbs"
 	"github.com/cloudfoundry-incubator/runtime-schema/bbs/lock_bbs"
 	"github.com/cloudfoundry-incubator/runtime-schema/models"
@@ -148,8 +149,9 @@ func main() {
 
 func initializeAuctionRunner(bbsClient bbs.Client, legacyBBS legacybbs.AuctioneerBBS, consulSession *consuladapter.Session, logger lager.Logger) auctiontypes.AuctionRunner {
 	httpClient := cf_http.NewClient()
+	repClientFactory := rep.NewClientFactory(httpClient)
 
-	delegate := auctionrunnerdelegate.New(httpClient, bbsClient, legacyBBS, logger)
+	delegate := auctionrunnerdelegate.New(repClientFactory, bbsClient, legacyBBS, logger)
 	metricEmitter := auctionmetricemitterdelegate.New()
 	workPool, err := workpool.NewWorkPool(auctionRunnerWorkPoolSize)
 	if err != nil {

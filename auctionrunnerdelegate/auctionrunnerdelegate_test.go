@@ -6,6 +6,7 @@ import (
 	"github.com/cloudfoundry-incubator/auction/auctiontypes"
 	"github.com/cloudfoundry-incubator/bbs/fake_bbs"
 	"github.com/cloudfoundry-incubator/bbs/models"
+	"github.com/cloudfoundry-incubator/rep"
 	"github.com/cloudfoundry-incubator/rep/repfakes"
 	"github.com/cloudfoundry/dropsonde/metric_sender/fake"
 	"github.com/cloudfoundry/dropsonde/metrics"
@@ -15,7 +16,6 @@ import (
 
 	"github.com/cloudfoundry-incubator/auctioneer/auctionrunnerdelegate"
 	fake_legacy_bbs "github.com/cloudfoundry-incubator/runtime-schema/bbs/fake_bbs"
-	"github.com/cloudfoundry-incubator/runtime-schema/diego_errors"
 	oldmodels "github.com/cloudfoundry-incubator/runtime-schema/models"
 
 	. "github.com/onsi/ginkgo"
@@ -93,32 +93,33 @@ var _ = Describe("Auction Runner Delegate", func() {
 		var results auctiontypes.AuctionResults
 
 		BeforeEach(func() {
+			resource := rep.NewResource(10, 10, "linux")
+
 			results = auctiontypes.AuctionResults{
 				SuccessfulLRPs: []auctiontypes.LRPAuction{
 					{
-						DesiredLRP: &models.DesiredLRP{ProcessGuid: "successful-start"},
+						LRP: rep.NewLRP(models.NewActualLRPKey("successful-start", 0, "domain"), resource),
 					},
 				},
 				SuccessfulTasks: []auctiontypes.TaskAuction{
-					{Task: &models.Task{
-						TaskGuid: "successful-task",
-					}},
+					{
+						Task: rep.NewTask("successful-task", "domain", resource),
+					},
 				},
 				FailedLRPs: []auctiontypes.LRPAuction{
 					{
-						DesiredLRP:    &models.DesiredLRP{ProcessGuid: "insufficient-capacity", Domain: "domain", Instances: 1},
-						AuctionRecord: auctiontypes.AuctionRecord{PlacementError: diego_errors.INSUFFICIENT_RESOURCES_MESSAGE},
+						LRP:           rep.NewLRP(models.NewActualLRPKey("insufficient-capacity", 0, "domain"), resource),
+						AuctionRecord: auctiontypes.AuctionRecord{PlacementError: rep.ErrorInsufficientResources.Error()},
 					},
 					{
-						DesiredLRP:    &models.DesiredLRP{ProcessGuid: "incompatible-stacks", Domain: "domain", Instances: 1},
-						AuctionRecord: auctiontypes.AuctionRecord{PlacementError: diego_errors.CELL_MISMATCH_MESSAGE},
+						LRP:           rep.NewLRP(models.NewActualLRPKey("incompatible-stacks", 0, "domain"), resource),
+						AuctionRecord: auctiontypes.AuctionRecord{PlacementError: auctiontypes.ErrorCellMismatch.Error()},
 					},
 				},
 				FailedTasks: []auctiontypes.TaskAuction{
-					{Task: &models.Task{
-						TaskGuid: "failed-task",
-					},
-						AuctionRecord: auctiontypes.AuctionRecord{PlacementError: diego_errors.INSUFFICIENT_RESOURCES_MESSAGE},
+					{
+						Task:          rep.NewTask("failed-task", "domain", resource),
+						AuctionRecord: auctiontypes.AuctionRecord{PlacementError: rep.ErrorInsufficientResources.Error()},
 					},
 				},
 			}
@@ -130,19 +131,18 @@ var _ = Describe("Auction Runner Delegate", func() {
 			Expect(bbsClient.FailTaskCallCount()).To(Equal(1))
 			taskGuid, failureReason := bbsClient.FailTaskArgsForCall(0)
 			Expect(taskGuid).To(Equal("failed-task"))
-			Expect(failureReason).To(Equal(diego_errors.INSUFFICIENT_RESOURCES_MESSAGE))
+			Expect(failureReason).To(Equal(rep.ErrorInsufficientResources.Error()))
 		})
 
 		It("should mark all failed LRPs as UNCLAIMED with the appropriate placement error", func() {
 			Expect(bbsClient.FailActualLRPCallCount()).To(Equal(2))
 			lrpKey, errorMessage := bbsClient.FailActualLRPArgsForCall(0)
 			Expect(*lrpKey).To(Equal(models.NewActualLRPKey("insufficient-capacity", 0, "domain")))
-			Expect(errorMessage).To(Equal(diego_errors.INSUFFICIENT_RESOURCES_MESSAGE))
+			Expect(errorMessage).To(Equal(rep.ErrorInsufficientResources.Error()))
 
 			lrpKey1, errorMessage1 := bbsClient.FailActualLRPArgsForCall(1)
 			Expect(*lrpKey1).To(Equal(models.NewActualLRPKey("incompatible-stacks", 0, "domain")))
-			Expect(errorMessage1).To(Equal(diego_errors.CELL_MISMATCH_MESSAGE))
-
+			Expect(errorMessage1).To(Equal(auctiontypes.ErrorCellMismatch.Error()))
 		})
 	})
 })

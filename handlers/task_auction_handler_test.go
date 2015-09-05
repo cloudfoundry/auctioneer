@@ -6,9 +6,9 @@ import (
 	"net/http/httptest"
 
 	fake_auction_runner "github.com/cloudfoundry-incubator/auction/auctiontypes/fakes"
+	"github.com/cloudfoundry-incubator/auctioneer"
 	"github.com/cloudfoundry-incubator/auctioneer/handlers"
-	"github.com/cloudfoundry-incubator/bbs/models"
-	"github.com/cloudfoundry-incubator/bbs/models/test/model_helpers"
+	"github.com/cloudfoundry-incubator/rep"
 	"github.com/pivotal-golang/lager"
 	"github.com/pivotal-golang/lager/lagertest"
 
@@ -35,13 +35,12 @@ var _ = Describe("TaskAuctionHandler", func() {
 
 	Describe("Create", func() {
 		Context("when the request body is a task", func() {
-			var tasks []*models.Task
+			var tasks []auctioneer.TaskStartRequest
 
 			BeforeEach(func() {
-				tasks = []*models.Task{
-					model_helpers.NewValidTask("the-task-guid"),
-				}
-
+				resource := rep.NewResource(1, 2, "rootfs")
+				task := rep.NewTask("the-task-guid", "test", resource)
+				tasks = []auctioneer.TaskStartRequest{auctioneer.TaskStartRequest{task}}
 				handler.Create(responseRecorder, newTestRequest(tasks), logger)
 			})
 
@@ -62,10 +61,11 @@ var _ = Describe("TaskAuctionHandler", func() {
 		})
 
 		Context("when the request body is a not a valid task", func() {
-			var tasks []*models.Task
+			var tasks []auctioneer.TaskStartRequest
 
 			BeforeEach(func() {
-				tasks = []*models.Task{{TaskGuid: "the-task-guid"}}
+				task := rep.Task{}
+				tasks = []auctioneer.TaskStartRequest{auctioneer.TaskStartRequest{task}}
 
 				handler.Create(responseRecorder, newTestRequest(tasks), logger)
 			})

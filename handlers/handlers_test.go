@@ -9,8 +9,7 @@ import (
 	fake_auction_runner "github.com/cloudfoundry-incubator/auction/auctiontypes/fakes"
 	"github.com/cloudfoundry-incubator/auctioneer"
 	"github.com/cloudfoundry-incubator/auctioneer/handlers"
-	"github.com/cloudfoundry-incubator/bbs/models"
-	"github.com/cloudfoundry-incubator/bbs/models/test/model_helpers"
+	"github.com/cloudfoundry-incubator/rep"
 	"github.com/pivotal-golang/lager"
 	"github.com/pivotal-golang/lager/lagertest"
 	"github.com/tedsuo/rata"
@@ -39,10 +38,10 @@ var _ = Describe("Auction Handlers", func() {
 	Describe("Task Handler", func() {
 		Context("with a valid task", func() {
 			BeforeEach(func() {
-				tasks := []*models.Task{
-					model_helpers.NewValidTask("the-task-guid"),
-				}
+				resource := rep.NewResource(1, 2, "rootfs")
+				task := rep.NewTask("the-task-guid", "test", resource)
 
+				tasks := []auctioneer.TaskStartRequest{auctioneer.TaskStartRequest{task}}
 				reqGen := rata.NewRequestGenerator("http://localhost", auctioneer.Routes)
 
 				payload, err := json.Marshal(tasks)
@@ -64,7 +63,6 @@ var _ = Describe("Auction Handlers", func() {
 					"test.request.task-auction-handler.create.submitted",
 					"test.request.done",
 				}))
-
 			})
 		})
 	})
@@ -72,23 +70,16 @@ var _ = Describe("Auction Handlers", func() {
 	Describe("LRP Handler", func() {
 		Context("with a valid LRPStart", func() {
 			BeforeEach(func() {
-				starts := []models.LRPStartRequest{{
-					Indices: []uint{2},
+				starts := []auctioneer.LRPStartRequest{{
+					Indices: []int{2},
 
-					DesiredLRP: &models.DesiredLRP{
-						Domain:      "tests",
-						ProcessGuid: "some-guid",
+					Domain:      "tests",
+					ProcessGuid: "some-guid",
 
-						RootFs:    "docker:///docker.com/docker",
-						Instances: 1,
-						MemoryMb:  1024,
-						DiskMb:    512,
-						CpuWeight: 42,
-						Action: models.WrapAction(&models.DownloadAction{
-							From: "http://example.com",
-							To:   "/tmp/internet",
-							User: "diego",
-						}),
+					Resource: rep.Resource{
+						RootFs:   "docker:///docker.com/docker",
+						MemoryMB: 1024,
+						DiskMB:   512,
 					},
 				}}
 
