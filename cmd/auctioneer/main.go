@@ -4,6 +4,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -71,6 +72,24 @@ var bbsAddress = flag.String(
 	"Address to the BBS Server",
 )
 
+var bbsCACert = flag.String(
+	"bbsCACert",
+	"",
+	"path to certificate authority cert used for mutually authenticated TLS BBS communication",
+)
+
+var bbsClientCert = flag.String(
+	"bbsClientCert",
+	"",
+	"path to client cert used for mutually authenticated TLS BBS communication",
+)
+
+var bbsClientKey = flag.String(
+	"bbsClientKey",
+	"",
+	"path to client key used for mutually authenticated TLS BBS communication",
+)
+
 const (
 	auctionRunnerTimeout      = 10 * time.Second
 	auctionRunnerWorkPoolSize = 1000
@@ -105,9 +124,8 @@ func main() {
 	}
 
 	locketClient := locket.NewClient(consulSession, clock.NewClock(), logger)
-	bbsClient := bbs.NewClient(*bbsAddress)
 
-	auctionRunner := initializeAuctionRunner(bbsClient, locketClient, consulSession, logger)
+	auctionRunner := initializeAuctionRunner(initializeBBSClient(logger), locketClient, consulSession, logger)
 	auctionServer := initializeAuctionServer(auctionRunner, logger)
 	lockMaintainer := initializeLockMaintainer(locketClient, logger)
 
@@ -197,4 +215,21 @@ func validateBBSAddress() error {
 		return errors.New("bbsAddress is required")
 	}
 	return nil
+}
+
+func initializeBBSClient(logger lager.Logger) bbs.Client {
+	bbsURL, err := url.Parse(*bbsAddress)
+	if err != nil {
+		logger.Fatal("Invalid BBS URL", err)
+	}
+
+	if bbsURL.Scheme != "https" {
+		return bbs.NewClient(*bbsAddress)
+	}
+
+	bbsClient, err := bbs.NewSecureClient(*bbsAddress, *bbsCACert, *bbsClientCert, *bbsClientKey)
+	if err != nil {
+		logger.Fatal("Failed to configure secure BBS client", err)
+	}
+	return bbsClient
 }
