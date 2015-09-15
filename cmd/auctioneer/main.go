@@ -18,9 +18,9 @@ import (
 	cf_lager "github.com/cloudfoundry-incubator/cf-lager"
 	"github.com/cloudfoundry-incubator/cf_http"
 	"github.com/cloudfoundry-incubator/consuladapter"
+	"github.com/cloudfoundry-incubator/locket"
 	"github.com/cloudfoundry-incubator/rep"
 	legacybbs "github.com/cloudfoundry-incubator/runtime-schema/bbs"
-	"github.com/cloudfoundry-incubator/runtime-schema/bbs/lock_bbs"
 	"github.com/cloudfoundry-incubator/runtime-schema/models"
 	"github.com/pivotal-golang/lager"
 	"github.com/pivotal-golang/localip"
@@ -51,13 +51,13 @@ var consulCluster = flag.String(
 
 var lockTTL = flag.Duration(
 	"lockTTL",
-	lock_bbs.LockTTL,
+	locket.LockTTL,
 	"TTL for service lock",
 )
 
 var lockRetryInterval = flag.Duration(
 	"lockRetryInterval",
-	lock_bbs.RetryInterval,
+	locket.RetryInterval,
 	"interval to wait before retrying a failed lock acquisition",
 )
 
@@ -113,12 +113,13 @@ func main() {
 	}
 
 	legacyBBS := initializeBBS(etcdOptions, logger, consulSession)
+	locket := locket.New(consulSession, clock.NewClock(), logger)
 
 	bbsClient := bbs.NewClient(*bbsAddress)
 
 	auctionRunner := initializeAuctionRunner(bbsClient, legacyBBS, consulSession, logger)
 	auctionServer := initializeAuctionServer(auctionRunner, logger)
-	lockMaintainer := initializeLockMaintainer(legacyBBS, logger)
+	lockMaintainer := initializeLockMaintainer(locket, logger)
 
 	members := grouper.Members{
 		{"lock-maintainer", lockMaintainer},
@@ -193,7 +194,7 @@ func initializeAuctionServer(runner auctiontypes.AuctionRunner, logger lager.Log
 	return http_server.New(*listenAddr, handlers.New(runner, logger))
 }
 
-func initializeLockMaintainer(bbs legacybbs.AuctioneerBBS, logger lager.Logger) ifrit.Runner {
+func initializeLockMaintainer(locket *locket.Locket, logger lager.Logger) ifrit.Runner {
 	uuid, err := uuid.NewV4()
 	if err != nil {
 		logger.Fatal("Couldn't generate uuid", err)
@@ -208,7 +209,7 @@ func initializeLockMaintainer(bbs legacybbs.AuctioneerBBS, logger lager.Logger) 
 	address := fmt.Sprintf("%s://%s:%s", serverProtocol, localIP, port)
 
 	auctioneerPresence := models.NewAuctioneerPresence(uuid.String(), address)
-	lockMaintainer, err := bbs.NewAuctioneerLock(auctioneerPresence, *lockRetryInterval)
+	lockMaintainer, err := locket.NewAuctioneerLock(auctioneerPresence, *lockRetryInterval)
 	if err != nil {
 		logger.Fatal("Couldn't create lock maintainer", err)
 	}
