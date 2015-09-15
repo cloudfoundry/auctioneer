@@ -2,31 +2,31 @@ package auctionrunnerdelegate
 
 import (
 	"github.com/cloudfoundry-incubator/bbs"
+	"github.com/cloudfoundry-incubator/locket"
 	"github.com/cloudfoundry-incubator/rep"
 
 	"github.com/cloudfoundry-incubator/auction/auctiontypes"
-	legacybbs "github.com/cloudfoundry-incubator/runtime-schema/bbs"
 	"github.com/pivotal-golang/lager"
 )
 
 type AuctionRunnerDelegate struct {
 	repClientFactory rep.ClientFactory
 	bbsClient        bbs.Client
-	legacyBBS        legacybbs.AuctioneerBBS
+	locketClient     locket.Client
 	logger           lager.Logger
 }
 
-func New(repClientFactory rep.ClientFactory, bbsClient bbs.Client, legacyBBS legacybbs.AuctioneerBBS, logger lager.Logger) *AuctionRunnerDelegate {
+func New(repClientFactory rep.ClientFactory, bbsClient bbs.Client, locketClient locket.Client, logger lager.Logger) *AuctionRunnerDelegate {
 	return &AuctionRunnerDelegate{
 		repClientFactory: repClientFactory,
 		bbsClient:        bbsClient,
-		legacyBBS:        legacyBBS,
+		locketClient:     locketClient,
 		logger:           logger,
 	}
 }
 
 func (a *AuctionRunnerDelegate) FetchCellReps() (map[string]rep.Client, error) {
-	cells, err := a.legacyBBS.Cells()
+	cells, err := a.locketClient.Cells()
 	cellReps := map[string]rep.Client{}
 	if err != nil {
 		return cellReps, err

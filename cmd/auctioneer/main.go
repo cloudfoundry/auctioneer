@@ -20,7 +20,6 @@ import (
 	"github.com/cloudfoundry-incubator/consuladapter"
 	"github.com/cloudfoundry-incubator/locket"
 	"github.com/cloudfoundry-incubator/rep"
-	legacybbs "github.com/cloudfoundry-incubator/runtime-schema/bbs"
 	"github.com/cloudfoundry-incubator/runtime-schema/models"
 	"github.com/pivotal-golang/lager"
 	"github.com/pivotal-golang/localip"
@@ -29,7 +28,6 @@ import (
 	"github.com/cloudfoundry-incubator/auction/auctiontypes"
 	"github.com/cloudfoundry/dropsonde"
 	"github.com/cloudfoundry/gunk/workpool"
-	"github.com/cloudfoundry/storeadapter/etcdstoreadapter"
 	"github.com/pivotal-golang/clock"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
@@ -84,18 +82,12 @@ const (
 func main() {
 	cf_debug_server.AddFlags(flag.CommandLine)
 	cf_lager.AddFlags(flag.CommandLine)
-	etcdFlags := etcdstoreadapter.AddFlags(flag.CommandLine)
 	flag.Parse()
 
 	cf_http.Initialize(*communicationTimeout)
 
 	logger, reconfigurableSink := cf_lager.New("auctioneer")
 	initializeDropsonde(logger)
-
-	etcdOptions, err := etcdFlags.Validate()
-	if err != nil {
-		logger.Fatal("etcd-validation-failed", err)
-	}
 
 	if err := validateBBSAddress(); err != nil {
 		logger.Fatal("invalid-bbs-address", err)
@@ -112,14 +104,12 @@ func main() {
 		logger.Fatal("consul-session-failed", err)
 	}
 
-	legacyBBS := initializeBBS(etcdOptions, logger, consulSession)
-	locket := locket.New(consulSession, clock.NewClock(), logger)
-
+	locketClient := locket.NewClient(consulSession, clock.NewClock(), logger)
 	bbsClient := bbs.NewClient(*bbsAddress)
 
-	auctionRunner := initializeAuctionRunner(bbsClient, legacyBBS, consulSession, logger)
+	auctionRunner := initializeAuctionRunner(bbsClient, locketClient, consulSession, logger)
 	auctionServer := initializeAuctionServer(auctionRunner, logger)
-	lockMaintainer := initializeLockMaintainer(locket, logger)
+	lockMaintainer := initializeLockMaintainer(locketClient, logger)
 
 	members := grouper.Members{
 		{"lock-maintainer", lockMaintainer},
@@ -148,11 +138,11 @@ func main() {
 	logger.Info("exited")
 }
 
-func initializeAuctionRunner(bbsClient bbs.Client, legacyBBS legacybbs.AuctioneerBBS, consulSession *consuladapter.Session, logger lager.Logger) auctiontypes.AuctionRunner {
+func initializeAuctionRunner(bbsClient bbs.Client, locketClient locket.Client, consulSession *consuladapter.Session, logger lager.Logger) auctiontypes.AuctionRunner {
 	httpClient := cf_http.NewClient()
 	repClientFactory := rep.NewClientFactory(httpClient)
 
-	delegate := auctionrunnerdelegate.New(repClientFactory, bbsClient, legacyBBS, logger)
+	delegate := auctionrunnerdelegate.New(repClientFactory, bbsClient, locketClient, logger)
 	metricEmitter := auctionmetricemitterdelegate.New()
 	workPool, err := workpool.NewWorkPool(auctionRunnerWorkPoolSize)
 	if err != nil {
@@ -168,21 +158,6 @@ func initializeAuctionRunner(bbsClient bbs.Client, legacyBBS legacybbs.Auctionee
 	)
 }
 
-func initializeBBS(etcdOptions *etcdstoreadapter.ETCDOptions, logger lager.Logger, consulSession *consuladapter.Session) legacybbs.AuctioneerBBS {
-	workPool, err := workpool.NewWorkPool(10)
-	if err != nil {
-		logger.Fatal("failed-to-construct-etcd-client-workpool", err, lager.Data{"num-workers": 10}) // should never happen
-	}
-
-	etcdAdapter, err := etcdstoreadapter.New(etcdOptions, workPool)
-
-	if err != nil {
-		logger.Fatal("failed-to-construct-etcd-tls-client", err)
-	}
-
-	return legacybbs.NewAuctioneerBBS(etcdAdapter, consulSession, clock.NewClock(), logger)
-}
-
 func initializeDropsonde(logger lager.Logger) {
 	err := dropsonde.Initialize(dropsondeDestination, dropsondeOrigin)
 	if err != nil {
@@ -194,7 +169,7 @@ func initializeAuctionServer(runner auctiontypes.AuctionRunner, logger lager.Log
 	return http_server.New(*listenAddr, handlers.New(runner, logger))
 }
 
-func initializeLockMaintainer(locket *locket.Locket, logger lager.Logger) ifrit.Runner {
+func initializeLockMaintainer(locket locket.Client, logger lager.Logger) ifrit.Runner {
 	uuid, err := uuid.NewV4()
 	if err != nil {
 		logger.Fatal("Couldn't generate uuid", err)

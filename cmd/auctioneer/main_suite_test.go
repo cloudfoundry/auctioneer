@@ -11,7 +11,7 @@ import (
 	bbstestrunner "github.com/cloudfoundry-incubator/bbs/cmd/bbs/testrunner"
 	"github.com/cloudfoundry-incubator/consuladapter"
 	"github.com/cloudfoundry-incubator/consuladapter/consulrunner"
-	legacybbs "github.com/cloudfoundry-incubator/runtime-schema/bbs"
+	"github.com/cloudfoundry-incubator/locket"
 	"github.com/cloudfoundry-incubator/runtime-schema/models"
 	"github.com/cloudfoundry/storeadapter"
 	"github.com/cloudfoundry/storeadapter/storerunner/etcdstorerunner"
@@ -59,7 +59,7 @@ var bbsRunner *ginkgomon.Runner
 var bbsProcess ifrit.Process
 var bbsClient bbs.Client
 
-var legacyBBS *legacybbs.BBS
+var locketClient locket.Client
 var logger lager.Logger
 
 func TestAuctioneer(t *testing.T) {
@@ -134,14 +134,13 @@ var _ = BeforeEach(func() {
 
 	consulSession = consulRunner.NewSession("a-session")
 
-	legacyBBS = legacybbs.NewBBS(etcdClient, consulSession, clock.NewClock(), logger)
+	locketClient = locket.NewClient(consulSession, clock.NewClock(), logger)
 
 	runner = ginkgomon.New(ginkgomon.Config{
 		Name: "auctioneer",
 		Command: exec.Command(
 			auctioneerPath,
 			"-bbsAddress", bbsURL.String(),
-			"-etcdCluster", fmt.Sprintf("http://127.0.0.1:%d", etcdPort),
 			"-listenAddr", fmt.Sprintf("0.0.0.0:%d", auctioneerServerPort),
 			"-lockRetryInterval", "1s",
 			"-consulCluster", consulRunner.ConsulCluster(),
@@ -149,8 +148,8 @@ var _ = BeforeEach(func() {
 		StartCheck: "auctioneer.started",
 	})
 
-	dotNetCell = SpinUpFakeCell(legacyBBS, "dot-net-cell", dotNetStack)
-	linuxCell = SpinUpFakeCell(legacyBBS, "linux-cell", linuxStack)
+	dotNetCell = SpinUpFakeCell(locketClient, "dot-net-cell", dotNetStack)
+	linuxCell = SpinUpFakeCell(locketClient, "linux-cell", linuxStack)
 })
 
 var _ = AfterEach(func() {

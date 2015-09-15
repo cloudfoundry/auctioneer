@@ -6,6 +6,7 @@ import (
 	"github.com/cloudfoundry-incubator/auction/auctiontypes"
 	"github.com/cloudfoundry-incubator/bbs/fake_bbs"
 	"github.com/cloudfoundry-incubator/bbs/models"
+	"github.com/cloudfoundry-incubator/locket/locketfakes"
 	"github.com/cloudfoundry-incubator/rep"
 	"github.com/cloudfoundry-incubator/rep/repfakes"
 	"github.com/cloudfoundry/dropsonde/metric_sender/fake"
@@ -15,7 +16,6 @@ import (
 	"github.com/pivotal-golang/lager/lagertest"
 
 	"github.com/cloudfoundry-incubator/auctioneer/auctionrunnerdelegate"
-	fake_legacy_bbs "github.com/cloudfoundry-incubator/runtime-schema/bbs/fake_bbs"
 	oldmodels "github.com/cloudfoundry-incubator/runtime-schema/models"
 
 	. "github.com/onsi/ginkgo"
@@ -26,7 +26,7 @@ var _ = Describe("Auction Runner Delegate", func() {
 	var (
 		delegate         *auctionrunnerdelegate.AuctionRunnerDelegate
 		bbsClient        *fake_bbs.FakeClient
-		legacyBBS        *fake_legacy_bbs.FakeAuctioneerBBS
+		locketClient     *locketfakes.FakeClient
 		metricSender     *fake.FakeMetricSender
 		repClientFactory *repfakes.FakeClientFactory
 		repClient        *repfakes.FakeClient
@@ -38,19 +38,19 @@ var _ = Describe("Auction Runner Delegate", func() {
 		metrics.Initialize(metricSender, nil)
 
 		bbsClient = &fake_bbs.FakeClient{}
-		legacyBBS = &fake_legacy_bbs.FakeAuctioneerBBS{}
+		locketClient = &locketfakes.FakeClient{}
 		repClientFactory = &repfakes.FakeClientFactory{}
 		repClient = &repfakes.FakeClient{}
 		repClientFactory.CreateClientReturns(repClient)
 		logger = lagertest.NewTestLogger("delegate")
 
-		delegate = auctionrunnerdelegate.New(repClientFactory, bbsClient, legacyBBS, logger)
+		delegate = auctionrunnerdelegate.New(repClientFactory, bbsClient, locketClient, logger)
 	})
 
 	Describe("fetching cell reps", func() {
 		Context("when the BSS succeeds", func() {
 			BeforeEach(func() {
-				legacyBBS.CellsReturns([]oldmodels.CellPresence{
+				locketClient.CellsReturns([]oldmodels.CellPresence{
 					oldmodels.NewCellPresence("cell-A", "cell-a.url", "zone-1", oldmodels.NewCellCapacity(123, 456, 789), []string{}, []string{}),
 					oldmodels.NewCellPresence("cell-B", "cell-b.url", "zone-1", oldmodels.NewCellCapacity(123, 456, 789), []string{}, []string{}),
 				}, nil)
@@ -78,7 +78,7 @@ var _ = Describe("Auction Runner Delegate", func() {
 
 		Context("when the BBS errors", func() {
 			BeforeEach(func() {
-				legacyBBS.CellsReturns(nil, errors.New("boom"))
+				locketClient.CellsReturns(nil, errors.New("boom"))
 			})
 
 			It("should error", func() {

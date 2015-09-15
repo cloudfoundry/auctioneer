@@ -5,8 +5,8 @@ import (
 	"github.com/cloudfoundry-incubator/bbs"
 	"github.com/cloudfoundry-incubator/bbs/models"
 	"github.com/cloudfoundry-incubator/bbs/models/test/model_helpers"
+	"github.com/cloudfoundry-incubator/locket"
 	"github.com/cloudfoundry-incubator/rep"
-	"github.com/cloudfoundry-incubator/runtime-schema/bbs/shared"
 	"github.com/cloudfoundry-incubator/runtime-schema/diego_errors"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -162,7 +162,7 @@ var _ = Describe("Auctioneer", func() {
 					RootFs:   "some-rootfs",
 				},
 			}
-			err := consulSession.AcquireLock(shared.LockSchemaPath("auctioneer_lock"), []byte{})
+			err := consulSession.AcquireLock(locket.LockSchemaPath("auctioneer_lock"), []byte{})
 			Expect(err).NotTo(HaveOccurred())
 
 			runner.StartCheck = "auctioneer.lock-bbs.lock.acquiring-lock"
