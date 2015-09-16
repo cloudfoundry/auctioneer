@@ -19,8 +19,8 @@ import (
 	"github.com/cloudfoundry-incubator/cf_http"
 	"github.com/cloudfoundry-incubator/consuladapter"
 	"github.com/cloudfoundry-incubator/locket"
+	"github.com/cloudfoundry-incubator/locket/presence"
 	"github.com/cloudfoundry-incubator/rep"
-	"github.com/cloudfoundry-incubator/runtime-schema/models"
 	"github.com/pivotal-golang/lager"
 	"github.com/pivotal-golang/localip"
 
@@ -183,7 +183,7 @@ func initializeLockMaintainer(locket locket.Client, logger lager.Logger) ifrit.R
 	port := strings.Split(*listenAddr, ":")[1]
 	address := fmt.Sprintf("%s://%s:%s", serverProtocol, localIP, port)
 
-	auctioneerPresence := models.NewAuctioneerPresence(uuid.String(), address)
+	auctioneerPresence := presence.NewAuctioneerPresence(uuid.String(), address)
 	lockMaintainer, err := locket.NewAuctioneerLock(auctioneerPresence, *lockRetryInterval)
 	if err != nil {
 		logger.Fatal("Couldn't create lock maintainer", err)

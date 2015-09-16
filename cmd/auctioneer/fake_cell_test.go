@@ -7,6 +7,7 @@ import (
 
 	"github.com/cloudfoundry-incubator/auction/simulation/simulationrep"
 	"github.com/cloudfoundry-incubator/locket"
+	"github.com/cloudfoundry-incubator/locket/presence"
 	"github.com/cloudfoundry-incubator/rep"
 
 	"github.com/pivotal-golang/lager"
@@ -18,7 +19,6 @@ import (
 	"github.com/cloudfoundry-incubator/rep/evacuation/evacuation_context/fake_evacuation_context"
 	rephandlers "github.com/cloudfoundry-incubator/rep/handlers"
 	"github.com/cloudfoundry-incubator/rep/lrp_stopper/fake_lrp_stopper"
-	"github.com/cloudfoundry-incubator/runtime-schema/models"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/rata"
 )
@@ -80,8 +80,8 @@ func (f *FakeCell) SpinUp(locketClient locket.Client) {
 	Expect(err).NotTo(HaveOccurred())
 	f.server = httptest.NewServer(router)
 
-	capacity := models.NewCellCapacity(512, 1024, 124)
-	f.heartbeater = ifrit.Invoke(locketClient.NewCellPresence(models.NewCellPresence(f.cellID, f.server.URL, "az1", capacity, []string{}, []string{}), time.Second))
+	capacity := presence.NewCellCapacity(512, 1024, 124)
+	f.heartbeater = ifrit.Invoke(locketClient.NewCellPresence(presence.NewCellPresence(f.cellID, f.server.URL, "az1", capacity, []string{}, []string{}), time.Second))
 }
 
 func (f *FakeCell) Stop() {

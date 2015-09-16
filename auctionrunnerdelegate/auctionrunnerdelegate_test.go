@@ -7,6 +7,7 @@ import (
 	"github.com/cloudfoundry-incubator/bbs/fake_bbs"
 	"github.com/cloudfoundry-incubator/bbs/models"
 	"github.com/cloudfoundry-incubator/locket/locketfakes"
+	"github.com/cloudfoundry-incubator/locket/presence"
 	"github.com/cloudfoundry-incubator/rep"
 	"github.com/cloudfoundry-incubator/rep/repfakes"
 	"github.com/cloudfoundry/dropsonde/metric_sender/fake"
@@ -16,7 +17,6 @@ import (
 	"github.com/pivotal-golang/lager/lagertest"
 
 	"github.com/cloudfoundry-incubator/auctioneer/auctionrunnerdelegate"
-	oldmodels "github.com/cloudfoundry-incubator/runtime-schema/models"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -50,9 +50,9 @@ var _ = Describe("Auction Runner Delegate", func() {
 	Describe("fetching cell reps", func() {
 		Context("when the BSS succeeds", func() {
 			BeforeEach(func() {
-				locketClient.CellsReturns([]oldmodels.CellPresence{
-					oldmodels.NewCellPresence("cell-A", "cell-a.url", "zone-1", oldmodels.NewCellCapacity(123, 456, 789), []string{}, []string{}),
-					oldmodels.NewCellPresence("cell-B", "cell-b.url", "zone-1", oldmodels.NewCellCapacity(123, 456, 789), []string{}, []string{}),
+				locketClient.CellsReturns([]presence.CellPresence{
+					presence.NewCellPresence("cell-A", "cell-a.url", "zone-1", presence.NewCellCapacity(123, 456, 789), []string{}, []string{}),
+					presence.NewCellPresence("cell-B", "cell-b.url", "zone-1", presence.NewCellCapacity(123, 456, 789), []string{}, []string{}),
 				}, nil)
 			})
 
