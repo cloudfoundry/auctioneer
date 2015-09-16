@@ -122,6 +122,9 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 		AuctioneerAddress: auctioneerAddress,
 		EtcdCluster:       etcdUrl,
 		ConsulCluster:     consulRunner.ConsulCluster(),
+
+		EncryptionKeys: []string{"label:key"},
+		ActiveKeyLabel: "label",
 	}
 })
 
