@@ -90,6 +90,18 @@ var bbsClientKey = flag.String(
 	"path to client key used for mutually authenticated TLS BBS communication",
 )
 
+var bbsClientSessionCacheSize = flag.Int(
+	"bbsClientSessionCacheSize",
+	0,
+	"Capacity of the ClientSessionCache option on the TLS configuration. If zero, golang's default will be used",
+)
+
+var bbsMaxIdleConnsPerHost = flag.Int(
+	"bbsMaxIdleConnsPerHost",
+	0,
+	"Controls the maximum number of idle (keep-alive) connctions per host. If zero, golang's default will be used",
+)
+
 const (
 	auctionRunnerTimeout      = 10 * time.Second
 	auctionRunnerWorkPoolSize = 1000
@@ -227,7 +239,7 @@ func initializeBBSClient(logger lager.Logger) bbs.Client {
 		return bbs.NewClient(*bbsAddress)
 	}
 
-	bbsClient, err := bbs.NewSecureClient(*bbsAddress, *bbsCACert, *bbsClientCert, *bbsClientKey)
+	bbsClient, err := bbs.NewSecureClient(*bbsAddress, *bbsCACert, *bbsClientCert, *bbsClientKey, *bbsClientSessionCacheSize, *bbsMaxIdleConnsPerHost)
 	if err != nil {
 		logger.Fatal("Failed to configure secure BBS client", err)
 	}
