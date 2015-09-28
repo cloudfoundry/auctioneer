@@ -6,8 +6,6 @@ import (
 	"github.com/cloudfoundry-incubator/auction/auctiontypes"
 	"github.com/cloudfoundry-incubator/bbs/fake_bbs"
 	"github.com/cloudfoundry-incubator/bbs/models"
-	"github.com/cloudfoundry-incubator/locket/locketfakes"
-	"github.com/cloudfoundry-incubator/locket/presence"
 	"github.com/cloudfoundry-incubator/rep"
 	"github.com/cloudfoundry-incubator/rep/repfakes"
 	"github.com/cloudfoundry/dropsonde/metric_sender/fake"
@@ -26,7 +24,7 @@ var _ = Describe("Auction Runner Delegate", func() {
 	var (
 		delegate         *auctionrunnerdelegate.AuctionRunnerDelegate
 		bbsClient        *fake_bbs.FakeClient
-		locketClient     *locketfakes.FakeClient
+		serviceClient    *fake_bbs.FakeServiceClient
 		metricSender     *fake.FakeMetricSender
 		repClientFactory *repfakes.FakeClientFactory
 		repClient        *repfakes.FakeClient
@@ -38,30 +36,36 @@ var _ = Describe("Auction Runner Delegate", func() {
 		metrics.Initialize(metricSender, nil)
 
 		bbsClient = &fake_bbs.FakeClient{}
-		locketClient = &locketfakes.FakeClient{}
+		serviceClient = &fake_bbs.FakeServiceClient{}
 		repClientFactory = &repfakes.FakeClientFactory{}
 		repClient = &repfakes.FakeClient{}
 		repClientFactory.CreateClientReturns(repClient)
 		logger = lagertest.NewTestLogger("delegate")
 
-		delegate = auctionrunnerdelegate.New(repClientFactory, bbsClient, locketClient, logger)
+		delegate = auctionrunnerdelegate.New(repClientFactory, bbsClient, serviceClient, logger)
 	})
 
 	Describe("fetching cell reps", func() {
 		Context("when the BSS succeeds", func() {
 			BeforeEach(func() {
-				locketClient.CellsReturns([]presence.CellPresence{
-					presence.NewCellPresence("cell-A", "cell-a.url", "zone-1", presence.NewCellCapacity(123, 456, 789), []string{}, []string{}),
-					presence.NewCellPresence("cell-B", "cell-b.url", "zone-1", presence.NewCellCapacity(123, 456, 789), []string{}, []string{}),
-				}, nil)
+				cellPresence1 := models.NewCellPresence("cell-A", "cell-a.url", "zone-1", models.NewCellCapacity(123, 456, 789), []string{}, []string{})
+				cellPresence2 := models.NewCellPresence("cell-B", "cell-b.url", "zone-1", models.NewCellCapacity(123, 456, 789), []string{}, []string{})
+				cellSet := models.NewCellSet()
+				cellSet.Add(&cellPresence1)
+				cellSet.Add(&cellPresence2)
+
+				serviceClient.CellsReturns(cellSet, nil)
 			})
 
 			It("creates rep clients with the correct addresses", func() {
 				_, err := delegate.FetchCellReps()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(repClientFactory.CreateClientCallCount()).To(Equal(2))
-				Expect(repClientFactory.CreateClientArgsForCall(0)).To(Equal("cell-a.url"))
-				Expect(repClientFactory.CreateClientArgsForCall(1)).To(Equal("cell-b.url"))
+				urls := []string{
+					repClientFactory.CreateClientArgsForCall(0),
+					repClientFactory.CreateClientArgsForCall(1),
+				}
+				Expect(urls).To(ConsistOf("cell-a.url", "cell-b.url"))
 			})
 
 			It("returns correctly configured auction_http_clients", func() {
@@ -78,7 +82,7 @@ var _ = Describe("Auction Runner Delegate", func() {
 
 		Context("when the BBS errors", func() {
 			BeforeEach(func() {
-				locketClient.CellsReturns(nil, errors.New("boom"))
+				serviceClient.CellsReturns(nil, errors.New("boom"))
 			})
 
 			It("should error", func() {

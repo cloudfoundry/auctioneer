@@ -11,7 +11,6 @@ import (
 	bbstestrunner "github.com/cloudfoundry-incubator/bbs/cmd/bbs/testrunner"
 	"github.com/cloudfoundry-incubator/consuladapter"
 	"github.com/cloudfoundry-incubator/consuladapter/consulrunner"
-	"github.com/cloudfoundry-incubator/locket"
 	"github.com/cloudfoundry-incubator/runtime-schema/models"
 	"github.com/cloudfoundry/storeadapter"
 	"github.com/cloudfoundry/storeadapter/storerunner/etcdstorerunner"
@@ -59,7 +58,6 @@ var bbsRunner *ginkgomon.Runner
 var bbsProcess ifrit.Process
 var bbsClient bbs.Client
 
-var locketClient locket.Client
 var logger lager.Logger
 
 func TestAuctioneer(t *testing.T) {
@@ -137,7 +135,7 @@ var _ = BeforeEach(func() {
 
 	consulSession = consulRunner.NewSession("a-session")
 
-	locketClient = locket.NewClient(consulSession, clock.NewClock(), logger)
+	serviceClient := bbs.NewServiceClient(consulSession, clock.NewClock())
 
 	runner = ginkgomon.New(ginkgomon.Config{
 		Name: "auctioneer",
@@ -151,8 +149,8 @@ var _ = BeforeEach(func() {
 		StartCheck: "auctioneer.started",
 	})
 
-	dotNetCell = SpinUpFakeCell(locketClient, "dot-net-cell", dotNetStack)
-	linuxCell = SpinUpFakeCell(locketClient, "linux-cell", linuxStack)
+	dotNetCell = SpinUpFakeCell(serviceClient, "dot-net-cell", dotNetStack)
+	linuxCell = SpinUpFakeCell(serviceClient, "linux-cell", linuxStack)
 })
 
 var _ = AfterEach(func() {

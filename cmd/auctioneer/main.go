@@ -11,6 +11,7 @@ import (
 
 	"github.com/nu7hatch/gouuid"
 
+	"github.com/cloudfoundry-incubator/auctioneer"
 	"github.com/cloudfoundry-incubator/auctioneer/auctionmetricemitterdelegate"
 	"github.com/cloudfoundry-incubator/auctioneer/auctionrunnerdelegate"
 	"github.com/cloudfoundry-incubator/auctioneer/handlers"
@@ -20,7 +21,6 @@ import (
 	"github.com/cloudfoundry-incubator/cf_http"
 	"github.com/cloudfoundry-incubator/consuladapter"
 	"github.com/cloudfoundry-incubator/locket"
-	"github.com/cloudfoundry-incubator/locket/presence"
 	"github.com/cloudfoundry-incubator/rep"
 	"github.com/pivotal-golang/lager"
 	"github.com/pivotal-golang/localip"
@@ -135,11 +135,13 @@ func main() {
 		logger.Fatal("consul-session-failed", err)
 	}
 
-	locketClient := locket.NewClient(consulSession, clock.NewClock(), logger)
+	clock := clock.NewClock()
+	bbsServiceClient := bbs.NewServiceClient(consulSession, clock)
+	auctioneerServiceClient := auctioneer.NewServiceClient(consulSession, clock)
 
-	auctionRunner := initializeAuctionRunner(initializeBBSClient(logger), locketClient, consulSession, logger)
-	auctionServer := initializeAuctionServer(auctionRunner, logger)
-	lockMaintainer := initializeLockMaintainer(locketClient, logger)
+	auctionRunner := initializeAuctionRunner(logger, initializeBBSClient(logger), bbsServiceClient)
+	auctionServer := initializeAuctionServer(logger, auctionRunner)
+	lockMaintainer := initializeLockMaintainer(logger, auctioneerServiceClient)
 
 	members := grouper.Members{
 		{"lock-maintainer", lockMaintainer},
@@ -168,11 +170,11 @@ func main() {
 	logger.Info("exited")
 }
 
-func initializeAuctionRunner(bbsClient bbs.Client, locketClient locket.Client, consulSession *consuladapter.Session, logger lager.Logger) auctiontypes.AuctionRunner {
+func initializeAuctionRunner(logger lager.Logger, bbsClient bbs.Client, serviceClient bbs.ServiceClient) auctiontypes.AuctionRunner {
 	httpClient := cf_http.NewClient()
 	repClientFactory := rep.NewClientFactory(httpClient)
 
-	delegate := auctionrunnerdelegate.New(repClientFactory, bbsClient, locketClient, logger)
+	delegate := auctionrunnerdelegate.New(repClientFactory, bbsClient, serviceClient, logger)
 	metricEmitter := auctionmetricemitterdelegate.New()
 	workPool, err := workpool.NewWorkPool(auctionRunnerWorkPoolSize)
 	if err != nil {
@@ -195,11 +197,11 @@ func initializeDropsonde(logger lager.Logger) {
 	}
 }
 
-func initializeAuctionServer(runner auctiontypes.AuctionRunner, logger lager.Logger) ifrit.Runner {
+func initializeAuctionServer(logger lager.Logger, runner auctiontypes.AuctionRunner) ifrit.Runner {
 	return http_server.New(*listenAddr, handlers.New(runner, logger))
 }
 
-func initializeLockMaintainer(locket locket.Client, logger lager.Logger) ifrit.Runner {
+func initializeLockMaintainer(logger lager.Logger, serviceClient auctioneer.ServiceClient) ifrit.Runner {
 	uuid, err := uuid.NewV4()
 	if err != nil {
 		logger.Fatal("Couldn't generate uuid", err)
@@ -212,9 +214,9 @@ func initializeLockMaintainer(locket locket.Client, logger lager.Logger) ifrit.R
 
 	port := strings.Split(*listenAddr, ":")[1]
 	address := fmt.Sprintf("%s://%s:%s", serverProtocol, localIP, port)
+	auctioneerPresence := auctioneer.NewPresence(uuid.String(), address)
 
-	auctioneerPresence := presence.NewAuctioneerPresence(uuid.String(), address)
-	lockMaintainer, err := locket.NewAuctioneerLock(auctioneerPresence, *lockRetryInterval)
+	lockMaintainer, err := serviceClient.NewAuctioneerLockRunner(logger, auctioneerPresence, *lockRetryInterval)
 	if err != nil {
 		logger.Fatal("Couldn't create lock maintainer", err)
 	}

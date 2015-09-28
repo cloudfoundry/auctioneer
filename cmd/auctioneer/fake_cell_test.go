@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/cloudfoundry-incubator/auction/simulation/simulationrep"
-	"github.com/cloudfoundry-incubator/locket"
-	"github.com/cloudfoundry-incubator/locket/presence"
+	"github.com/cloudfoundry-incubator/bbs"
+	"github.com/cloudfoundry-incubator/bbs/models"
 	"github.com/cloudfoundry-incubator/rep"
 
 	"github.com/pivotal-golang/lager"
@@ -32,13 +32,13 @@ type FakeCell struct {
 	SimulationRep rep.SimClient
 }
 
-func SpinUpFakeCell(locketClient locket.Client, cellID string, stack string) *FakeCell {
+func SpinUpFakeCell(serviceClient bbs.ServiceClient, cellID string, stack string) *FakeCell {
 	fakeRep := &FakeCell{
 		cellID: cellID,
 		stack:  stack,
 	}
 
-	fakeRep.SpinUp(locketClient)
+	fakeRep.SpinUp(serviceClient)
 
 	return fakeRep
 }
@@ -59,7 +59,7 @@ func (f *FakeCell) Tasks() ([]rep.Task, error) {
 	return state.Tasks, nil
 }
 
-func (f *FakeCell) SpinUp(locketClient locket.Client) {
+func (f *FakeCell) SpinUp(serviceClient bbs.ServiceClient) {
 	//make a test-friendly AuctionRepDelegate using the auction package's SimulationRepDelegate
 	f.SimulationRep = simulationrep.New(f.stack, "Z0", rep.Resources{
 		DiskMB:     100,
@@ -80,8 +80,15 @@ func (f *FakeCell) SpinUp(locketClient locket.Client) {
 	Expect(err).NotTo(HaveOccurred())
 	f.server = httptest.NewServer(router)
 
-	capacity := presence.NewCellCapacity(512, 1024, 124)
-	f.heartbeater = ifrit.Invoke(locketClient.NewCellPresence(presence.NewCellPresence(f.cellID, f.server.URL, "az1", capacity, []string{}, []string{}), time.Second))
+	presence := models.NewCellPresence(
+		f.cellID,
+		f.server.URL,
+		"az1",
+		models.NewCellCapacity(512, 1024, 124),
+		[]string{},
+		[]string{})
+
+	f.heartbeater = ifrit.Invoke(serviceClient.NewCellPresenceRunner(logger, &presence, time.Second))
 }
 
 func (f *FakeCell) Stop() {

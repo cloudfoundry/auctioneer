@@ -2,7 +2,6 @@ package auctionrunnerdelegate
 
 import (
 	"github.com/cloudfoundry-incubator/bbs"
-	"github.com/cloudfoundry-incubator/locket"
 	"github.com/cloudfoundry-incubator/rep"
 
 	"github.com/cloudfoundry-incubator/auction/auctiontypes"
@@ -12,21 +11,21 @@ import (
 type AuctionRunnerDelegate struct {
 	repClientFactory rep.ClientFactory
 	bbsClient        bbs.Client
-	locketClient     locket.Client
+	serviceClient           bbs.ServiceClient
 	logger           lager.Logger
 }
 
-func New(repClientFactory rep.ClientFactory, bbsClient bbs.Client, locketClient locket.Client, logger lager.Logger) *AuctionRunnerDelegate {
+func New(repClientFactory rep.ClientFactory, bbsClient bbs.Client, serviceClient bbs.ServiceClient, logger lager.Logger) *AuctionRunnerDelegate {
 	return &AuctionRunnerDelegate{
 		repClientFactory: repClientFactory,
 		bbsClient:        bbsClient,
-		locketClient:     locketClient,
+		serviceClient:           serviceClient,
 		logger:           logger,
 	}
 }
 
 func (a *AuctionRunnerDelegate) FetchCellReps() (map[string]rep.Client, error) {
-	cells, err := a.locketClient.Cells()
+	cells, err := a.serviceClient.Cells(a.logger)
 	cellReps := map[string]rep.Client{}
 	if err != nil {
 		return cellReps, err
