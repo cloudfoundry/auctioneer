@@ -102,12 +102,17 @@ var bbsMaxIdleConnsPerHost = flag.Int(
 	"Controls the maximum number of idle (keep-alive) connctions per host. If zero, golang's default will be used",
 )
 
+var auctionRunnerWorkers = flag.Int(
+	"auctionRunnerWorkers",
+	1000,
+	"Max concurrency for cell operations in the auction runner",
+)
+
 const (
-	auctionRunnerTimeout      = 10 * time.Second
-	auctionRunnerWorkPoolSize = 1000
-	dropsondeDestination      = "localhost:3457"
-	dropsondeOrigin           = "auctioneer"
-	serverProtocol            = "http"
+	auctionRunnerTimeout = 10 * time.Second
+	dropsondeDestination = "localhost:3457"
+	dropsondeOrigin      = "auctioneer"
+	serverProtocol       = "http"
 )
 
 func main() {
@@ -176,9 +181,9 @@ func initializeAuctionRunner(logger lager.Logger, bbsClient bbs.Client, serviceC
 
 	delegate := auctionrunnerdelegate.New(repClientFactory, bbsClient, serviceClient, logger)
 	metricEmitter := auctionmetricemitterdelegate.New()
-	workPool, err := workpool.NewWorkPool(auctionRunnerWorkPoolSize)
+	workPool, err := workpool.NewWorkPool(*auctionRunnerWorkers)
 	if err != nil {
-		logger.Fatal("failed-to-construct-auction-runner-workpool", err, lager.Data{"num-workers": auctionRunnerWorkPoolSize}) // should never happen
+		logger.Fatal("failed-to-construct-auction-runner-workpool", err, lager.Data{"num-workers": *auctionRunnerWorkers}) // should never happen
 	}
 
 	return auctionrunner.New(
