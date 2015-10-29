@@ -42,6 +42,12 @@ var communicationTimeout = flag.Duration(
 	"Timeout applied to all HTTP requests.",
 )
 
+var cellStateTimeout = flag.Duration(
+	"cellStateTimeout",
+	1*time.Second,
+	"Timeout applied to HTTP requests to the Cell State endpoint.",
+)
+
 var consulCluster = flag.String(
 	"consulCluster",
 	"",
@@ -144,7 +150,7 @@ func main() {
 	bbsServiceClient := bbs.NewServiceClient(consulSession, clock)
 	auctioneerServiceClient := auctioneer.NewServiceClient(consulSession, clock)
 
-	auctionRunner := initializeAuctionRunner(logger, initializeBBSClient(logger), bbsServiceClient)
+	auctionRunner := initializeAuctionRunner(logger, *cellStateTimeout, initializeBBSClient(logger), bbsServiceClient)
 	auctionServer := initializeAuctionServer(logger, auctionRunner)
 	lockMaintainer := initializeLockMaintainer(logger, auctioneerServiceClient)
 
@@ -175,9 +181,10 @@ func main() {
 	logger.Info("exited")
 }
 
-func initializeAuctionRunner(logger lager.Logger, bbsClient bbs.Client, serviceClient bbs.ServiceClient) auctiontypes.AuctionRunner {
+func initializeAuctionRunner(logger lager.Logger, cellStateTimeout time.Duration, bbsClient bbs.Client, serviceClient bbs.ServiceClient) auctiontypes.AuctionRunner {
 	httpClient := cf_http.NewClient()
-	repClientFactory := rep.NewClientFactory(httpClient)
+	stateClient := cf_http.NewCustomTimeoutClient(cellStateTimeout)
+	repClientFactory := rep.NewClientFactory(httpClient, stateClient)
 
 	delegate := auctionrunnerdelegate.New(repClientFactory, bbsClient, serviceClient, logger)
 	metricEmitter := auctionmetricemitterdelegate.New()
