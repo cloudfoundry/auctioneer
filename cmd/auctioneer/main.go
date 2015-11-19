@@ -54,6 +54,12 @@ var consulCluster = flag.String(
 	"comma-separated list of consul server addresses (ip:port)",
 )
 
+var dropsondePort = flag.Int(
+	"dropsondePort",
+	3457,
+	"port the local metron agent is listening on",
+)
+
 var lockTTL = flag.Duration(
 	"lockTTL",
 	locket.LockTTL,
@@ -116,7 +122,6 @@ var auctionRunnerWorkers = flag.Int(
 
 const (
 	auctionRunnerTimeout = 10 * time.Second
-	dropsondeDestination = "localhost:3457"
 	dropsondeOrigin      = "auctioneer"
 	serverProtocol       = "http"
 )
@@ -203,6 +208,7 @@ func initializeAuctionRunner(logger lager.Logger, cellStateTimeout time.Duration
 }
 
 func initializeDropsonde(logger lager.Logger) {
+	dropsondeDestination := fmt.Sprint("localhost:", *dropsondePort)
 	err := dropsonde.Initialize(dropsondeDestination, dropsondeOrigin)
 	if err != nil {
 		logger.Error("failed to initialize dropsonde: %v", err)
