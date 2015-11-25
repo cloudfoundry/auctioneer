@@ -10,6 +10,8 @@ import (
 	"github.com/cloudfoundry-incubator/auctioneer"
 	"github.com/cloudfoundry-incubator/auctioneer/handlers"
 	"github.com/cloudfoundry-incubator/rep"
+	"github.com/cloudfoundry/dropsonde/metric_sender/fake"
+	"github.com/cloudfoundry/dropsonde/metrics"
 	"github.com/pivotal-golang/lager"
 	"github.com/pivotal-golang/lager/lagertest"
 	"github.com/tedsuo/rata"
@@ -21,6 +23,7 @@ import (
 var _ = Describe("Auction Handlers", func() {
 	var (
 		logger           *lagertest.TestLogger
+		sender           *fake.FakeMetricSender
 		runner           *fake_auction_runner.FakeAuctionRunner
 		responseRecorder *httptest.ResponseRecorder
 		handler          http.Handler
@@ -31,6 +34,9 @@ var _ = Describe("Auction Handlers", func() {
 		logger.RegisterSink(lager.NewWriterSink(GinkgoWriter, lager.DEBUG))
 		runner = new(fake_auction_runner.FakeAuctionRunner)
 		responseRecorder = httptest.NewRecorder()
+
+		sender = fake.NewFakeMetricSender()
+		metrics.Initialize(sender, nil)
 
 		handler = handlers.New(runner, logger)
 	})
@@ -63,6 +69,11 @@ var _ = Describe("Auction Handlers", func() {
 					"test.request.task-auction-handler.create.submitted",
 					"test.request.done",
 				}))
+			})
+
+			It("sends the correct metrics", func() {
+				Expect(sender.GetValue("RequestLatency").Value).To(BeNumerically(">", 0))
+				Expect(sender.GetCounter("RequestCount")).To(BeEquivalentTo(1))
 			})
 		})
 	})
@@ -104,6 +115,11 @@ var _ = Describe("Auction Handlers", func() {
 					"test.request.lrp-auction-handler.create.submitted",
 					"test.request.done",
 				}))
+			})
+
+			It("sends the correct metrics", func() {
+				Expect(sender.GetValue("RequestLatency").Value).To(BeNumerically(">", 0))
+				Expect(sender.GetCounter("RequestCount")).To(BeEquivalentTo(1))
 			})
 		})
 	})

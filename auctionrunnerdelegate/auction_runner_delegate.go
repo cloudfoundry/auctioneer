@@ -11,7 +11,7 @@ import (
 type AuctionRunnerDelegate struct {
 	repClientFactory rep.ClientFactory
 	bbsClient        bbs.Client
-	serviceClient           bbs.ServiceClient
+	serviceClient    bbs.ServiceClient
 	logger           lager.Logger
 }
 
@@ -19,7 +19,7 @@ func New(repClientFactory rep.ClientFactory, bbsClient bbs.Client, serviceClient
 	return &AuctionRunnerDelegate{
 		repClientFactory: repClientFactory,
 		bbsClient:        bbsClient,
-		serviceClient:           serviceClient,
+		serviceClient:    serviceClient,
 		logger:           logger,
 	}
 }

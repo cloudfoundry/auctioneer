@@ -5,7 +5,7 @@ import (
 
 	"github.com/cloudfoundry-incubator/auction/auctiontypes"
 	"github.com/cloudfoundry-incubator/auctioneer"
-	"github.com/cloudfoundry/dropsonde"
+	"github.com/cloudfoundry-incubator/bbs/handlers/middleware"
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/rata"
 )
@@ -27,8 +27,8 @@ func New(runner auctiontypes.AuctionRunner, logger lager.Logger) http.Handler {
 	lrpAuctionHandler := logWrap(route(NewLRPAuctionHandler(runner).Create), logger)
 
 	actions := rata.Handlers{
-		auctioneer.CreateTaskAuctionsRoute: taskAuctionHandler,
-		auctioneer.CreateLRPAuctionsRoute:  lrpAuctionHandler,
+		auctioneer.CreateTaskAuctionsRoute: middleware.EmitLatency(taskAuctionHandler),
+		auctioneer.CreateLRPAuctionsRoute:  middleware.EmitLatency(lrpAuctionHandler),
 	}
 
 	handler, err := rata.NewRouter(auctioneer.Routes, actions)
@@ -36,7 +36,7 @@ func New(runner auctiontypes.AuctionRunner, logger lager.Logger) http.Handler {
 		panic("unable to create router: " + err.Error())
 	}
 
-	return handler
+	return middleware.RequestCountWrap(handler)
 }
 
 func route(f func(_ http.ResponseWriter, _ *http.Request, _ lager.Logger)) loggableHandler {
@@ -50,7 +50,7 @@ func logWrap(loggable loggableHandler, logger lager.Logger) http.HandlerFunc {
 			"request": r.URL.String(),
 		})
 
-		handler := dropsonde.InstrumentedHandler(loggable.WithLogger(requestLog))
+		handler := loggable.WithLogger(requestLog)
 
 		requestLog.Info("serving")
 		handler.ServeHTTP(w, r)
