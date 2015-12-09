@@ -18,7 +18,6 @@ import (
 	executorfakes "github.com/cloudfoundry-incubator/executor/fakes"
 	"github.com/cloudfoundry-incubator/rep/evacuation/evacuation_context/fake_evacuation_context"
 	rephandlers "github.com/cloudfoundry-incubator/rep/handlers"
-	"github.com/cloudfoundry-incubator/rep/lrp_stopper/fake_lrp_stopper"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/rata"
 )
@@ -71,11 +70,10 @@ func (f *FakeCell) SpinUp(serviceClient bbs.ServiceClient) {
 	logger := lager.NewLogger(f.cellID)
 	logger.RegisterSink(lager.NewWriterSink(GinkgoWriter, lager.INFO))
 
-	fakeLRPStopper := new(fake_lrp_stopper.FakeLRPStopper)
 	fakeExecutorClient := new(executorfakes.FakeClient)
 	fakeEvacuatable := new(fake_evacuation_context.FakeEvacuatable)
 
-	handlers := rephandlers.New(f.SimulationRep, fakeLRPStopper, fakeExecutorClient, fakeEvacuatable, logger)
+	handlers := rephandlers.New(f.SimulationRep, fakeExecutorClient, fakeEvacuatable, logger)
 	router, err := rata.NewRouter(rep.Routes, handlers)
 	Expect(err).NotTo(HaveOccurred())
 	f.server = httptest.NewServer(router)
