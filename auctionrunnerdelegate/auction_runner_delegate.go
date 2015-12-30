@@ -11,28 +11,26 @@ import (
 type AuctionRunnerDelegate struct {
 	repClientFactory rep.ClientFactory
 	bbsClient        bbs.Client
-	serviceClient    bbs.ServiceClient
 	logger           lager.Logger
 }
 
-func New(repClientFactory rep.ClientFactory, bbsClient bbs.Client, serviceClient bbs.ServiceClient, logger lager.Logger) *AuctionRunnerDelegate {
+func New(repClientFactory rep.ClientFactory, bbsClient bbs.Client, logger lager.Logger) *AuctionRunnerDelegate {
 	return &AuctionRunnerDelegate{
 		repClientFactory: repClientFactory,
 		bbsClient:        bbsClient,
-		serviceClient:    serviceClient,
 		logger:           logger,
 	}
 }
 
 func (a *AuctionRunnerDelegate) FetchCellReps() (map[string]rep.Client, error) {
-	cells, err := a.serviceClient.Cells(a.logger)
+	cells, err := a.bbsClient.Cells()
 	cellReps := map[string]rep.Client{}
 	if err != nil {
 		return cellReps, err
 	}
 
 	for _, cell := range cells {
-		cellReps[cell.CellID] = a.repClientFactory.CreateClient(cell.RepAddress)
+		cellReps[cell.CellId] = a.repClientFactory.CreateClient(cell.RepAddress)
 	}
 
 	return cellReps, nil

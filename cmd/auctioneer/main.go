@@ -152,10 +152,9 @@ func main() {
 	}
 
 	clock := clock.NewClock()
-	bbsServiceClient := bbs.NewServiceClient(consulSession, clock)
 	auctioneerServiceClient := auctioneer.NewServiceClient(consulSession, clock)
 
-	auctionRunner := initializeAuctionRunner(logger, *cellStateTimeout, initializeBBSClient(logger), bbsServiceClient)
+	auctionRunner := initializeAuctionRunner(logger, *cellStateTimeout, initializeBBSClient(logger))
 	auctionServer := initializeAuctionServer(logger, auctionRunner)
 	lockMaintainer := initializeLockMaintainer(logger, auctioneerServiceClient)
 
@@ -186,12 +185,12 @@ func main() {
 	logger.Info("exited")
 }
 
-func initializeAuctionRunner(logger lager.Logger, cellStateTimeout time.Duration, bbsClient bbs.Client, serviceClient bbs.ServiceClient) auctiontypes.AuctionRunner {
+func initializeAuctionRunner(logger lager.Logger, cellStateTimeout time.Duration, bbsClient bbs.Client) auctiontypes.AuctionRunner {
 	httpClient := cf_http.NewClient()
 	stateClient := cf_http.NewCustomTimeoutClient(cellStateTimeout)
 	repClientFactory := rep.NewClientFactory(httpClient, stateClient)
 
-	delegate := auctionrunnerdelegate.New(repClientFactory, bbsClient, serviceClient, logger)
+	delegate := auctionrunnerdelegate.New(repClientFactory, bbsClient, logger)
 	metricEmitter := auctionmetricemitterdelegate.New()
 	workPool, err := workpool.NewWorkPool(*auctionRunnerWorkers)
 	if err != nil {

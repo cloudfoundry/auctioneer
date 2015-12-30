@@ -24,7 +24,6 @@ var _ = Describe("Auction Runner Delegate", func() {
 	var (
 		delegate         *auctionrunnerdelegate.AuctionRunnerDelegate
 		bbsClient        *fake_bbs.FakeClient
-		serviceClient    *fake_bbs.FakeServiceClient
 		metricSender     *fake.FakeMetricSender
 		repClientFactory *repfakes.FakeClientFactory
 		repClient        *repfakes.FakeClient
@@ -36,13 +35,12 @@ var _ = Describe("Auction Runner Delegate", func() {
 		metrics.Initialize(metricSender, nil)
 
 		bbsClient = &fake_bbs.FakeClient{}
-		serviceClient = &fake_bbs.FakeServiceClient{}
 		repClientFactory = &repfakes.FakeClientFactory{}
 		repClient = &repfakes.FakeClient{}
 		repClientFactory.CreateClientReturns(repClient)
 		logger = lagertest.NewTestLogger("delegate")
 
-		delegate = auctionrunnerdelegate.New(repClientFactory, bbsClient, serviceClient, logger)
+		delegate = auctionrunnerdelegate.New(repClientFactory, bbsClient, logger)
 	})
 
 	Describe("fetching cell reps", func() {
@@ -50,11 +48,9 @@ var _ = Describe("Auction Runner Delegate", func() {
 			BeforeEach(func() {
 				cellPresence1 := models.NewCellPresence("cell-A", "cell-a.url", "zone-1", models.NewCellCapacity(123, 456, 789), []string{}, []string{})
 				cellPresence2 := models.NewCellPresence("cell-B", "cell-b.url", "zone-1", models.NewCellCapacity(123, 456, 789), []string{}, []string{})
-				cellSet := models.NewCellSet()
-				cellSet.Add(&cellPresence1)
-				cellSet.Add(&cellPresence2)
+				cells := []*models.CellPresence{&cellPresence1, &cellPresence2}
 
-				serviceClient.CellsReturns(cellSet, nil)
+				bbsClient.CellsReturns(cells, nil)
 			})
 
 			It("creates rep clients with the correct addresses", func() {
@@ -82,7 +78,7 @@ var _ = Describe("Auction Runner Delegate", func() {
 
 		Context("when the BBS errors", func() {
 			BeforeEach(func() {
-				serviceClient.CellsReturns(nil, errors.New("boom"))
+				bbsClient.CellsReturns(nil, errors.New("boom"))
 			})
 
 			It("should error", func() {
