@@ -12,7 +12,6 @@ import (
 	"github.com/cloudfoundry-incubator/bbs/models"
 	"github.com/cloudfoundry-incubator/consuladapter"
 	"github.com/cloudfoundry-incubator/consuladapter/consulrunner"
-	"github.com/cloudfoundry/storeadapter"
 	"github.com/cloudfoundry/storeadapter/storerunner/etcdstorerunner"
 	. "github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/config"
@@ -44,7 +43,6 @@ var runner *ginkgomon.Runner
 
 var etcdPort int
 var etcdRunner *etcdstorerunner.ETCDClusterRunner
-var etcdClient storeadapter.StoreAdapter
 
 var consulRunner *consulrunner.ClusterRunner
 var consulSession *consuladapter.Session
@@ -89,7 +87,6 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 
 	etcdPort = 5001 + GinkgoParallelNode()
 	etcdRunner = etcdstorerunner.NewETCDClusterRunner(etcdPort, 1, nil)
-	etcdClient = etcdRunner.Adapter(nil)
 
 	consulRunner = consulrunner.NewClusterRunner(
 		9001+config.GinkgoConfig.ParallelNode*consulrunner.PortOffsetLength,
