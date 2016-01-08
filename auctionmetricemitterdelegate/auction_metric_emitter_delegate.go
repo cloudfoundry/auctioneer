@@ -17,6 +17,10 @@ func (_ auctionMetricEmitterDelegate) FetchStatesCompleted(fetchStatesDuration t
 	auctioneer.FetchStatesDuration.Send(fetchStatesDuration)
 }
 
+func (_ auctionMetricEmitterDelegate) FailedCellStateRequest() {
+	auctioneer.FailedCellStateRequests.Increment()
+}
+
 func (_ auctionMetricEmitterDelegate) AuctionCompleted(results auctiontypes.AuctionResults) {
 	auctioneer.LRPAuctionsStarted.Add(uint64(len(results.SuccessfulLRPs)))
 	auctioneer.TaskAuctionsStarted.Add(uint64(len(results.SuccessfulTasks)))
