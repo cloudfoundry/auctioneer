@@ -66,7 +66,8 @@ var _ = Describe("Auction Metric Emitter Delegate", func() {
 
 	Describe("FetchStatesCompleted", func() {
 		It("should adjust the metric counters", func() {
-			delegate.FetchStatesCompleted(1 * time.Second)
+			err := delegate.FetchStatesCompleted(1 * time.Second)
+			Expect(err).NotTo(HaveOccurred())
 
 			sentMetric := metricSender.GetValue("AuctioneerFetchStatesDuration")
 			Expect(sentMetric.Value).To(Equal(1e+09))

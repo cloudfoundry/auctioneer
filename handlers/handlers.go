@@ -14,9 +14,10 @@ func New(runner auctiontypes.AuctionRunner, logger lager.Logger) http.Handler {
 	taskAuctionHandler := logWrap(NewTaskAuctionHandler(runner).Create, logger)
 	lrpAuctionHandler := logWrap(NewLRPAuctionHandler(runner).Create, logger)
 
+	emitter := middleware.NewLatencyEmitter(logger)
 	actions := rata.Handlers{
-		auctioneer.CreateTaskAuctionsRoute: middleware.EmitLatency(taskAuctionHandler),
-		auctioneer.CreateLRPAuctionsRoute:  middleware.EmitLatency(lrpAuctionHandler),
+		auctioneer.CreateTaskAuctionsRoute: emitter.EmitLatency(taskAuctionHandler),
+		auctioneer.CreateLRPAuctionsRoute:  emitter.EmitLatency(lrpAuctionHandler),
 	}
 
 	handler, err := rata.NewRouter(auctioneer.Routes, actions)

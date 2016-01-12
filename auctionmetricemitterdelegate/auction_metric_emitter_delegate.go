@@ -13,8 +13,8 @@ func New() auctionMetricEmitterDelegate {
 	return auctionMetricEmitterDelegate{}
 }
 
-func (_ auctionMetricEmitterDelegate) FetchStatesCompleted(fetchStatesDuration time.Duration) {
-	auctioneer.FetchStatesDuration.Send(fetchStatesDuration)
+func (_ auctionMetricEmitterDelegate) FetchStatesCompleted(fetchStatesDuration time.Duration) error {
+	return auctioneer.FetchStatesDuration.Send(fetchStatesDuration)
 }
 
 func (_ auctionMetricEmitterDelegate) FailedCellStateRequest() {
