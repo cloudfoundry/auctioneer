@@ -8,6 +8,7 @@ import (
 	"github.com/cloudfoundry-incubator/locket"
 	"github.com/cloudfoundry-incubator/rep"
 	"github.com/cloudfoundry-incubator/stager/diego_errors"
+	"github.com/hashicorp/consul/api"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
@@ -51,6 +52,42 @@ var _ = Describe("Auctioneer", func() {
 
 		It("starts", func() {
 			Consistently(runner).ShouldNot(Exit())
+		})
+	})
+
+	Context("when the auctioneer starts up", func() {
+		BeforeEach(func() {
+			auctioneerProcess = ginkgomon.Invoke(runner)
+		})
+
+		It("registers itself as a service", func() {
+			client := consulRunner.NewConsulClient()
+			services, err := client.Agent().Services()
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(services).To(HaveKeyWithValue("auctioneer", &api.AgentService{
+				ID:      "auctioneer",
+				Service: "auctioneer",
+				Port:    auctioneerServerPort,
+				Address: "",
+			}))
+		})
+
+		It("registers a TTL healthcheck", func() {
+			client := consulRunner.NewConsulClient()
+			checks, err := client.Agent().Checks()
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(checks).To(HaveKeyWithValue("service:auctioneer", &api.AgentCheck{
+				Node:        "0",
+				CheckID:     "service:auctioneer",
+				Name:        "Service 'auctioneer' check",
+				Status:      "passing",
+				Notes:       "",
+				Output:      "",
+				ServiceID:   "auctioneer",
+				ServiceName: "auctioneer",
+			}))
 		})
 	})
 

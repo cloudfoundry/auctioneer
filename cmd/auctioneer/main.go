@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
+	"github.com/hashicorp/consul/api"
 	"github.com/nu7hatch/gouuid"
 
 	"github.com/cloudfoundry-incubator/auctioneer"
@@ -157,18 +159,25 @@ func main() {
 		logger.Fatal("consul-session-failed", err)
 	}
 
+	port, err := strconv.Atoi(strings.Split(*listenAddr, ":")[1])
+	if err != nil {
+		logger.Fatal("invalid-port", err)
+	}
+
 	clock := clock.NewClock()
 	auctioneerServiceClient := auctioneer.NewServiceClient(consulSession, clock)
 
 	auctionRunner := initializeAuctionRunner(logger, *cellStateTimeout,
 		initializeBBSClient(logger), *startingContainerWeight)
 	auctionServer := initializeAuctionServer(logger, auctionRunner)
-	lockMaintainer := initializeLockMaintainer(logger, auctioneerServiceClient)
+	lockMaintainer := initializeLockMaintainer(logger, auctioneerServiceClient, port)
+	registrationRunner := initializeRegistrationRunner(logger, consuladapter.NewConsulClient(client), clock, port)
 
 	members := grouper.Members{
 		{"lock-maintainer", lockMaintainer},
 		{"auction-runner", auctionRunner},
 		{"auction-server", auctionServer},
+		{"registration-runner", registrationRunner},
 	}
 
 	if dbgAddr := cf_debug_server.DebugAddress(flag.CommandLine); dbgAddr != "" {
@@ -226,7 +235,18 @@ func initializeAuctionServer(logger lager.Logger, runner auctiontypes.AuctionRun
 	return http_server.New(*listenAddr, handlers.New(runner, logger))
 }
 
-func initializeLockMaintainer(logger lager.Logger, serviceClient auctioneer.ServiceClient) ifrit.Runner {
+func initializeRegistrationRunner(logger lager.Logger, consulClient consuladapter.Client, clock clock.Clock, port int) ifrit.Runner {
+	registration := &api.AgentServiceRegistration{
+		Name: "auctioneer",
+		Port: port,
+		Check: &api.AgentServiceCheck{
+			TTL: "3s",
+		},
+	}
+	return locket.NewRegistrationRunner(logger, registration, consulClient, locket.RetryInterval, clock)
+}
+
+func initializeLockMaintainer(logger lager.Logger, serviceClient auctioneer.ServiceClient, port int) ifrit.Runner {
 	uuid, err := uuid.NewV4()
 	if err != nil {
 		logger.Fatal("Couldn't generate uuid", err)
@@ -237,8 +257,7 @@ func initializeLockMaintainer(logger lager.Logger, serviceClient auctioneer.Serv
 		logger.Fatal("Couldn't determine local IP", err)
 	}
 
-	port := strings.Split(*listenAddr, ":")[1]
-	address := fmt.Sprintf("%s://%s:%s", serverProtocol, localIP, port)
+	address := fmt.Sprintf("%s://%s:%d", serverProtocol, localIP, port)
 	auctioneerPresence := auctioneer.NewPresence(uuid.String(), address)
 
 	lockMaintainer, err := serviceClient.NewAuctioneerLockRunner(logger, auctioneerPresence, *lockRetryInterval)
