@@ -153,8 +153,8 @@ func main() {
 		logger.Fatal("new-client-failed", err)
 	}
 
-	sessionMgr := consuladapter.NewSessionManager(client)
-	consulSession, err := consuladapter.NewSession("auctioneer", *lockTTL, client, sessionMgr)
+	consulClient := consuladapter.NewConsulClient(client)
+	consulSession, err := consuladapter.NewSession("auctioneer", *lockTTL, consulClient)
 	if err != nil {
 		logger.Fatal("consul-session-failed", err)
 	}
@@ -171,7 +171,7 @@ func main() {
 		initializeBBSClient(logger), *startingContainerWeight)
 	auctionServer := initializeAuctionServer(logger, auctionRunner)
 	lockMaintainer := initializeLockMaintainer(logger, auctioneerServiceClient, port)
-	registrationRunner := initializeRegistrationRunner(logger, consuladapter.NewConsulClient(client), clock, port)
+	registrationRunner := initializeRegistrationRunner(logger, consulClient, clock, port)
 
 	members := grouper.Members{
 		{"lock-maintainer", lockMaintainer},
