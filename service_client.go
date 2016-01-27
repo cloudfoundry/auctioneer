@@ -43,21 +43,24 @@ func (a Presence) Validate() error {
 }
 
 type ServiceClient interface {
-	NewAuctioneerLockRunner(lager.Logger, Presence, time.Duration) (ifrit.Runner, error)
+	NewAuctioneerLockRunner(logger lager.Logger, presence Presence, retryInterval, lockTTL time.Duration) (ifrit.Runner, error)
 	CurrentAuctioneer() (Presence, error)
 	CurrentAuctioneerAddress() (string, error)
 }
 
 type serviceClient struct {
-	session *consuladapter.Session
-	clock   clock.Clock
+	consulClient consuladapter.Client
+	clock        clock.Clock
 }
 
-func NewServiceClient(session *consuladapter.Session, clock clock.Clock) ServiceClient {
-	return serviceClient{session, clock}
+func NewServiceClient(consulClient consuladapter.Client, clock clock.Clock) ServiceClient {
+	return serviceClient{
+		consulClient: consulClient,
+		clock:        clock,
+	}
 }
 
-func (c serviceClient) NewAuctioneerLockRunner(logger lager.Logger, presence Presence, retryInterval time.Duration) (ifrit.Runner, error) {
+func (c serviceClient) NewAuctioneerLockRunner(logger lager.Logger, presence Presence, retryInterval, lockTTL time.Duration) (ifrit.Runner, error) {
 	if err := presence.Validate(); err != nil {
 		return nil, err
 	}
@@ -66,13 +69,13 @@ func (c serviceClient) NewAuctioneerLockRunner(logger lager.Logger, presence Pre
 	if err != nil {
 		return nil, err
 	}
-	return locket.NewLock(c.session, LockSchemaPath(), payload, c.clock, retryInterval, logger), nil
+	return locket.NewLock(logger, c.consulClient, LockSchemaPath(), payload, c.clock, retryInterval, lockTTL), nil
 }
 
 func (c serviceClient) CurrentAuctioneer() (Presence, error) {
 	presence := Presence{}
 
-	value, err := c.session.GetAcquiredValue(LockSchemaPath())
+	value, err := c.getAcquiredValue(LockSchemaPath())
 	if err != nil {
 		return presence, err
 	}
@@ -91,4 +94,17 @@ func (c serviceClient) CurrentAuctioneer() (Presence, error) {
 func (c serviceClient) CurrentAuctioneerAddress() (string, error) {
 	presence, err := c.CurrentAuctioneer()
 	return presence.AuctioneerAddress, err
+}
+
+func (c serviceClient) getAcquiredValue(key string) ([]byte, error) {
+	kvPair, _, err := c.consulClient.KV().Get(key, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if kvPair == nil || kvPair.Session == "" {
+		return nil, consuladapter.NewKeyNotFoundError(key)
+	}
+
+	return kvPair.Value, nil
 }

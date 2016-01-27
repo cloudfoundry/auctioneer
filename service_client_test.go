@@ -1,12 +1,13 @@
 package auctioneer_test
 
 import (
+	"time"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-golang/lager/lagertest"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/ginkgomon"
-	"time"
 
 	"github.com/cloudfoundry-incubator/auctioneer"
 	"github.com/pivotal-golang/clock/fakeclock"
@@ -22,8 +23,8 @@ var _ = Describe("ServiceClient", func() {
 		clock = fakeclock.NewFakeClock(time.Now())
 		logger = lagertest.NewTestLogger("test")
 
-		consulSession := consulRunner.NewSession("test-session")
-		serviceClient = auctioneer.NewServiceClient(consulSession, clock)
+		consulClient := consulRunner.NewConsulClient()
+		serviceClient = auctioneer.NewServiceClient(consulClient, clock)
 	})
 
 	Describe("AuctioneerAddress", func() {
@@ -34,7 +35,7 @@ var _ = Describe("ServiceClient", func() {
 			BeforeEach(func() {
 				presence = auctioneer.NewPresence("auctioneer-id", "auctioneer.example.com")
 
-				auctioneerLock, err := serviceClient.NewAuctioneerLockRunner(logger, presence, 100*time.Millisecond)
+				auctioneerLock, err := serviceClient.NewAuctioneerLockRunner(logger, presence, 100*time.Millisecond, 10*time.Second)
 				Expect(err).NotTo(HaveOccurred())
 				heartbeater = ginkgomon.Invoke(auctioneerLock)
 			})

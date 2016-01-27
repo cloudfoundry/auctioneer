@@ -154,10 +154,6 @@ func main() {
 	}
 
 	consulClient := consuladapter.NewConsulClient(client)
-	consulSession, err := consuladapter.NewSession("auctioneer", *lockTTL, consulClient)
-	if err != nil {
-		logger.Fatal("consul-session-failed", err)
-	}
 
 	port, err := strconv.Atoi(strings.Split(*listenAddr, ":")[1])
 	if err != nil {
@@ -165,7 +161,7 @@ func main() {
 	}
 
 	clock := clock.NewClock()
-	auctioneerServiceClient := auctioneer.NewServiceClient(consulSession, clock)
+	auctioneerServiceClient := auctioneer.NewServiceClient(consulClient, clock)
 
 	auctionRunner := initializeAuctionRunner(logger, *cellStateTimeout,
 		initializeBBSClient(logger), *startingContainerWeight)
@@ -260,7 +256,7 @@ func initializeLockMaintainer(logger lager.Logger, serviceClient auctioneer.Serv
 	address := fmt.Sprintf("%s://%s:%d", serverProtocol, localIP, port)
 	auctioneerPresence := auctioneer.NewPresence(uuid.String(), address)
 
-	lockMaintainer, err := serviceClient.NewAuctioneerLockRunner(logger, auctioneerPresence, *lockRetryInterval)
+	lockMaintainer, err := serviceClient.NewAuctioneerLockRunner(logger, auctioneerPresence, *lockRetryInterval, *lockTTL)
 	if err != nil {
 		logger.Fatal("Couldn't create lock maintainer", err)
 	}
