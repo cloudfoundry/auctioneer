@@ -8,6 +8,7 @@ import (
 	"github.com/cloudfoundry-incubator/auction/simulation/simulationrep"
 	"github.com/cloudfoundry-incubator/bbs"
 	"github.com/cloudfoundry-incubator/bbs/models"
+	"github.com/cloudfoundry-incubator/locket"
 	"github.com/cloudfoundry-incubator/rep"
 
 	"github.com/pivotal-golang/lager"
@@ -86,7 +87,7 @@ func (f *FakeCell) SpinUp(serviceClient bbs.ServiceClient) {
 		[]string{},
 		[]string{})
 
-	f.heartbeater = ifrit.Invoke(serviceClient.NewCellPresenceRunner(logger, &presence, time.Second))
+	f.heartbeater = ifrit.Invoke(serviceClient.NewCellPresenceRunner(logger, &presence, time.Second, locket.LockTTL))
 }
 
 func (f *FakeCell) Stop() {

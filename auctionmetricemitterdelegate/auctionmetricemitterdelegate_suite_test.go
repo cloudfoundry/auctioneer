@@ -9,5 +9,5 @@ import (
 
 func TestAuctionmetricemitterdelegate(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Auctionmetricemitterdelegate Suite")
+	RunSpecs(t, "Auction Metric Emitter Delegate Suite")
 }

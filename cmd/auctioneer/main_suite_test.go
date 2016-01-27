@@ -12,6 +12,7 @@ import (
 	"github.com/cloudfoundry-incubator/bbs/models"
 	"github.com/cloudfoundry-incubator/consuladapter"
 	"github.com/cloudfoundry-incubator/consuladapter/consulrunner"
+	"github.com/cloudfoundry-incubator/locket"
 	"github.com/cloudfoundry/storeadapter/storerunner/etcdstorerunner"
 	. "github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/config"
@@ -131,8 +132,9 @@ var _ = BeforeEach(func() {
 	bbsProcess = ginkgomon.Invoke(bbsRunner)
 
 	consulSession = consulRunner.NewSession("a-session")
+	consulClient := consulRunner.NewConsulClient()
 
-	serviceClient := bbs.NewServiceClient(consulSession, clock.NewClock())
+	serviceClient := bbs.NewServiceClient(logger, consulClient, locket.LockTTL, clock.NewClock())
 
 	runner = ginkgomon.New(ginkgomon.Config{
 		Name: "auctioneer",
