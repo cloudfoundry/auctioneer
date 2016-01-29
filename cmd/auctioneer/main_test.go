@@ -1,6 +1,8 @@
 package main_test
 
 import (
+	"time"
+
 	"github.com/cloudfoundry-incubator/auctioneer"
 	"github.com/cloudfoundry-incubator/bbs"
 	"github.com/cloudfoundry-incubator/bbs/models"
@@ -12,6 +14,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
+	"github.com/pivotal-golang/clock"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/ginkgomon"
 )
@@ -188,6 +191,7 @@ var _ = Describe("Auctioneer", func() {
 
 	Context("when the auctioneer cannot acquire the lock on startup", func() {
 		var task *rep.Task
+		var competingAuctioneerProcess ifrit.Process
 
 		BeforeEach(func() {
 			task = &rep.Task{
@@ -199,12 +203,17 @@ var _ = Describe("Auctioneer", func() {
 					RootFs:   "some-rootfs",
 				},
 			}
-			err := consulSession.AcquireLock(locket.LockSchemaPath("auctioneer_lock"), []byte{})
-			Expect(err).NotTo(HaveOccurred())
+
+			competingAuctioneerLock := locket.NewLock(logger, consulClient, locket.LockSchemaPath("auctioneer_lock"), []byte{}, clock.NewClock(), 500*time.Millisecond, 10*time.Second)
+			competingAuctioneerProcess = ifrit.Invoke(competingAuctioneerLock)
 
 			runner.StartCheck = "auctioneer.lock-bbs.lock.acquiring-lock"
 
 			auctioneerProcess = ifrit.Background(runner)
+		})
+
+		AfterEach(func() {
+			ginkgomon.Kill(competingAuctioneerProcess)
 		})
 
 		It("should not advertise its presence, and should not be reachable", func() {
@@ -216,9 +225,7 @@ var _ = Describe("Auctioneer", func() {
 		})
 
 		It("should eventually come up in the event that the lock is released", func() {
-			consulSession.Destroy()
-			_, err := consulSession.Recreate()
-			Expect(err).NotTo(HaveOccurred())
+			ginkgomon.Kill(competingAuctioneerProcess)
 
 			Eventually(func() error {
 				return auctioneerClient.RequestTaskAuctions([]*auctioneer.TaskStartRequest{

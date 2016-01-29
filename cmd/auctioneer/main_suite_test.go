@@ -45,7 +45,7 @@ var etcdPort int
 var etcdRunner *etcdstorerunner.ETCDClusterRunner
 
 var consulRunner *consulrunner.ClusterRunner
-var consulSession *consuladapter.Session
+var consulClient consuladapter.Client
 
 var auctioneerClient auctioneer.Client
 
@@ -130,8 +130,7 @@ var _ = BeforeEach(func() {
 	bbsRunner = bbstestrunner.New(bbsBinPath, bbsArgs)
 	bbsProcess = ginkgomon.Invoke(bbsRunner)
 
-	consulSession = consulRunner.NewSession("a-session")
-	consulClient := consulRunner.NewConsulClient()
+	consulClient = consulRunner.NewConsulClient()
 
 	serviceClient := bbs.NewServiceClient(consulClient, clock.NewClock())
 
