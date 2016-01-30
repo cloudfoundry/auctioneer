@@ -148,12 +148,10 @@ func main() {
 		logger.Fatal("invalid-bbs-address", err)
 	}
 
-	client, err := consuladapter.NewClient(*consulCluster)
+	consulClient, err := consuladapter.NewClientFromUrl(*consulCluster)
 	if err != nil {
 		logger.Fatal("new-client-failed", err)
 	}
-
-	consulClient := consuladapter.NewConsulClient(client)
 
 	port, err := strconv.Atoi(strings.Split(*listenAddr, ":")[1])
 	if err != nil {

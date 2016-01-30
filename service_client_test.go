@@ -23,7 +23,7 @@ var _ = Describe("ServiceClient", func() {
 		clock = fakeclock.NewFakeClock(time.Now())
 		logger = lagertest.NewTestLogger("test")
 
-		consulClient := consulRunner.NewConsulClient()
+		consulClient := consulRunner.NewClient()
 		serviceClient = auctioneer.NewServiceClient(consulClient, clock)
 	})
 

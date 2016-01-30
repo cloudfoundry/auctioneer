@@ -64,7 +64,7 @@ var _ = Describe("Auctioneer", func() {
 		})
 
 		It("registers itself as a service", func() {
-			client := consulRunner.NewConsulClient()
+			client := consulRunner.NewClient()
 			services, err := client.Agent().Services()
 			Expect(err).NotTo(HaveOccurred())
 
@@ -77,7 +77,7 @@ var _ = Describe("Auctioneer", func() {
 		})
 
 		It("registers a TTL healthcheck", func() {
-			client := consulRunner.NewConsulClient()
+			client := consulRunner.NewClient()
 			checks, err := client.Agent().Checks()
 			Expect(err).NotTo(HaveOccurred())
 

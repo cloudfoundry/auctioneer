@@ -130,7 +130,7 @@ var _ = BeforeEach(func() {
 	bbsRunner = bbstestrunner.New(bbsBinPath, bbsArgs)
 	bbsProcess = ginkgomon.Invoke(bbsRunner)
 
-	consulClient = consulRunner.NewConsulClient()
+	consulClient = consulRunner.NewClient()
 
 	serviceClient := bbs.NewServiceClient(consulClient, clock.NewClock())
 
