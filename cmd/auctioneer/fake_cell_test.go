@@ -39,6 +39,11 @@ func SpinUpFakeCell(serviceClient bbs.ServiceClient, cellID string, stack string
 	}
 
 	fakeRep.SpinUp(serviceClient)
+	Eventually(func() bool {
+		cells, err := serviceClient.Cells(logger)
+		Expect(err).NotTo(HaveOccurred())
+		return cells.HasCellID(cellID)
+	}).Should(BeTrue())
 
 	return fakeRep
 }
