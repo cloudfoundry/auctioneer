@@ -15,8 +15,8 @@ func NewTaskStartRequest(task rep.Task) TaskStartRequest {
 	return TaskStartRequest{task}
 }
 
-func NewTaskStartRequestFromModel(t *models.Task) TaskStartRequest {
-	return TaskStartRequest{rep.NewTask(t.TaskGuid, t.Domain, rep.NewResource(t.MemoryMb, t.DiskMb, t.RootFs))}
+func NewTaskStartRequestFromModel(taskGuid, domain string, taskDef *models.TaskDefinition) TaskStartRequest {
+	return TaskStartRequest{rep.NewTask(taskGuid, domain, rep.NewResource(taskDef.MemoryMb, taskDef.DiskMb, taskDef.RootFs))}
 }
 
 func (t *TaskStartRequest) Validate() error {
