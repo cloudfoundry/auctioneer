@@ -93,7 +93,7 @@ var _ = Describe("Auction Runner Delegate", func() {
 		var results auctiontypes.AuctionResults
 
 		BeforeEach(func() {
-			resource := rep.NewResource(10, 10, "linux")
+			resource := rep.NewResource(10, 10, "linux", []string{})
 
 			results = auctiontypes.AuctionResults{
 				SuccessfulLRPs: []auctiontypes.LRPAuction{

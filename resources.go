@@ -16,7 +16,11 @@ func NewTaskStartRequest(task rep.Task) TaskStartRequest {
 }
 
 func NewTaskStartRequestFromModel(taskGuid, domain string, taskDef *models.TaskDefinition) TaskStartRequest {
-	return TaskStartRequest{rep.NewTask(taskGuid, domain, rep.NewResource(taskDef.MemoryMb, taskDef.DiskMb, taskDef.RootFs))}
+	volumeMounts := []string{}
+	for _, volumeMount := range taskDef.VolumeMounts {
+		volumeMounts = append(volumeMounts, volumeMount.Driver)
+	}
+	return TaskStartRequest{rep.NewTask(taskGuid, domain, rep.NewResource(taskDef.MemoryMb, taskDef.DiskMb, taskDef.RootFs, volumeMounts))}
 }
 
 func (t *TaskStartRequest) Validate() error {
@@ -47,11 +51,21 @@ func NewLRPStartRequest(processGuid, domain string, indices []int, res rep.Resou
 }
 
 func NewLRPStartRequestFromModel(d *models.DesiredLRP, indices ...int) LRPStartRequest {
-	return NewLRPStartRequest(d.ProcessGuid, d.Domain, indices, rep.NewResource(d.MemoryMb, d.DiskMb, d.RootFs))
+	volumeDrivers := []string{}
+	for _, volumeMount := range d.VolumeMounts {
+		volumeDrivers = append(volumeDrivers, volumeMount.Driver)
+	}
+
+	return NewLRPStartRequest(d.ProcessGuid, d.Domain, indices, rep.NewResource(d.MemoryMb, d.DiskMb, d.RootFs, volumeDrivers))
 }
 
 func NewLRPStartRequestFromSchedulingInfo(s *models.DesiredLRPSchedulingInfo, indices ...int) LRPStartRequest {
-	return NewLRPStartRequest(s.ProcessGuid, s.Domain, indices, rep.NewResource(s.MemoryMb, s.DiskMb, s.RootFs))
+	volumeDrivers := []string{}
+	for _, volumeMount := range s.VolumeMounts {
+		volumeDrivers = append(volumeDrivers, volumeMount.Driver)
+	}
+
+	return NewLRPStartRequest(s.ProcessGuid, s.Domain, indices, rep.NewResource(s.MemoryMb, s.DiskMb, s.RootFs, volumeDrivers))
 }
 
 func (lrpstart *LRPStartRequest) Validate() error {

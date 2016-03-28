@@ -70,7 +70,7 @@ func (f *FakeCell) SpinUp(serviceClient bbs.ServiceClient) {
 		DiskMB:     100,
 		MemoryMB:   100,
 		Containers: 100,
-	})
+	}, []string{"my-driver"})
 
 	//spin up an http auction server
 	logger := lager.NewLogger(f.cellID)
