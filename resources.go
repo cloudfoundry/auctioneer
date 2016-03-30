@@ -60,12 +60,7 @@ func NewLRPStartRequestFromModel(d *models.DesiredLRP, indices ...int) LRPStartR
 }
 
 func NewLRPStartRequestFromSchedulingInfo(s *models.DesiredLRPSchedulingInfo, indices ...int) LRPStartRequest {
-	volumeDrivers := []string{}
-	for _, volumeMount := range s.VolumeMounts {
-		volumeDrivers = append(volumeDrivers, volumeMount.Driver)
-	}
-
-	return NewLRPStartRequest(s.ProcessGuid, s.Domain, indices, rep.NewResource(s.MemoryMb, s.DiskMb, s.RootFs, volumeDrivers))
+	return NewLRPStartRequest(s.ProcessGuid, s.Domain, indices, rep.NewResource(s.MemoryMb, s.DiskMb, s.RootFs, s.VolumePlacement.DriverNames))
 }
 
 func (lrpstart *LRPStartRequest) Validate() error {
