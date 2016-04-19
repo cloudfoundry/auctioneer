@@ -10,11 +10,11 @@ import (
 
 type AuctionRunnerDelegate struct {
 	repClientFactory rep.ClientFactory
-	bbsClient        bbs.Client
+	bbsClient        bbs.InternalClient
 	logger           lager.Logger
 }
 
-func New(repClientFactory rep.ClientFactory, bbsClient bbs.Client, logger lager.Logger) *AuctionRunnerDelegate {
+func New(repClientFactory rep.ClientFactory, bbsClient bbs.InternalClient, logger lager.Logger) *AuctionRunnerDelegate {
 	return &AuctionRunnerDelegate{
 		repClientFactory: repClientFactory,
 		bbsClient:        bbsClient,

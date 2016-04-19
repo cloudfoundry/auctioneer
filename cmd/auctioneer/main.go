@@ -195,7 +195,7 @@ func main() {
 	logger.Info("exited")
 }
 
-func initializeAuctionRunner(logger lager.Logger, cellStateTimeout time.Duration, bbsClient bbs.Client, startingContainerWeight float64) auctiontypes.AuctionRunner {
+func initializeAuctionRunner(logger lager.Logger, cellStateTimeout time.Duration, bbsClient bbs.InternalClient, startingContainerWeight float64) auctiontypes.AuctionRunner {
 	httpClient := cf_http.NewClient()
 	stateClient := cf_http.NewCustomTimeoutClient(cellStateTimeout)
 	repClientFactory := rep.NewClientFactory(httpClient, stateClient)
@@ -269,7 +269,7 @@ func validateBBSAddress() error {
 	return nil
 }
 
-func initializeBBSClient(logger lager.Logger) bbs.Client {
+func initializeBBSClient(logger lager.Logger) bbs.InternalClient {
 	bbsURL, err := url.Parse(*bbsAddress)
 	if err != nil {
 		logger.Fatal("Invalid BBS URL", err)

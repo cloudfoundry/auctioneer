@@ -236,7 +236,7 @@ var _ = Describe("Auctioneer", func() {
 	})
 })
 
-func getTasksByState(client bbs.Client, state models.Task_State) []*models.Task {
+func getTasksByState(client bbs.InternalClient, state models.Task_State) []*models.Task {
 	tasks, err := client.Tasks()
 	Expect(err).NotTo(HaveOccurred())
 
