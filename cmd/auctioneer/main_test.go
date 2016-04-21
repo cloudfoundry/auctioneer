@@ -9,7 +9,6 @@ import (
 	"github.com/cloudfoundry-incubator/bbs/models/test/model_helpers"
 	"github.com/cloudfoundry-incubator/locket"
 	"github.com/cloudfoundry-incubator/rep"
-	"github.com/cloudfoundry-incubator/stager/diego_errors"
 	"github.com/hashicorp/consul/api"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -173,7 +172,7 @@ var _ = Describe("Auctioneer", func() {
 				completedTask := completedTasks[0]
 				Expect(completedTask.TaskGuid).To(Equal("task-guid"))
 				Expect(completedTask.Failed).To(BeTrue())
-				Expect(completedTask.FailureReason).To(Equal(diego_errors.INSUFFICIENT_RESOURCES_MESSAGE))
+				Expect(completedTask.FailureReason).To(Equal("insufficient resources"))
 			})
 		})
 	})
