@@ -3,6 +3,7 @@ package main_test
 import (
 	"fmt"
 	"net/url"
+	"os"
 	"os/exec"
 	"strings"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/cloudfoundry-incubator/consuladapter"
 	"github.com/cloudfoundry-incubator/consuladapter/consulrunner"
 	"github.com/cloudfoundry/storeadapter/storerunner/etcdstorerunner"
+	"github.com/cloudfoundry/storeadapter/storerunner/mysqlrunner"
 	. "github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/config"
 	. "github.com/onsi/gomega"
@@ -27,36 +29,42 @@ import (
 	"time"
 )
 
-var auctioneerProcess ifrit.Process
+var (
+	auctioneerProcess ifrit.Process
 
-var auctioneerPath string
+	auctioneerPath string
 
-var dotNetStack = "dot-net"
-var dotNetRootFSURL = models.PreloadedRootFS(dotNetStack)
-var linuxStack = "linux"
-var linuxRootFSURL = models.PreloadedRootFS(linuxStack)
-var dotNetCell, linuxCell *FakeCell
+	dotNetStack           = "dot-net"
+	dotNetRootFSURL       = models.PreloadedRootFS(dotNetStack)
+	linuxStack            = "linux"
+	linuxRootFSURL        = models.PreloadedRootFS(linuxStack)
+	dotNetCell, linuxCell *FakeCell
 
-var auctioneerServerPort int
-var auctioneerAddress string
-var runner *ginkgomon.Runner
+	auctioneerServerPort int
+	auctioneerAddress    string
+	runner               *ginkgomon.Runner
 
-var etcdPort int
-var etcdRunner *etcdstorerunner.ETCDClusterRunner
+	etcdPort   int
+	etcdRunner *etcdstorerunner.ETCDClusterRunner
 
-var consulRunner *consulrunner.ClusterRunner
-var consulClient consuladapter.Client
+	consulRunner *consulrunner.ClusterRunner
+	consulClient consuladapter.Client
 
-var auctioneerClient auctioneer.Client
+	auctioneerClient auctioneer.Client
 
-var bbsArgs bbstestrunner.Args
-var bbsBinPath string
-var bbsURL *url.URL
-var bbsRunner *ginkgomon.Runner
-var bbsProcess ifrit.Process
-var bbsClient bbs.InternalClient
+	bbsArgs    bbstestrunner.Args
+	bbsBinPath string
+	bbsURL     *url.URL
+	bbsRunner  *ginkgomon.Runner
+	bbsProcess ifrit.Process
+	bbsClient  bbs.InternalClient
 
-var logger lager.Logger
+	mySQLProcess ifrit.Process
+	mySQLRunner  *mysqlrunner.MySQLRunner
+	useSQL       bool
+
+	logger lager.Logger
+)
 
 func TestAuctioneer(t *testing.T) {
 	// these integration tests can take a bit, especially under load;
@@ -75,6 +83,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	Expect(err).NotTo(HaveOccurred())
 	return []byte(strings.Join([]string{compiledAuctioneerPath, bbsConfig}, ","))
 }, func(pathsByte []byte) {
+	useSQL = os.Getenv("USE_SQL") != ""
 	path := string(pathsByte)
 	compiledAuctioneerPath := strings.Split(path, ",")[0]
 	bbsBinPath = strings.Split(path, ",")[1]
@@ -87,6 +96,11 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 
 	etcdPort = 5001 + GinkgoParallelNode()
 	etcdRunner = etcdstorerunner.NewETCDClusterRunner(etcdPort, 1, nil)
+
+	if useSQL {
+		mySQLRunner = mysqlrunner.NewMySQLRunner(fmt.Sprintf("diego_%d", GinkgoParallelNode()))
+		mySQLProcess = ginkgomon.Invoke(mySQLRunner)
+	}
 
 	consulRunner = consulrunner.NewClusterRunner(
 		9001+config.GinkgoConfig.ParallelNode*consulrunner.PortOffsetLength,
@@ -120,6 +134,11 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 
 		EncryptionKeys: []string{"label:key"},
 		ActiveKeyLabel: "label",
+	}
+
+	if useSQL {
+		bbsArgs.DatabaseDriver = "mysql"
+		bbsArgs.DatabaseConnectionString = mySQLRunner.ConnectionString()
 	}
 })
 
@@ -156,6 +175,10 @@ var _ = AfterEach(func() {
 	ginkgomon.Kill(bbsProcess)
 	dotNetCell.Stop()
 	linuxCell.Stop()
+
+	if useSQL {
+		mySQLRunner.Reset()
+	}
 })
 
 var _ = SynchronizedAfterSuite(func() {
@@ -165,6 +188,8 @@ var _ = SynchronizedAfterSuite(func() {
 	if consulRunner != nil {
 		consulRunner.Stop()
 	}
+
+	ginkgomon.Kill(mySQLProcess)
 }, func() {
 	gexec.CleanupBuildArtifacts()
 })
