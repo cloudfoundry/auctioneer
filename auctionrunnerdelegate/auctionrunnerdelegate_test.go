@@ -23,7 +23,7 @@ import (
 var _ = Describe("Auction Runner Delegate", func() {
 	var (
 		delegate         *auctionrunnerdelegate.AuctionRunnerDelegate
-		bbsClient        *fake_bbs.FakeClient
+		bbsClient        *fake_bbs.FakeInternalClient
 		metricSender     *fake.FakeMetricSender
 		repClientFactory *repfakes.FakeClientFactory
 		repClient        *repfakes.FakeClient
@@ -34,7 +34,7 @@ var _ = Describe("Auction Runner Delegate", func() {
 		metricSender = fake.NewFakeMetricSender()
 		metrics.Initialize(metricSender, nil)
 
-		bbsClient = &fake_bbs.FakeClient{}
+		bbsClient = &fake_bbs.FakeInternalClient{}
 		repClientFactory = &repfakes.FakeClientFactory{}
 		repClient = &repfakes.FakeClient{}
 		repClientFactory.CreateClientReturns(repClient)
