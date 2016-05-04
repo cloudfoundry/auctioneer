@@ -129,18 +129,18 @@ var _ = Describe("Auction Runner Delegate", func() {
 
 		It("should mark all failed tasks as COMPLETE with the appropriate failure reason", func() {
 			Expect(bbsClient.FailTaskCallCount()).To(Equal(1))
-			taskGuid, failureReason := bbsClient.FailTaskArgsForCall(0)
+			_, taskGuid, failureReason := bbsClient.FailTaskArgsForCall(0)
 			Expect(taskGuid).To(Equal("failed-task"))
 			Expect(failureReason).To(Equal(rep.ErrorInsufficientResources.Error()))
 		})
 
 		It("should mark all failed LRPs as UNCLAIMED with the appropriate placement error", func() {
 			Expect(bbsClient.FailActualLRPCallCount()).To(Equal(2))
-			lrpKey, errorMessage := bbsClient.FailActualLRPArgsForCall(0)
+			_, lrpKey, errorMessage := bbsClient.FailActualLRPArgsForCall(0)
 			Expect(*lrpKey).To(Equal(models.NewActualLRPKey("insufficient-capacity", 0, "domain")))
 			Expect(errorMessage).To(Equal(rep.ErrorInsufficientResources.Error()))
 
-			lrpKey1, errorMessage1 := bbsClient.FailActualLRPArgsForCall(1)
+			_, lrpKey1, errorMessage1 := bbsClient.FailActualLRPArgsForCall(1)
 			Expect(*lrpKey1).To(Equal(models.NewActualLRPKey("incompatible-stacks", 0, "domain")))
 			Expect(errorMessage1).To(Equal(auctiontypes.ErrorCellMismatch.Error()))
 		})

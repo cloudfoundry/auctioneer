@@ -138,7 +138,7 @@ var _ = Describe("Auctioneer", func() {
 				taskDef := exampleTaskDefinition()
 				taskDef.DiskMb = 1
 				taskDef.MemoryMb = 1
-				err := bbsClient.DesireTask("guid", "domain", taskDef)
+				err := bbsClient.DesireTask(logger, "guid", "domain", taskDef)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -154,7 +154,7 @@ var _ = Describe("Auctioneer", func() {
 				taskDef.DiskMb = 1000
 				taskDef.MemoryMb = 1000
 
-				err := bbsClient.DesireTask("task-guid", "domain", taskDef)
+				err := bbsClient.DesireTask(logger, "task-guid", "domain", taskDef)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -236,7 +236,7 @@ var _ = Describe("Auctioneer", func() {
 })
 
 func getTasksByState(client bbs.InternalClient, state models.Task_State) []*models.Task {
-	tasks, err := client.Tasks()
+	tasks, err := client.Tasks(logger)
 	Expect(err).NotTo(HaveOccurred())
 
 	filteredTasks := make([]*models.Task, 0)
