@@ -115,7 +115,10 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	consulRunner.Start()
 	consulRunner.WaitUntilReady()
 
-	bbsAddress := fmt.Sprintf("127.0.0.1:%d", 13000+GinkgoParallelNode())
+	bbsPort := 13000 + GinkgoParallelNode()*2
+	healthPort := bbsPort + 1
+	bbsAddress := fmt.Sprintf("127.0.0.1:%d", bbsPort)
+	healthAddress := fmt.Sprintf("127.0.0.1:%d", healthPort)
 
 	bbsURL = &url.URL{
 		Scheme: "http",
@@ -131,6 +134,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 		AuctioneerAddress: auctioneerAddress,
 		EtcdCluster:       etcdUrl,
 		ConsulCluster:     consulRunner.ConsulCluster(),
+		HealthAddress:     healthAddress,
 
 		EncryptionKeys: []string{"label:key"},
 		ActiveKeyLabel: "label",
