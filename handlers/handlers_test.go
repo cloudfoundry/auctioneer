@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 
-	fake_auction_runner "github.com/cloudfoundry-incubator/auction/auctiontypes/fakes"
+	fake_auction_runner "code.cloudfoundry.org/auction/auctiontypes/fakes"
 	"github.com/cloudfoundry-incubator/auctioneer"
 	"github.com/cloudfoundry-incubator/auctioneer/handlers"
 	"github.com/cloudfoundry-incubator/rep"
