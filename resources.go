@@ -3,7 +3,7 @@ package auctioneer
 import (
 	"errors"
 
-	"github.com/cloudfoundry-incubator/bbs/models"
+	"code.cloudfoundry.org/bbs/models"
 	"github.com/cloudfoundry-incubator/rep"
 )
 

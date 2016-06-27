@@ -1,7 +1,7 @@
 package auctionrunnerdelegate
 
 import (
-	"github.com/cloudfoundry-incubator/bbs"
+	"code.cloudfoundry.org/bbs"
 	"github.com/cloudfoundry-incubator/rep"
 
 	"code.cloudfoundry.org/auction/auctiontypes"

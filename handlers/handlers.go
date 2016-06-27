@@ -4,8 +4,8 @@ import (
 	"net/http"
 
 	"code.cloudfoundry.org/auction/auctiontypes"
+	"code.cloudfoundry.org/bbs/handlers/middleware"
 	"github.com/cloudfoundry-incubator/auctioneer"
-	"github.com/cloudfoundry-incubator/bbs/handlers/middleware"
 	"github.com/pivotal-golang/lager"
 	"github.com/tedsuo/rata"
 )
