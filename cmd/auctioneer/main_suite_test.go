@@ -6,12 +6,12 @@ import (
 	"os/exec"
 	"strings"
 
+	"code.cloudfoundry.org/auctioneer"
 	"code.cloudfoundry.org/bbs"
 	bbstestrunner "code.cloudfoundry.org/bbs/cmd/bbs/testrunner"
 	"code.cloudfoundry.org/bbs/models"
 	"code.cloudfoundry.org/bbs/test_helpers"
 	"code.cloudfoundry.org/bbs/test_helpers/sqlrunner"
-	"github.com/cloudfoundry-incubator/auctioneer"
 	"github.com/cloudfoundry-incubator/consuladapter"
 	"github.com/cloudfoundry-incubator/consuladapter/consulrunner"
 	"github.com/cloudfoundry/storeadapter/storerunner/etcdstorerunner"
@@ -78,7 +78,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	bbsConfig, err := gexec.Build("code.cloudfoundry.org/bbs/cmd/bbs", "-race")
 	Expect(err).NotTo(HaveOccurred())
 
-	compiledAuctioneerPath, err := gexec.Build("github.com/cloudfoundry-incubator/auctioneer/cmd/auctioneer", "-race")
+	compiledAuctioneerPath, err := gexec.Build("code.cloudfoundry.org/auctioneer/cmd/auctioneer", "-race")
 	Expect(err).NotTo(HaveOccurred())
 	return []byte(strings.Join([]string{compiledAuctioneerPath, bbsConfig}, ","))
 }, func(pathsByte []byte) {

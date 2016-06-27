@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/auction/auctiontypes"
-	"github.com/cloudfoundry-incubator/auctioneer"
+	"code.cloudfoundry.org/auctioneer"
 )
 
 type auctionMetricEmitterDelegate struct{}

@@ -6,8 +6,8 @@ import (
 	"net/http/httptest"
 
 	fake_auction_runner "code.cloudfoundry.org/auction/auctiontypes/fakes"
-	"github.com/cloudfoundry-incubator/auctioneer"
-	"github.com/cloudfoundry-incubator/auctioneer/handlers"
+	"code.cloudfoundry.org/auctioneer"
+	"code.cloudfoundry.org/auctioneer/handlers"
 	"github.com/cloudfoundry-incubator/rep"
 	"github.com/pivotal-golang/lager"
 	"github.com/pivotal-golang/lager/lagertest"

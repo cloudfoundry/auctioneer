@@ -14,7 +14,7 @@ import (
 	"github.com/pivotal-golang/lager"
 	"github.com/pivotal-golang/lager/lagertest"
 
-	"github.com/cloudfoundry-incubator/auctioneer/auctionrunnerdelegate"
+	"code.cloudfoundry.org/auctioneer/auctionrunnerdelegate"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

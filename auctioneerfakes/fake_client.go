@@ -4,7 +4,7 @@ package auctioneerfakes
 import (
 	"sync"
 
-	"github.com/cloudfoundry-incubator/auctioneer"
+	"code.cloudfoundry.org/auctioneer"
 )
 
 type FakeClient struct {

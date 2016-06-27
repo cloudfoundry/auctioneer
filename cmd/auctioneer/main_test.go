@@ -3,10 +3,10 @@ package main_test
 import (
 	"time"
 
+	"code.cloudfoundry.org/auctioneer"
 	"code.cloudfoundry.org/bbs"
 	"code.cloudfoundry.org/bbs/models"
 	"code.cloudfoundry.org/bbs/models/test/model_helpers"
-	"github.com/cloudfoundry-incubator/auctioneer"
 	"github.com/cloudfoundry-incubator/locket"
 	"github.com/cloudfoundry-incubator/rep"
 	"github.com/hashicorp/consul/api"

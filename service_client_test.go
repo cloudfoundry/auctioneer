@@ -9,7 +9,7 @@ import (
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/ginkgomon"
 
-	"github.com/cloudfoundry-incubator/auctioneer"
+	"code.cloudfoundry.org/auctioneer"
 	"github.com/pivotal-golang/clock/fakeclock"
 )
 
