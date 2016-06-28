@@ -18,11 +18,11 @@ import (
 	"code.cloudfoundry.org/auctioneer/auctionrunnerdelegate"
 	"code.cloudfoundry.org/auctioneer/handlers"
 	"code.cloudfoundry.org/bbs"
+	"code.cloudfoundry.org/cflager"
 	"code.cloudfoundry.org/consuladapter"
 	"code.cloudfoundry.org/debugserver"
 	"code.cloudfoundry.org/locket"
 	"code.cloudfoundry.org/rep"
-	cf_lager "github.com/cloudfoundry-incubator/cf-lager"
 	"github.com/cloudfoundry-incubator/cf_http"
 	"github.com/pivotal-golang/lager"
 	"github.com/pivotal-golang/localip"
@@ -136,12 +136,12 @@ const (
 
 func main() {
 	debugserver.AddFlags(flag.CommandLine)
-	cf_lager.AddFlags(flag.CommandLine)
+	cflager.AddFlags(flag.CommandLine)
 	flag.Parse()
 
 	cf_http.Initialize(*communicationTimeout)
 
-	logger, reconfigurableSink := cf_lager.New("auctioneer")
+	logger, reconfigurableSink := cflager.New("auctioneer")
 	initializeDropsonde(logger)
 
 	if err := validateBBSAddress(); err != nil {
