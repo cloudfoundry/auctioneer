@@ -8,7 +8,7 @@ import (
 	"code.cloudfoundry.org/auction/simulation/simulationrep"
 	"code.cloudfoundry.org/bbs"
 	"code.cloudfoundry.org/bbs/models"
-	"github.com/cloudfoundry-incubator/locket"
+	"code.cloudfoundry.org/locket"
 	"github.com/cloudfoundry-incubator/rep"
 
 	"github.com/pivotal-golang/lager"
