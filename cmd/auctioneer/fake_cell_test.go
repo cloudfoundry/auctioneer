@@ -16,7 +16,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	executorfakes "github.com/cloudfoundry-incubator/executor/fakes"
+	executorfakes "code.cloudfoundry.org/executor/fakes"
 	"github.com/cloudfoundry-incubator/rep/evacuation/evacuation_context/fake_evacuation_context"
 	rephandlers "github.com/cloudfoundry-incubator/rep/handlers"
 	"github.com/tedsuo/ifrit"
