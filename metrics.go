@@ -1,6 +1,6 @@
 package auctioneer
 
-import "github.com/cloudfoundry-incubator/runtime-schema/metric"
+import "code.cloudfoundry.org/runtimeschema/metric"
 
 const (
 	LRPAuctionsStarted      = metric.Counter("AuctioneerLRPAuctionsStarted")
