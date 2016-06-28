@@ -19,9 +19,9 @@ import (
 	"code.cloudfoundry.org/auctioneer/handlers"
 	"code.cloudfoundry.org/bbs"
 	"code.cloudfoundry.org/consuladapter"
+	"code.cloudfoundry.org/debugserver"
 	"code.cloudfoundry.org/locket"
 	"code.cloudfoundry.org/rep"
-	"github.com/cloudfoundry-incubator/cf-debug-server"
 	cf_lager "github.com/cloudfoundry-incubator/cf-lager"
 	"github.com/cloudfoundry-incubator/cf_http"
 	"github.com/pivotal-golang/lager"
@@ -135,7 +135,7 @@ const (
 )
 
 func main() {
-	cf_debug_server.AddFlags(flag.CommandLine)
+	debugserver.AddFlags(flag.CommandLine)
 	cf_lager.AddFlags(flag.CommandLine)
 	flag.Parse()
 
@@ -174,9 +174,9 @@ func main() {
 		{"registration-runner", registrationRunner},
 	}
 
-	if dbgAddr := cf_debug_server.DebugAddress(flag.CommandLine); dbgAddr != "" {
+	if dbgAddr := debugserver.DebugAddress(flag.CommandLine); dbgAddr != "" {
 		members = append(grouper.Members{
-			{"debug-server", cf_debug_server.Runner(dbgAddr, reconfigurableSink)},
+			{"debug-server", debugserver.Runner(dbgAddr, reconfigurableSink)},
 		}, members...)
 	}
 
