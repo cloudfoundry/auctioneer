@@ -18,12 +18,12 @@ import (
 	"code.cloudfoundry.org/auctioneer/auctionrunnerdelegate"
 	"code.cloudfoundry.org/auctioneer/handlers"
 	"code.cloudfoundry.org/bbs"
+	"code.cloudfoundry.org/cfhttp"
 	"code.cloudfoundry.org/cflager"
 	"code.cloudfoundry.org/consuladapter"
 	"code.cloudfoundry.org/debugserver"
 	"code.cloudfoundry.org/locket"
 	"code.cloudfoundry.org/rep"
-	"github.com/cloudfoundry-incubator/cf_http"
 	"github.com/pivotal-golang/lager"
 	"github.com/pivotal-golang/localip"
 
@@ -139,7 +139,7 @@ func main() {
 	cflager.AddFlags(flag.CommandLine)
 	flag.Parse()
 
-	cf_http.Initialize(*communicationTimeout)
+	cfhttp.Initialize(*communicationTimeout)
 
 	logger, reconfigurableSink := cflager.New("auctioneer")
 	initializeDropsonde(logger)
@@ -196,8 +196,8 @@ func main() {
 }
 
 func initializeAuctionRunner(logger lager.Logger, cellStateTimeout time.Duration, bbsClient bbs.InternalClient, startingContainerWeight float64) auctiontypes.AuctionRunner {
-	httpClient := cf_http.NewClient()
-	stateClient := cf_http.NewCustomTimeoutClient(cellStateTimeout)
+	httpClient := cfhttp.NewClient()
+	stateClient := cfhttp.NewCustomTimeoutClient(cellStateTimeout)
 	repClientFactory := rep.NewClientFactory(httpClient, stateClient)
 
 	delegate := auctionrunnerdelegate.New(repClientFactory, bbsClient, logger)

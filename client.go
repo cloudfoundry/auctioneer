@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/cloudfoundry-incubator/cf_http"
+	"code.cloudfoundry.org/cfhttp"
 	"github.com/tedsuo/rata"
 )
 
@@ -23,7 +23,7 @@ type auctioneerClient struct {
 
 func NewClient(auctioneerURL string) Client {
 	return &auctioneerClient{
-		httpClient: cf_http.NewClient(),
+		httpClient: cfhttp.NewClient(),
 		url:        auctioneerURL,
 	}
 }
