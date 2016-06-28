@@ -20,10 +20,10 @@ import (
 	"code.cloudfoundry.org/bbs"
 	"code.cloudfoundry.org/consuladapter"
 	"code.cloudfoundry.org/locket"
+	"code.cloudfoundry.org/rep"
 	"github.com/cloudfoundry-incubator/cf-debug-server"
 	cf_lager "github.com/cloudfoundry-incubator/cf-lager"
 	"github.com/cloudfoundry-incubator/cf_http"
-	"github.com/cloudfoundry-incubator/rep"
 	"github.com/pivotal-golang/lager"
 	"github.com/pivotal-golang/localip"
 

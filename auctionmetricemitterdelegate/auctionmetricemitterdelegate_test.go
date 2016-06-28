@@ -6,7 +6,7 @@ import (
 	"code.cloudfoundry.org/auction/auctiontypes"
 	"code.cloudfoundry.org/auctioneer/auctionmetricemitterdelegate"
 	"code.cloudfoundry.org/bbs/models"
-	"github.com/cloudfoundry-incubator/rep"
+	"code.cloudfoundry.org/rep"
 	"github.com/cloudfoundry/dropsonde/metric_sender/fake"
 	"github.com/cloudfoundry/dropsonde/metrics"
 

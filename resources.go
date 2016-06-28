@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	"code.cloudfoundry.org/bbs/models"
-	"github.com/cloudfoundry-incubator/rep"
+	"code.cloudfoundry.org/rep"
 )
 
 type TaskStartRequest struct {

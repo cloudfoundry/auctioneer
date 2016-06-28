@@ -2,7 +2,7 @@ package auctionrunnerdelegate
 
 import (
 	"code.cloudfoundry.org/bbs"
-	"github.com/cloudfoundry-incubator/rep"
+	"code.cloudfoundry.org/rep"
 
 	"code.cloudfoundry.org/auction/auctiontypes"
 	"github.com/pivotal-golang/lager"

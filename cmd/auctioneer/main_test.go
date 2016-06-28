@@ -8,7 +8,7 @@ import (
 	"code.cloudfoundry.org/bbs/models"
 	"code.cloudfoundry.org/bbs/models/test/model_helpers"
 	"code.cloudfoundry.org/locket"
-	"github.com/cloudfoundry-incubator/rep"
+	"code.cloudfoundry.org/rep"
 	"github.com/hashicorp/consul/api"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

@@ -6,8 +6,8 @@ import (
 	"code.cloudfoundry.org/auction/auctiontypes"
 	"code.cloudfoundry.org/bbs/fake_bbs"
 	"code.cloudfoundry.org/bbs/models"
-	"github.com/cloudfoundry-incubator/rep"
-	"github.com/cloudfoundry-incubator/rep/repfakes"
+	"code.cloudfoundry.org/rep"
+	"code.cloudfoundry.org/rep/repfakes"
 	"github.com/cloudfoundry/dropsonde/metric_sender/fake"
 	"github.com/cloudfoundry/dropsonde/metrics"
 

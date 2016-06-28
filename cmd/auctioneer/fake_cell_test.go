@@ -9,7 +9,7 @@ import (
 	"code.cloudfoundry.org/bbs"
 	"code.cloudfoundry.org/bbs/models"
 	"code.cloudfoundry.org/locket"
-	"github.com/cloudfoundry-incubator/rep"
+	"code.cloudfoundry.org/rep"
 
 	"github.com/pivotal-golang/lager"
 
@@ -17,8 +17,8 @@ import (
 	. "github.com/onsi/gomega"
 
 	executorfakes "code.cloudfoundry.org/executor/fakes"
-	"github.com/cloudfoundry-incubator/rep/evacuation/evacuation_context/fake_evacuation_context"
-	rephandlers "github.com/cloudfoundry-incubator/rep/handlers"
+	"code.cloudfoundry.org/rep/evacuation/evacuation_context/fake_evacuation_context"
+	rephandlers "code.cloudfoundry.org/rep/handlers"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/rata"
 )
