@@ -1,7 +1,7 @@
 package auctioneer_test
 
 import (
-	"github.com/cloudfoundry-incubator/consuladapter/consulrunner"
+	"code.cloudfoundry.org/consuladapter/consulrunner"
 
 	. "github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/config"
