@@ -10,7 +10,7 @@ import (
 	"github.com/tedsuo/ifrit/ginkgomon"
 
 	"code.cloudfoundry.org/auctioneer"
-	"github.com/pivotal-golang/clock/fakeclock"
+	"code.cloudfoundry.org/clock/fakeclock"
 )
 
 var _ = Describe("ServiceClient", func() {

@@ -29,9 +29,9 @@ import (
 
 	"code.cloudfoundry.org/auction/auctionrunner"
 	"code.cloudfoundry.org/auction/auctiontypes"
+	"code.cloudfoundry.org/clock"
 	"github.com/cloudfoundry/dropsonde"
 	"github.com/cloudfoundry/gunk/workpool"
-	"github.com/pivotal-golang/clock"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/http_server"
