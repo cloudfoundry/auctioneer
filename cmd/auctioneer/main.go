@@ -22,10 +22,10 @@ import (
 	"code.cloudfoundry.org/cflager"
 	"code.cloudfoundry.org/consuladapter"
 	"code.cloudfoundry.org/debugserver"
+	"code.cloudfoundry.org/localip"
 	"code.cloudfoundry.org/locket"
 	"code.cloudfoundry.org/rep"
 	"github.com/pivotal-golang/lager"
-	"github.com/pivotal-golang/localip"
 
 	"code.cloudfoundry.org/auction/auctionrunner"
 	"code.cloudfoundry.org/auction/auctiontypes"
