@@ -8,8 +8,8 @@ import (
 	fake_auction_runner "code.cloudfoundry.org/auction/auctiontypes/fakes"
 	"code.cloudfoundry.org/auctioneer"
 	"code.cloudfoundry.org/auctioneer/handlers"
+	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/rep"
-	"github.com/pivotal-golang/lager"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

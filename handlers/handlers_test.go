@@ -9,11 +9,11 @@ import (
 	fake_auction_runner "code.cloudfoundry.org/auction/auctiontypes/fakes"
 	"code.cloudfoundry.org/auctioneer"
 	"code.cloudfoundry.org/auctioneer/handlers"
+	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagertest"
 	"code.cloudfoundry.org/rep"
 	"github.com/cloudfoundry/dropsonde/metric_sender/fake"
 	"github.com/cloudfoundry/dropsonde/metrics"
-	"github.com/pivotal-golang/lager"
-	"github.com/pivotal-golang/lager/lagertest"
 	"github.com/tedsuo/rata"
 
 	. "github.com/onsi/ginkgo"

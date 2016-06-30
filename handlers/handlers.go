@@ -6,7 +6,7 @@ import (
 	"code.cloudfoundry.org/auction/auctiontypes"
 	"code.cloudfoundry.org/auctioneer"
 	"code.cloudfoundry.org/bbs/handlers/middleware"
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/lager"
 	"github.com/tedsuo/rata"
 )
 

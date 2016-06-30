@@ -11,7 +11,7 @@ import (
 	"code.cloudfoundry.org/locket"
 	"code.cloudfoundry.org/rep"
 
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/lager"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

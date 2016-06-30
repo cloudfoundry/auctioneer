@@ -11,8 +11,8 @@ import (
 	"github.com/cloudfoundry/dropsonde/metric_sender/fake"
 	"github.com/cloudfoundry/dropsonde/metrics"
 
-	"github.com/pivotal-golang/lager"
-	"github.com/pivotal-golang/lager/lagertest"
+	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagertest"
 
 	"code.cloudfoundry.org/auctioneer/auctionrunnerdelegate"
 

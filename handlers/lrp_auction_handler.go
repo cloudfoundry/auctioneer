@@ -7,7 +7,7 @@ import (
 
 	"code.cloudfoundry.org/auction/auctiontypes"
 	"code.cloudfoundry.org/auctioneer"
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/lager"
 )
 
 type LRPAuctionHandler struct {

@@ -5,7 +5,7 @@ import (
 	"code.cloudfoundry.org/rep"
 
 	"code.cloudfoundry.org/auction/auctiontypes"
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/lager"
 )
 
 type AuctionRunnerDelegate struct {
