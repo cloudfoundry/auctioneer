@@ -91,7 +91,6 @@ func (f *FakeCell) SpinUp(serviceClient bbs.ServiceClient) {
 		models.NewCellCapacity(512, 1024, 124),
 		[]string{},
 		[]string{},
-		[]string{},
 	)
 
 	f.heartbeater = ifrit.Invoke(serviceClient.NewCellPresenceRunner(logger, &presence, time.Second, locket.LockTTL))
