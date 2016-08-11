@@ -28,6 +28,7 @@ type FakeCell struct {
 	stack       string
 	server      *httptest.Server
 	heartbeater ifrit.Process
+	logger      lager.Logger
 
 	SimulationRep rep.SimClient
 }
@@ -36,6 +37,7 @@ func SpinUpFakeCell(serviceClient bbs.ServiceClient, cellID string, stack string
 	fakeRep := &FakeCell{
 		cellID: cellID,
 		stack:  stack,
+		logger: lager.NewLogger("fake-cell"),
 	}
 
 	fakeRep.SpinUp(serviceClient)
@@ -49,7 +51,7 @@ func SpinUpFakeCell(serviceClient bbs.ServiceClient, cellID string, stack string
 }
 
 func (f *FakeCell) LRPs() ([]rep.LRP, error) {
-	state, err := f.SimulationRep.State()
+	state, err := f.SimulationRep.State(logger)
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +59,7 @@ func (f *FakeCell) LRPs() ([]rep.LRP, error) {
 }
 
 func (f *FakeCell) Tasks() ([]rep.Task, error) {
-	state, err := f.SimulationRep.State()
+	state, err := f.SimulationRep.State(logger)
 	if err != nil {
 		return nil, err
 	}
