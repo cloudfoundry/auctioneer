@@ -172,7 +172,7 @@ var _ = Describe("Auctioneer", func() {
 				completedTask := completedTasks[0]
 				Expect(completedTask.TaskGuid).To(Equal("task-guid"))
 				Expect(completedTask.Failed).To(BeTrue())
-				Expect(completedTask.FailureReason).To(Equal("insufficient resources"))
+				Expect(completedTask.FailureReason).To(Equal("insufficient resources: disk, memory"))
 			})
 		})
 	})

@@ -42,17 +42,17 @@ var _ = Describe("Auction Metric Emitter Delegate", func() {
 				FailedLRPs: []auctiontypes.LRPAuction{
 					{
 						LRP:           rep.NewLRP(models.NewActualLRPKey("insufficient-capacity", 0, "domain"), resource),
-						AuctionRecord: auctiontypes.AuctionRecord{PlacementError: rep.ErrorInsufficientResources.Error()},
+						AuctionRecord: auctiontypes.AuctionRecord{PlacementError: "insufficient resources"},
 					},
 					{
 						LRP:           rep.NewLRP(models.NewActualLRPKey("incompatible-stacks", 0, "domain"), resource),
-						AuctionRecord: auctiontypes.AuctionRecord{PlacementError: auctiontypes.ErrorCellMismatch.Error()},
+						AuctionRecord: auctiontypes.AuctionRecord{PlacementError: "insufficient resources"},
 					},
 				},
 				FailedTasks: []auctiontypes.TaskAuction{
 					{
 						Task:          rep.NewTask("failed-task", "domain", resource),
-						AuctionRecord: auctiontypes.AuctionRecord{PlacementError: rep.ErrorInsufficientResources.Error()},
+						AuctionRecord: auctiontypes.AuctionRecord{PlacementError: "insufficient resources"},
 					},
 				},
 			})
