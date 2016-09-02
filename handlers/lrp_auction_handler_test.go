@@ -37,15 +37,15 @@ var _ = Describe("LRPAuctionHandler", func() {
 
 			BeforeEach(func() {
 				starts = []auctioneer.LRPStartRequest{{
-					Indices: []int{2, 3},
-
+					Indices:     []int{2, 3},
 					Domain:      "tests",
 					ProcessGuid: "some-guid",
 					Resource: rep.Resource{
-
-						RootFs:   "docker:///docker.com/docker",
 						MemoryMB: 1024,
 						DiskMB:   512,
+					},
+					PlacementConstraint: rep.PlacementConstraint{
+						RootFs: "docker:///docker.com/docker",
 					},
 				}}
 

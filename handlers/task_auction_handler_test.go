@@ -38,8 +38,9 @@ var _ = Describe("TaskAuctionHandler", func() {
 			var tasks []auctioneer.TaskStartRequest
 
 			BeforeEach(func() {
-				resource := rep.NewResource(1, 2, "rootfs", []string{})
-				task := rep.NewTask("the-task-guid", "test", resource)
+				resource := rep.NewResource(1, 2)
+				pc := rep.NewPlacementConstraint("rootfs", []string{}, []string{})
+				task := rep.NewTask("the-task-guid", "test", resource, pc)
 				tasks = []auctioneer.TaskStartRequest{auctioneer.TaskStartRequest{task}}
 				handler.Create(responseRecorder, newTestRequest(tasks), logger)
 			})

@@ -27,31 +27,32 @@ var _ = Describe("Auction Metric Emitter Delegate", func() {
 
 	Describe("AuctionCompleted", func() {
 		It("should adjust the metric counters", func() {
-			resource := rep.NewResource(10, 10, "linux", []string{})
+			resource := rep.NewResource(10, 10)
+			pc := rep.NewPlacementConstraint("linux", []string{}, []string{})
 			delegate.AuctionCompleted(auctiontypes.AuctionResults{
 				SuccessfulLRPs: []auctiontypes.LRPAuction{
 					{
-						LRP: rep.NewLRP(models.NewActualLRPKey("successful-start", 0, "domain"), resource),
+						LRP: rep.NewLRP(models.NewActualLRPKey("successful-start", 0, "domain"), resource, pc),
 					},
 				},
 				SuccessfulTasks: []auctiontypes.TaskAuction{
 					{
-						Task: rep.NewTask("successful-task", "domain", resource),
+						Task: rep.NewTask("successful-task", "domain", resource, pc),
 					},
 				},
 				FailedLRPs: []auctiontypes.LRPAuction{
 					{
-						LRP:           rep.NewLRP(models.NewActualLRPKey("insufficient-capacity", 0, "domain"), resource),
+						LRP:           rep.NewLRP(models.NewActualLRPKey("insufficient-capacity", 0, "domain"), resource, pc),
 						AuctionRecord: auctiontypes.AuctionRecord{PlacementError: rep.ErrorInsufficientResources.Error()},
 					},
 					{
-						LRP:           rep.NewLRP(models.NewActualLRPKey("incompatible-stacks", 0, "domain"), resource),
+						LRP:           rep.NewLRP(models.NewActualLRPKey("incompatible-stacks", 0, "domain"), resource, pc),
 						AuctionRecord: auctiontypes.AuctionRecord{PlacementError: auctiontypes.ErrorCellMismatch.Error()},
 					},
 				},
 				FailedTasks: []auctiontypes.TaskAuction{
 					{
-						Task:          rep.NewTask("failed-task", "domain", resource),
+						Task:          rep.NewTask("failed-task", "domain", resource, pc),
 						AuctionRecord: auctiontypes.AuctionRecord{PlacementError: rep.ErrorInsufficientResources.Error()},
 					},
 				},

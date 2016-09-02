@@ -104,7 +104,9 @@ var _ = Describe("Auctioneer", func() {
 				Resource: rep.Resource{
 					MemoryMB: 5,
 					DiskMB:   5,
-					RootFs:   exampleDesiredLRP.RootFs,
+				},
+				PlacementConstraint: rep.PlacementConstraint{
+					RootFs: exampleDesiredLRP.RootFs,
 				},
 			}})
 			Expect(err).NotTo(HaveOccurred())
@@ -116,7 +118,9 @@ var _ = Describe("Auctioneer", func() {
 				Resource: rep.Resource{
 					MemoryMB: 5,
 					DiskMB:   5,
-					RootFs:   exampleDesiredLRP.RootFs,
+				},
+				PlacementConstraint: rep.PlacementConstraint{
+					RootFs: exampleDesiredLRP.RootFs,
 				},
 			}})
 			Expect(err).NotTo(HaveOccurred())
@@ -199,7 +203,9 @@ var _ = Describe("Auctioneer", func() {
 				Resource: rep.Resource{
 					MemoryMB: 124,
 					DiskMB:   456,
-					RootFs:   "some-rootfs",
+				},
+				PlacementConstraint: rep.PlacementConstraint{
+					RootFs: "some-rootfs",
 				},
 			}
 

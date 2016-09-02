@@ -20,15 +20,24 @@ func NewTaskStartRequestFromModel(taskGuid, domain string, taskDef *models.TaskD
 	for _, volumeMount := range taskDef.VolumeMounts {
 		volumeMounts = append(volumeMounts, volumeMount.Driver)
 	}
-	return TaskStartRequest{rep.NewTask(taskGuid, domain, rep.NewResource(taskDef.MemoryMb, taskDef.DiskMb, taskDef.RootFs, volumeMounts))}
+	return TaskStartRequest{
+		rep.NewTask(
+			taskGuid,
+			domain,
+			rep.NewResource(taskDef.MemoryMb, taskDef.DiskMb),
+			rep.NewPlacementConstraint(taskDef.RootFs, nil, volumeMounts),
+		),
+	}
 }
 
 func (t *TaskStartRequest) Validate() error {
 	switch {
 	case t.TaskGuid == "":
 		return errors.New("task guid is empty")
-	case t.Resource.Empty():
-		return errors.New("resources cannot be empty")
+	case !t.Resource.Valid():
+		return errors.New("resources cannot be less than zero")
+	case !t.PlacementConstraint.Valid():
+		return errors.New("placement constraint cannot be empty")
 	default:
 		return nil
 	}
@@ -38,15 +47,17 @@ type LRPStartRequest struct {
 	ProcessGuid string `json:"process_guid"`
 	Domain      string `json:"domain"`
 	Indices     []int  `json:"indices"`
+	rep.PlacementConstraint
 	rep.Resource
 }
 
-func NewLRPStartRequest(processGuid, domain string, indices []int, res rep.Resource) LRPStartRequest {
+func NewLRPStartRequest(processGuid, domain string, indices []int, res rep.Resource, pl rep.PlacementConstraint) LRPStartRequest {
 	return LRPStartRequest{
-		ProcessGuid: processGuid,
-		Domain:      domain,
-		Indices:     indices,
-		Resource:    res,
+		ProcessGuid:         processGuid,
+		Domain:              domain,
+		Indices:             indices,
+		Resource:            res,
+		PlacementConstraint: pl,
 	}
 }
 
@@ -56,11 +67,23 @@ func NewLRPStartRequestFromModel(d *models.DesiredLRP, indices ...int) LRPStartR
 		volumeDrivers = append(volumeDrivers, volumeMount.Driver)
 	}
 
-	return NewLRPStartRequest(d.ProcessGuid, d.Domain, indices, rep.NewResource(d.MemoryMb, d.DiskMb, d.RootFs, volumeDrivers))
+	return NewLRPStartRequest(
+		d.ProcessGuid,
+		d.Domain,
+		indices,
+		rep.NewResource(d.MemoryMb, d.DiskMb),
+		rep.NewPlacementConstraint(d.RootFs, d.PlacementTags, volumeDrivers),
+	)
 }
 
 func NewLRPStartRequestFromSchedulingInfo(s *models.DesiredLRPSchedulingInfo, indices ...int) LRPStartRequest {
-	return NewLRPStartRequest(s.ProcessGuid, s.Domain, indices, rep.NewResource(s.MemoryMb, s.DiskMb, s.RootFs, s.VolumePlacement.DriverNames))
+	return NewLRPStartRequest(
+		s.ProcessGuid,
+		s.Domain,
+		indices,
+		rep.NewResource(s.MemoryMb, s.DiskMb),
+		rep.NewPlacementConstraint(s.RootFs, s.PlacementTags, s.VolumePlacement.DriverNames),
+	)
 }
 
 func (lrpstart *LRPStartRequest) Validate() error {
@@ -71,8 +94,10 @@ func (lrpstart *LRPStartRequest) Validate() error {
 		return errors.New("domain is empty")
 	case len(lrpstart.Indices) == 0:
 		return errors.New("indices must not be empty")
-	case lrpstart.Resource.Empty():
-		return errors.New("resources cannot be empty")
+	case !lrpstart.Resource.Valid():
+		return errors.New("resources cannot be less than 0")
+	case !lrpstart.PlacementConstraint.Valid():
+		return errors.New("placement constraint cannot be empty")
 	default:
 		return nil
 	}

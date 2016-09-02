@@ -44,8 +44,9 @@ var _ = Describe("Auction Handlers", func() {
 	Describe("Task Handler", func() {
 		Context("with a valid task", func() {
 			BeforeEach(func() {
-				resource := rep.NewResource(1, 2, "rootfs", []string{})
-				task := rep.NewTask("the-task-guid", "test", resource)
+				resource := rep.NewResource(1, 2)
+				pc := rep.NewPlacementConstraint("rootfs", []string{}, []string{})
+				task := rep.NewTask("the-task-guid", "test", resource, pc)
 
 				tasks := []auctioneer.TaskStartRequest{auctioneer.TaskStartRequest{task}}
 				reqGen := rata.NewRequestGenerator("http://localhost", auctioneer.Routes)
@@ -82,15 +83,15 @@ var _ = Describe("Auction Handlers", func() {
 		Context("with a valid LRPStart", func() {
 			BeforeEach(func() {
 				starts := []auctioneer.LRPStartRequest{{
-					Indices: []int{2},
-
+					Indices:     []int{2},
 					Domain:      "tests",
 					ProcessGuid: "some-guid",
-
 					Resource: rep.Resource{
-						RootFs:   "docker:///docker.com/docker",
 						MemoryMB: 1024,
 						DiskMB:   512,
+					},
+					PlacementConstraint: rep.PlacementConstraint{
+						RootFs: "docker:///docker.com/docker",
 					},
 				}}
 
