@@ -25,7 +25,7 @@ func NewTaskStartRequestFromModel(taskGuid, domain string, taskDef *models.TaskD
 			taskGuid,
 			domain,
 			rep.NewResource(taskDef.MemoryMb, taskDef.DiskMb),
-			rep.NewPlacementConstraint(taskDef.RootFs, nil, volumeMounts),
+			rep.NewPlacementConstraint(taskDef.RootFs, taskDef.PlacementTags, volumeMounts),
 		),
 	}
 }

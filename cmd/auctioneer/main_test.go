@@ -38,6 +38,7 @@ func exampleTaskDefinition() *models.TaskDefinition {
 	taskDef := model_helpers.NewValidTaskDefinition()
 	taskDef.RootFs = linuxRootFSURL
 	taskDef.Action = models.WrapAction(dummyAction)
+	taskDef.PlacementTags = nil
 	return taskDef
 }
 
