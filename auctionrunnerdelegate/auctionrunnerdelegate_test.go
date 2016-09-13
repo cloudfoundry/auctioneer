@@ -110,7 +110,7 @@ var _ = Describe("Auction Runner Delegate", func() {
 				FailedLRPs: []auctiontypes.LRPAuction{
 					{
 						LRP:           rep.NewLRP(models.NewActualLRPKey("insufficient-capacity", 0, "domain"), resource, pc),
-						AuctionRecord: auctiontypes.AuctionRecord{PlacementError: rep.ErrorInsufficientResources.Error()},
+						AuctionRecord: auctiontypes.AuctionRecord{PlacementError: "insufficient resources"},
 					},
 					{
 						LRP:           rep.NewLRP(models.NewActualLRPKey("incompatible-stacks", 0, "domain"), resource, pc),
@@ -120,7 +120,7 @@ var _ = Describe("Auction Runner Delegate", func() {
 				FailedTasks: []auctiontypes.TaskAuction{
 					{
 						Task:          rep.NewTask("failed-task", "domain", resource, pc),
-						AuctionRecord: auctiontypes.AuctionRecord{PlacementError: rep.ErrorInsufficientResources.Error()},
+						AuctionRecord: auctiontypes.AuctionRecord{PlacementError: "insufficient resources"},
 					},
 				},
 			}
@@ -132,14 +132,14 @@ var _ = Describe("Auction Runner Delegate", func() {
 			Expect(bbsClient.FailTaskCallCount()).To(Equal(1))
 			_, taskGuid, failureReason := bbsClient.FailTaskArgsForCall(0)
 			Expect(taskGuid).To(Equal("failed-task"))
-			Expect(failureReason).To(Equal(rep.ErrorInsufficientResources.Error()))
+			Expect(failureReason).To(Equal("insufficient resources"))
 		})
 
 		It("should mark all failed LRPs as UNCLAIMED with the appropriate placement error", func() {
 			Expect(bbsClient.FailActualLRPCallCount()).To(Equal(2))
 			_, lrpKey, errorMessage := bbsClient.FailActualLRPArgsForCall(0)
 			Expect(*lrpKey).To(Equal(models.NewActualLRPKey("insufficient-capacity", 0, "domain")))
-			Expect(errorMessage).To(Equal(rep.ErrorInsufficientResources.Error()))
+			Expect(errorMessage).To(Equal("insufficient resources"))
 
 			_, lrpKey1, errorMessage1 := bbsClient.FailActualLRPArgsForCall(1)
 			Expect(*lrpKey1).To(Equal(models.NewActualLRPKey("incompatible-stacks", 0, "domain")))
