@@ -81,7 +81,7 @@ func (f *FakeCell) SpinUp(serviceClient bbs.ServiceClient) {
 	fakeExecutorClient := new(executorfakes.FakeClient)
 	fakeEvacuatable := new(fake_evacuation_context.FakeEvacuatable)
 
-	handlers := rephandlers.New(f.SimulationRep, fakeExecutorClient, fakeEvacuatable, logger)
+	handlers := rephandlers.New(f.SimulationRep, fakeExecutorClient, fakeEvacuatable, logger, false)
 	router, err := rata.NewRouter(rep.Routes, handlers)
 	Expect(err).NotTo(HaveOccurred())
 	f.server = httptest.NewServer(router)
