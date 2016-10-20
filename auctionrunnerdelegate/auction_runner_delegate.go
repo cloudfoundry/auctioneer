@@ -30,7 +30,12 @@ func (a *AuctionRunnerDelegate) FetchCellReps() (map[string]rep.Client, error) {
 	}
 
 	for _, cell := range cells {
-		cellReps[cell.CellId] = a.repClientFactory.CreateClient(cell.RepAddress)
+		client, err := a.repClientFactory.CreateClient(cell.RepAddress, cell.RepUrl)
+		if err != nil {
+			a.logger.Error("create-rep-client-failed", err)
+			continue
+		}
+		cellReps[cell.CellId] = client
 	}
 
 	return cellReps, nil

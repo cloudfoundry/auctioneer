@@ -168,8 +168,8 @@ var _ = BeforeEach(func() {
 		StartCheck: "auctioneer.started",
 	})
 
-	dotNetCell = SpinUpFakeCell(serviceClient, "dot-net-cell", dotNetStack)
-	linuxCell = SpinUpFakeCell(serviceClient, "linux-cell", linuxStack)
+	dotNetCell = SpinUpFakeCell(serviceClient, "dot-net-cell", "", dotNetStack)
+	linuxCell = SpinUpFakeCell(serviceClient, "linux-cell", "", linuxStack)
 })
 
 var _ = AfterEach(func() {

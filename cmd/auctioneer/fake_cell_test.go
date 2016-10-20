@@ -25,6 +25,7 @@ import (
 
 type FakeCell struct {
 	cellID      string
+	repUrl      string
 	stack       string
 	server      *httptest.Server
 	heartbeater ifrit.Process
@@ -33,9 +34,10 @@ type FakeCell struct {
 	SimulationRep rep.SimClient
 }
 
-func SpinUpFakeCell(serviceClient bbs.ServiceClient, cellID string, stack string) *FakeCell {
+func SpinUpFakeCell(serviceClient bbs.ServiceClient, cellID string, repUrl string, stack string) *FakeCell {
 	fakeRep := &FakeCell{
 		cellID: cellID,
+		repUrl: repUrl,
 		stack:  stack,
 		logger: lager.NewLogger("fake-cell"),
 	}
@@ -89,6 +91,7 @@ func (f *FakeCell) SpinUp(serviceClient bbs.ServiceClient) {
 	presence := models.NewCellPresence(
 		f.cellID,
 		f.server.URL,
+		f.repUrl,
 		"az1",
 		models.NewCellCapacity(512, 1024, 124),
 		[]string{},

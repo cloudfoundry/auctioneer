@@ -18,6 +18,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
 )
 
 var _ = Describe("Auction Runner Delegate", func() {
@@ -37,7 +38,7 @@ var _ = Describe("Auction Runner Delegate", func() {
 		bbsClient = &fake_bbs.FakeInternalClient{}
 		repClientFactory = &repfakes.FakeClientFactory{}
 		repClient = &repfakes.FakeClient{}
-		repClientFactory.CreateClientReturns(repClient)
+		repClientFactory.CreateClientReturns(repClient, nil)
 		logger = lagertest.NewTestLogger("delegate")
 
 		delegate = auctionrunnerdelegate.New(repClientFactory, bbsClient, logger)
@@ -46,8 +47,8 @@ var _ = Describe("Auction Runner Delegate", func() {
 	Describe("fetching cell reps", func() {
 		Context("when the BSS succeeds", func() {
 			BeforeEach(func() {
-				cellPresence1 := models.NewCellPresence("cell-A", "cell-a.url", "zone-1", models.NewCellCapacity(123, 456, 789), []string{}, []string{}, []string{}, []string{})
-				cellPresence2 := models.NewCellPresence("cell-B", "cell-b.url", "zone-1", models.NewCellCapacity(123, 456, 789), []string{}, []string{}, []string{}, []string{})
+				cellPresence1 := models.NewCellPresence("cell-A", "cell-a.url", "", "zone-1", models.NewCellCapacity(123, 456, 789), []string{}, []string{}, []string{}, []string{})
+				cellPresence2 := models.NewCellPresence("cell-B", "cell-b.url", "", "zone-1", models.NewCellCapacity(123, 456, 789), []string{}, []string{}, []string{}, []string{})
 				cells := []*models.CellPresence{&cellPresence1, &cellPresence2}
 
 				bbsClient.CellsReturns(cells, nil)
@@ -57,11 +58,46 @@ var _ = Describe("Auction Runner Delegate", func() {
 				_, err := delegate.FetchCellReps()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(repClientFactory.CreateClientCallCount()).To(Equal(2))
+				repAddr1, _ := repClientFactory.CreateClientArgsForCall(0)
+				repAddr2, _ := repClientFactory.CreateClientArgsForCall(1)
+
 				urls := []string{
-					repClientFactory.CreateClientArgsForCall(0),
-					repClientFactory.CreateClientArgsForCall(1),
+					repAddr1,
+					repAddr2,
 				}
 				Expect(urls).To(ConsistOf("cell-a.url", "cell-b.url"))
+			})
+
+			Context("when the rep has a url", func() {
+				BeforeEach(func() {
+					cellPresence := models.NewCellPresence("cell-A",
+						"cell-a.url",
+						"http://cell-a.url",
+						"zone-1",
+						models.NewCellCapacity(123,
+							456,
+							789),
+						[]string{},
+						[]string{},
+						[]string{},
+						[]string{},
+					)
+					cells := []*models.CellPresence{&cellPresence}
+					bbsClient.CellsReturns(cells, nil)
+				})
+
+				It("creates rep clients with the correct addresses", func() {
+					_, err := delegate.FetchCellReps()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(repClientFactory.CreateClientCallCount()).To(Equal(1))
+					repAddr, repURL := repClientFactory.CreateClientArgsForCall(0)
+
+					urls := []string{
+						repAddr,
+						repURL,
+					}
+					Expect(urls).To(ConsistOf("cell-a.url", "http://cell-a.url"))
+				})
 			})
 
 			It("returns correctly configured auction_http_clients", func() {
@@ -73,6 +109,42 @@ var _ = Describe("Auction Runner Delegate", func() {
 
 				Expect(reps["cell-A"]).To(Equal(repClient))
 				Expect(reps["cell-B"]).To(Equal(repClient))
+			})
+
+			Context("when creating a rep client fails", func() {
+				var (
+					reps map[string]rep.Client
+					err  error
+				)
+
+				BeforeEach(func() {
+					err = errors.New("BOOM!!!")
+					cellPresence := models.NewCellPresence("cell-B",
+						"cell-b.url",
+						"",
+						"zone-1",
+						models.NewCellCapacity(123,
+							456,
+							789),
+						[]string{},
+						[]string{},
+						[]string{},
+						[]string{},
+					)
+					cells := []*models.CellPresence{&cellPresence}
+					bbsClient.CellsReturns(cells, nil)
+					repClientFactory.CreateClientReturns(nil, err)
+					reps, err = delegate.FetchCellReps()
+				})
+
+				It("should log the error", func() {
+					Expect(logger.(*lagertest.TestLogger).Buffer()).To(gbytes.Say("BOOM!!!"))
+				})
+
+				It("not return the client", func() {
+					Expect(err).NotTo(HaveOccurred())
+					Expect(reps).To(HaveLen(0))
+				})
 			})
 		})
 

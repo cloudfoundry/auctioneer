@@ -110,6 +110,36 @@ var bbsClientSessionCacheSize = flag.Int(
 	"Capacity of the ClientSessionCache option on the TLS configuration. If zero, golang's default will be used",
 )
 
+var repRequireTLS = flag.Bool(
+	"repRequireTLS",
+	false,
+	"whether tls connection to the rep is required or preferred",
+)
+
+var repCACert = flag.String(
+	"repCACert",
+	"",
+	"path to certificate authority cert used for mutually authenticated TLS REP communication",
+)
+
+var repClientCert = flag.String(
+	"repClientCert",
+	"",
+	"path to client cert used for mutually authenticated TLS REP communication",
+)
+
+var repClientKey = flag.String(
+	"repClientKey",
+	"",
+	"path to client key used for mutually authenticated TLS REP communication",
+)
+
+var repClientSessionCacheSize = flag.Int(
+	"repClientSessionCacheSize",
+	0,
+	"Capacity of the ClientSessionCache option on the TLS configuration. If zero, golang's default will be used",
+)
+
 var bbsMaxIdleConnsPerHost = flag.Int(
 	"bbsMaxIdleConnsPerHost",
 	0,
@@ -198,7 +228,17 @@ func main() {
 func initializeAuctionRunner(logger lager.Logger, cellStateTimeout time.Duration, bbsClient bbs.InternalClient, startingContainerWeight float64) auctiontypes.AuctionRunner {
 	httpClient := cfhttp.NewClient()
 	stateClient := cfhttp.NewCustomTimeoutClient(cellStateTimeout)
-	repClientFactory := rep.NewClientFactory(httpClient, stateClient)
+	repTLSConfig := &rep.TLSConfig{
+		RequireTLS:      *repRequireTLS,
+		CaCertFile:      *repCACert,
+		CertFile:        *repClientCert,
+		KeyFile:         *repClientKey,
+		ClientCacheSize: *repClientSessionCacheSize,
+	}
+	repClientFactory, err := rep.NewClientFactory(httpClient, stateClient, repTLSConfig)
+	if err != nil {
+		logger.Fatal("new-rep-client-factory-failed", err)
+	}
 
 	delegate := auctionrunnerdelegate.New(repClientFactory, bbsClient, logger)
 	metricEmitter := auctionmetricemitterdelegate.New()
