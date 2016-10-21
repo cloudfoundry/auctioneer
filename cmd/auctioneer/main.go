@@ -64,7 +64,7 @@ var dropsondePort = flag.Int(
 
 var lockTTL = flag.Duration(
 	"lockTTL",
-	locket.LockTTL,
+	locket.SessionLockTTL,
 	"TTL for service lock",
 )
 

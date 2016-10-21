@@ -97,7 +97,7 @@ func (f *FakeCell) SpinUp(serviceClient bbs.ServiceClient) {
 		[]string{},
 	)
 
-	f.heartbeater = ifrit.Invoke(serviceClient.NewCellPresenceRunner(logger, &presence, time.Second, locket.LockTTL))
+	f.heartbeater = ifrit.Invoke(serviceClient.NewCellPresenceRunner(logger, &presence, time.Second, locket.SessionLockTTL))
 }
 
 func (f *FakeCell) Stop() {
