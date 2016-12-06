@@ -56,6 +56,12 @@ var consulCluster = flag.String(
 	"comma-separated list of consul server addresses (ip:port)",
 )
 
+var consulTTL = flag.String(
+	"consulTTL",
+	"3",
+	"TTL value for consul registration in seconds",
+)
+
 var dropsondePort = flag.Int(
 	"dropsondePort",
 	3457,
@@ -274,7 +280,7 @@ func initializeRegistrationRunner(logger lager.Logger, consulClient consuladapte
 		Name: "auctioneer",
 		Port: port,
 		Check: &api.AgentServiceCheck{
-			TTL: "3s",
+			TTL: *consulTTL + "s",
 		},
 	}
 	return locket.NewRegistrationRunner(logger, registration, consulClient, locket.RetryInterval, clock)
