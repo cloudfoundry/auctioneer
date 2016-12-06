@@ -17,7 +17,6 @@ import (
 	"code.cloudfoundry.org/consuladapter/consulrunner"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
-	"github.com/cloudfoundry/storeadapter/storerunner/etcdstorerunner"
 	. "github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/config"
 	. "github.com/onsi/gomega"
@@ -43,9 +42,6 @@ var (
 	auctioneerServerPort int
 	auctioneerAddress    string
 	runner               *ginkgomon.Runner
-
-	etcdPort   int
-	etcdRunner *etcdstorerunner.ETCDClusterRunner
 
 	consulRunner *consulrunner.ClusterRunner
 	consulClient consuladapter.Client
@@ -92,14 +88,9 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	auctioneerServerPort = 1800 + GinkgoParallelNode()
 	auctioneerAddress = fmt.Sprintf("http://127.0.0.1:%d", auctioneerServerPort)
 
-	etcdPort = 5001 + GinkgoParallelNode()
-	etcdRunner = etcdstorerunner.NewETCDClusterRunner(etcdPort, 1, nil)
-
-	if test_helpers.UseSQL() {
-		dbName := fmt.Sprintf("diego_%d", GinkgoParallelNode())
-		sqlRunner = test_helpers.NewSQLRunner(dbName)
-		sqlProcess = ginkgomon.Invoke(sqlRunner)
-	}
+	dbName := fmt.Sprintf("diego_%d", GinkgoParallelNode())
+	sqlRunner = test_helpers.NewSQLRunner(dbName)
+	sqlProcess = ginkgomon.Invoke(sqlRunner)
 
 	consulRunner = consulrunner.NewClusterRunner(
 		9001+config.GinkgoConfig.ParallelNode*consulrunner.PortOffsetLength,
@@ -126,28 +117,22 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 
 	bbsClient = bbs.NewClient(bbsURL.String())
 
-	etcdUrl := fmt.Sprintf("http://127.0.0.1:%d", etcdPort)
 	bbsArgs = bbstestrunner.Args{
 		Address:           bbsAddress,
 		AdvertiseURL:      bbsURL.String(),
 		AuctioneerAddress: auctioneerAddress,
-		EtcdCluster:       etcdUrl,
 		ConsulCluster:     consulRunner.ConsulCluster(),
 		HealthAddress:     healthAddress,
 
-		EncryptionKeys: []string{"label:key"},
-		ActiveKeyLabel: "label",
-	}
-
-	if test_helpers.UseSQL() {
-		bbsArgs.DatabaseDriver = sqlRunner.DriverName()
-		bbsArgs.DatabaseConnectionString = sqlRunner.ConnectionString()
+		EncryptionKeys:           []string{"label:key"},
+		ActiveKeyLabel:           "label",
+		DatabaseDriver:           sqlRunner.DriverName(),
+		DatabaseConnectionString: sqlRunner.ConnectionString(),
 	}
 })
 
 var _ = BeforeEach(func() {
 	consulRunner.Reset()
-	etcdRunner.Start()
 
 	bbsRunner = bbstestrunner.New(bbsBinPath, bbsArgs)
 	bbsProcess = ginkgomon.Invoke(bbsRunner)
@@ -174,20 +159,14 @@ var _ = BeforeEach(func() {
 
 var _ = AfterEach(func() {
 	ginkgomon.Kill(auctioneerProcess)
-	etcdRunner.Stop()
 	ginkgomon.Kill(bbsProcess)
 	dotNetCell.Stop()
 	linuxCell.Stop()
 
-	if test_helpers.UseSQL() {
-		sqlRunner.Reset()
-	}
+	sqlRunner.Reset()
 })
 
 var _ = SynchronizedAfterSuite(func() {
-	if etcdRunner != nil {
-		etcdRunner.Stop()
-	}
 	if consulRunner != nil {
 		consulRunner.Stop()
 	}

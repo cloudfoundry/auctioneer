@@ -5,6 +5,7 @@ import (
 
 	"code.cloudfoundry.org/auctioneer"
 	"code.cloudfoundry.org/bbs"
+	bbstestrunner "code.cloudfoundry.org/bbs/cmd/bbs/testrunner"
 	"code.cloudfoundry.org/bbs/models"
 	"code.cloudfoundry.org/bbs/models/test/model_helpers"
 	"code.cloudfoundry.org/clock"
@@ -43,14 +44,16 @@ func exampleTaskDefinition() *models.TaskDefinition {
 }
 
 var _ = Describe("Auctioneer", func() {
-	Context("when etcd is down", func() {
+
+	Context("when the bbs is down", func() {
 		BeforeEach(func() {
-			etcdRunner.Stop()
+			ginkgomon.Interrupt(bbsProcess)
 			auctioneerProcess = ginkgomon.Invoke(runner)
 		})
 
 		AfterEach(func() {
-			etcdRunner.Start()
+			bbsRunner = bbstestrunner.New(bbsBinPath, bbsArgs)
+			bbsProcess = ginkgomon.Invoke(bbsRunner)
 		})
 
 		It("starts", func() {
