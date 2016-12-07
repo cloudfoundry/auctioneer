@@ -3,6 +3,7 @@ package auctioneer
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -26,6 +27,26 @@ func NewClient(auctioneerURL string) Client {
 		httpClient: cfhttp.NewClient(),
 		url:        auctioneerURL,
 	}
+}
+
+func NewSecureClient(auctioneerURL, caFile, certFile, keyFile string) (Client, error) {
+	httpClient := cfhttp.NewClient()
+
+	tlsConfig, err := cfhttp.NewTLSConfig(certFile, keyFile, caFile)
+	if err != nil {
+		return nil, err
+	}
+
+	if tr, ok := httpClient.Transport.(*http.Transport); ok {
+		tr.TLSClientConfig = tlsConfig
+	} else {
+		return nil, errors.New("Invalid transport")
+	}
+
+	return &auctioneerClient{
+		httpClient: httpClient,
+		url:        auctioneerURL,
+	}, nil
 }
 
 func (c *auctioneerClient) RequestLRPAuctions(lrpStarts []*LRPStartRequest) error {

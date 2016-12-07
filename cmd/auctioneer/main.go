@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"errors"
 	"flag"
 	"fmt"
@@ -158,6 +159,24 @@ var startingContainerWeight = flag.Float64(
 	"Factor to bias against cells with starting containers (0.0 - 1.0)",
 )
 
+var caCertFile = flag.String(
+	"caCertFile",
+	"",
+	"The path to the CA certificate file.",
+)
+
+var serverCertFile = flag.String(
+	"serverCertFile",
+	"",
+	"The path to the server certificate file.",
+)
+
+var serverKeyFile = flag.String(
+	"serverKeyFile",
+	"",
+	"The path to the server key file.",
+)
+
 const (
 	auctionRunnerTimeout = 10 * time.Second
 	dropsondeOrigin      = "auctioneer"
@@ -193,9 +212,19 @@ func main() {
 
 	auctionRunner := initializeAuctionRunner(logger, *cellStateTimeout,
 		initializeBBSClient(logger), *startingContainerWeight)
-	auctionServer := initializeAuctionServer(logger, auctionRunner)
 	lockMaintainer := initializeLockMaintainer(logger, auctioneerServiceClient, port)
 	registrationRunner := initializeRegistrationRunner(logger, consulClient, clock, port)
+
+	var auctionServer ifrit.Runner
+	if *serverCertFile != "" || *serverKeyFile != "" || *caCertFile != "" {
+		tlsConfig, err := cfhttp.NewTLSConfig(*serverCertFile, *serverKeyFile, *caCertFile)
+		if err != nil {
+			logger.Fatal("invalid-tls-config", err)
+		}
+		auctionServer = http_server.NewTLSServer(*listenAddr, handlers.New(auctionRunner, logger), tlsConfig)
+	} else {
+		auctionServer = http_server.New(*listenAddr, handlers.New(auctionRunner, logger))
+	}
 
 	members := grouper.Members{
 		{"lock-maintainer", lockMaintainer},
@@ -265,8 +294,8 @@ func initializeDropsonde(logger lager.Logger) {
 	}
 }
 
-func initializeAuctionServer(logger lager.Logger, runner auctiontypes.AuctionRunner) ifrit.Runner {
-	return http_server.New(*listenAddr, handlers.New(runner, logger))
+func initializeAuctionServer(logger lager.Logger, runner auctiontypes.AuctionRunner, tlsConfig *tls.Config) ifrit.Runner {
+	return http_server.NewTLSServer(*listenAddr, handlers.New(runner, logger), tlsConfig)
 }
 
 func initializeRegistrationRunner(logger lager.Logger, consulClient consuladapter.Client, clock clock.Clock, port int) ifrit.Runner {
