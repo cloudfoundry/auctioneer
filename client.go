@@ -8,18 +8,21 @@ import (
 	"net/http"
 
 	"code.cloudfoundry.org/cfhttp"
+	"code.cloudfoundry.org/lager"
 	"github.com/tedsuo/rata"
 )
 
 //go:generate counterfeiter -o auctioneerfakes/fake_client.go . Client
 type Client interface {
-	RequestLRPAuctions(lrpStart []*LRPStartRequest) error
-	RequestTaskAuctions(tasks []*TaskStartRequest) error
+	RequestLRPAuctions(logger lager.Logger, lrpStart []*LRPStartRequest) error
+	RequestTaskAuctions(logger lager.Logger, tasks []*TaskStartRequest) error
 }
 
 type auctioneerClient struct {
-	httpClient *http.Client
-	url        string
+	httpClient         *http.Client
+	insecureHTTPClient *http.Client
+	url                string
+	requireTLS         bool
 }
 
 func NewClient(auctioneerURL string) Client {
@@ -29,7 +32,8 @@ func NewClient(auctioneerURL string) Client {
 	}
 }
 
-func NewSecureClient(auctioneerURL, caFile, certFile, keyFile string) (Client, error) {
+func NewSecureClient(auctioneerURL, caFile, certFile, keyFile string, requireTLS bool) (Client, error) {
+	insecureHTTPClient := cfhttp.NewClient()
 	httpClient := cfhttp.NewClient()
 
 	tlsConfig, err := cfhttp.NewTLSConfig(certFile, keyFile, caFile)
@@ -44,14 +48,17 @@ func NewSecureClient(auctioneerURL, caFile, certFile, keyFile string) (Client, e
 	}
 
 	return &auctioneerClient{
-		httpClient: httpClient,
-		url:        auctioneerURL,
+		httpClient:         httpClient,
+		insecureHTTPClient: insecureHTTPClient,
+		url:                auctioneerURL,
+		requireTLS:         requireTLS,
 	}, nil
 }
 
-func (c *auctioneerClient) RequestLRPAuctions(lrpStarts []*LRPStartRequest) error {
-	reqGen := rata.NewRequestGenerator(c.url, Routes)
+func (c *auctioneerClient) RequestLRPAuctions(logger lager.Logger, lrpStarts []*LRPStartRequest) error {
+	logger = logger.Session("request-lrp-auctions")
 
+	reqGen := rata.NewRequestGenerator(c.url, Routes)
 	payload, err := json.Marshal(lrpStarts)
 	if err != nil {
 		return err
@@ -64,7 +71,7 @@ func (c *auctioneerClient) RequestLRPAuctions(lrpStarts []*LRPStartRequest) erro
 
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := c.httpClient.Do(req)
+	resp, err := c.doRequest(logger, req)
 	if err != nil {
 		return err
 	}
@@ -77,9 +84,10 @@ func (c *auctioneerClient) RequestLRPAuctions(lrpStarts []*LRPStartRequest) erro
 	return nil
 }
 
-func (c *auctioneerClient) RequestTaskAuctions(tasks []*TaskStartRequest) error {
-	reqGen := rata.NewRequestGenerator(c.url, Routes)
+func (c *auctioneerClient) RequestTaskAuctions(logger lager.Logger, tasks []*TaskStartRequest) error {
+	logger = logger.Session("request-task-auctions")
 
+	reqGen := rata.NewRequestGenerator(c.url, Routes)
 	payload, err := json.Marshal(tasks)
 	if err != nil {
 		return err
@@ -92,7 +100,7 @@ func (c *auctioneerClient) RequestTaskAuctions(tasks []*TaskStartRequest) error 
 
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := c.httpClient.Do(req)
+	resp, err := c.doRequest(logger, req)
 	if err != nil {
 		return err
 	}
@@ -103,4 +111,17 @@ func (c *auctioneerClient) RequestTaskAuctions(tasks []*TaskStartRequest) error 
 	}
 
 	return nil
+}
+
+func (c *auctioneerClient) doRequest(logger lager.Logger, req *http.Request) (*http.Response, error) {
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		// Fall back to HTTP and try again if we do not require TLS
+		if !c.requireTLS && c.insecureHTTPClient != nil {
+			logger.Error("retrying-on-http", err)
+			req.URL.Scheme = "http"
+			return c.insecureHTTPClient.Do(req)
+		}
+	}
+	return resp, err
 }

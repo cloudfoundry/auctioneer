@@ -125,7 +125,7 @@ var _ = Describe("Auctioneer", func() {
 		It("should start the process running on reps of the appropriate stack", func() {
 			auctioneerProcess = ginkgomon.Invoke(runner)
 
-			err := auctioneerClient.RequestLRPAuctions([]*auctioneer.LRPStartRequest{{
+			err := auctioneerClient.RequestLRPAuctions(logger, []*auctioneer.LRPStartRequest{{
 				ProcessGuid: exampleDesiredLRP.ProcessGuid,
 				Domain:      exampleDesiredLRP.Domain,
 				Indices:     []int{0},
@@ -139,7 +139,7 @@ var _ = Describe("Auctioneer", func() {
 			}})
 			Expect(err).NotTo(HaveOccurred())
 
-			err = auctioneerClient.RequestLRPAuctions([]*auctioneer.LRPStartRequest{{
+			err = auctioneerClient.RequestLRPAuctions(logger, []*auctioneer.LRPStartRequest{{
 				ProcessGuid: exampleDesiredLRP.ProcessGuid,
 				Domain:      exampleDesiredLRP.Domain,
 				Indices:     []int{1},
@@ -247,7 +247,7 @@ var _ = Describe("Auctioneer", func() {
 
 		It("should not advertise its presence, and should not be reachable", func() {
 			Eventually(func() error {
-				return auctioneerClient.RequestTaskAuctions([]*auctioneer.TaskStartRequest{
+				return auctioneerClient.RequestTaskAuctions(logger, []*auctioneer.TaskStartRequest{
 					&auctioneer.TaskStartRequest{*task},
 				})
 			}).Should(HaveOccurred())
@@ -257,7 +257,7 @@ var _ = Describe("Auctioneer", func() {
 			ginkgomon.Kill(competingAuctioneerProcess)
 
 			Eventually(func() error {
-				return auctioneerClient.RequestTaskAuctions([]*auctioneer.TaskStartRequest{
+				return auctioneerClient.RequestTaskAuctions(logger, []*auctioneer.TaskStartRequest{
 					&auctioneer.TaskStartRequest{*task},
 				})
 			}).ShouldNot(HaveOccurred())
@@ -374,11 +374,127 @@ var _ = Describe("Auctioneer", func() {
 			It("responds successfully to a TLS client", func() {
 				Eventually(auctioneerProcess.Ready()).Should(BeClosed())
 
-				secureAuctioneerClient, err := auctioneer.NewSecureClient("https://"+auctioneerLocation, caCertFile, serverCertFile, serverKeyFile)
+				secureAuctioneerClient, err := auctioneer.NewSecureClient("https://"+auctioneerLocation, caCertFile, serverCertFile, serverKeyFile, false)
 				Expect(err).NotTo(HaveOccurred())
 
-				err = secureAuctioneerClient.RequestLRPAuctions(nil)
+				err = secureAuctioneerClient.RequestLRPAuctions(logger, nil)
 				Expect(err).NotTo(HaveOccurred())
+			})
+		})
+	})
+
+	Context("Auctioneer Client", func() {
+		var client auctioneer.Client
+
+		JustBeforeEach(func() {
+			auctioneerProcess = ginkgomon.Invoke(runner)
+		})
+
+		Context("when the auctioneer is configured with TLS", func() {
+			BeforeEach(func() {
+				auctioneerArgs = []string{
+					"-caCertFile", "fixtures/green-certs/ca.crt",
+					"-serverCertFile", "fixtures/green-certs/server.crt",
+					"-serverKeyFile", "fixtures/green-certs/server.key",
+				}
+			})
+
+			Context("and the auctioneer client is not configured with TLS", func() {
+				BeforeEach(func() {
+					client = auctioneer.NewClient("http://" + auctioneerLocation)
+				})
+
+				It("does not work", func() {
+					err := client.RequestLRPAuctions(logger, []*auctioneer.LRPStartRequest{})
+					Expect(err).To(HaveOccurred())
+
+					err = client.RequestTaskAuctions(logger, []*auctioneer.TaskStartRequest{})
+					Expect(err).To(HaveOccurred())
+				})
+			})
+
+			Context("and the auctioneer client is configured with tls", func() {
+				BeforeEach(func() {
+					var err error
+					client, err = auctioneer.NewSecureClient(
+						"https://"+auctioneerLocation,
+						"fixtures/green-certs/ca.crt",
+						"fixtures/green-certs/client.crt",
+						"fixtures/green-certs/client.key",
+						true,
+					)
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				It("works", func() {
+					err := client.RequestLRPAuctions(logger, []*auctioneer.LRPStartRequest{})
+					Expect(err).NotTo(HaveOccurred())
+
+					err = client.RequestTaskAuctions(logger, []*auctioneer.TaskStartRequest{})
+					Expect(err).NotTo(HaveOccurred())
+				})
+			})
+		})
+
+		Context("when the auctioneer is not configured with TLS", func() {
+			Context("and the auctioneer client is not configured with TLS", func() {
+				BeforeEach(func() {
+					client = auctioneer.NewClient("http://" + auctioneerLocation)
+				})
+
+				It("works", func() {
+					err := client.RequestLRPAuctions(logger, []*auctioneer.LRPStartRequest{})
+					Expect(err).NotTo(HaveOccurred())
+
+					err = client.RequestTaskAuctions(logger, []*auctioneer.TaskStartRequest{})
+					Expect(err).NotTo(HaveOccurred())
+				})
+			})
+
+			Context("and the auctioneer client is configured with TLS", func() {
+				Context("and the client requires tls", func() {
+					BeforeEach(func() {
+						var err error
+						client, err = auctioneer.NewSecureClient(
+							"https://"+auctioneerLocation,
+							"fixtures/green-certs/ca.crt",
+							"fixtures/green-certs/client.crt",
+							"fixtures/green-certs/client.key",
+							true,
+						)
+						Expect(err).NotTo(HaveOccurred())
+					})
+
+					It("does not work", func() {
+						err := client.RequestLRPAuctions(logger, []*auctioneer.LRPStartRequest{})
+						Expect(err).To(HaveOccurred())
+
+						err = client.RequestTaskAuctions(logger, []*auctioneer.TaskStartRequest{})
+						Expect(err).To(HaveOccurred())
+					})
+				})
+
+				Context("and the client does not require tls", func() {
+					BeforeEach(func() {
+						var err error
+						client, err = auctioneer.NewSecureClient(
+							"https://"+auctioneerLocation,
+							"fixtures/green-certs/ca.crt",
+							"fixtures/green-certs/client.crt",
+							"fixtures/green-certs/client.key",
+							false,
+						)
+						Expect(err).NotTo(HaveOccurred())
+					})
+
+					It("falls back to http and does work", func() {
+						err := client.RequestLRPAuctions(logger, []*auctioneer.LRPStartRequest{})
+						Expect(err).NotTo(HaveOccurred())
+
+						err = client.RequestTaskAuctions(logger, []*auctioneer.TaskStartRequest{})
+						Expect(err).NotTo(HaveOccurred())
+					})
+				})
 			})
 		})
 	})

@@ -19,7 +19,7 @@ var _ = Describe("Auctioneer Client", func() {
 		})
 
 		It("works", func() {
-			_, err := NewSecureClient(auctioneerURL, caFile, certFile, keyFile)
+			_, err := NewSecureClient(auctioneerURL, caFile, certFile, keyFile, false)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -29,7 +29,7 @@ var _ = Describe("Auctioneer Client", func() {
 			})
 
 			It("returns an error", func() {
-				_, err := NewSecureClient(auctioneerURL, caFile, certFile, keyFile)
+				_, err := NewSecureClient(auctioneerURL, caFile, certFile, keyFile, false)
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(MatchRegexp("failed to load keypair.*"))
 			})
