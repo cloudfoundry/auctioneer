@@ -24,7 +24,7 @@ func NewTaskStartRequestFromModel(taskGuid, domain string, taskDef *models.TaskD
 		rep.NewTask(
 			taskGuid,
 			domain,
-			rep.NewResource(taskDef.MemoryMb, taskDef.DiskMb),
+			rep.NewResource(taskDef.MemoryMb, taskDef.DiskMb, taskDef.MaxPids),
 			rep.NewPlacementConstraint(taskDef.RootFs, taskDef.PlacementTags, volumeMounts),
 		),
 	}
@@ -71,7 +71,7 @@ func NewLRPStartRequestFromModel(d *models.DesiredLRP, indices ...int) LRPStartR
 		d.ProcessGuid,
 		d.Domain,
 		indices,
-		rep.NewResource(d.MemoryMb, d.DiskMb),
+		rep.NewResource(d.MemoryMb, d.DiskMb, d.MaxPids),
 		rep.NewPlacementConstraint(d.RootFs, d.PlacementTags, volumeDrivers),
 	)
 }
@@ -81,7 +81,7 @@ func NewLRPStartRequestFromSchedulingInfo(s *models.DesiredLRPSchedulingInfo, in
 		s.ProcessGuid,
 		s.Domain,
 		indices,
-		rep.NewResource(s.MemoryMb, s.DiskMb),
+		rep.NewResource(s.MemoryMb, s.DiskMb, s.MaxPids),
 		rep.NewPlacementConstraint(s.RootFs, s.PlacementTags, s.VolumePlacement.DriverNames),
 	)
 }

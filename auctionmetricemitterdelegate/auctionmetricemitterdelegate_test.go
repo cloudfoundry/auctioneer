@@ -27,7 +27,7 @@ var _ = Describe("Auction Metric Emitter Delegate", func() {
 
 	Describe("AuctionCompleted", func() {
 		It("should adjust the metric counters", func() {
-			resource := rep.NewResource(10, 10)
+			resource := rep.NewResource(10, 10, 10)
 			pc := rep.NewPlacementConstraint("linux", []string{}, []string{})
 			delegate.AuctionCompleted(auctiontypes.AuctionResults{
 				SuccessfulLRPs: []auctiontypes.LRPAuction{

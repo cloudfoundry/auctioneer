@@ -165,7 +165,7 @@ var _ = Describe("Auction Runner Delegate", func() {
 		var results auctiontypes.AuctionResults
 
 		BeforeEach(func() {
-			resource := rep.NewResource(10, 10)
+			resource := rep.NewResource(10, 10, 10)
 			pc := rep.NewPlacementConstraint("linux", []string{}, []string{})
 
 			results = auctiontypes.AuctionResults{

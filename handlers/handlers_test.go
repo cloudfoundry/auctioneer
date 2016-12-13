@@ -44,7 +44,7 @@ var _ = Describe("Auction Handlers", func() {
 	Describe("Task Handler", func() {
 		Context("with a valid task", func() {
 			BeforeEach(func() {
-				resource := rep.NewResource(1, 2)
+				resource := rep.NewResource(1, 2, 3)
 				pc := rep.NewPlacementConstraint("rootfs", []string{}, []string{})
 				task := rep.NewTask("the-task-guid", "test", resource, pc)
 

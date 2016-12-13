@@ -30,6 +30,7 @@ var exampleDesiredLRP = models.DesiredLRP{
 	ProcessGuid: "process-guid",
 	DiskMb:      1,
 	MemoryMb:    1,
+	MaxPids:     1,
 	RootFs:      linuxRootFSURL,
 	Action:      models.WrapAction(dummyAction),
 	Domain:      "test",
@@ -165,6 +166,7 @@ var _ = Describe("Auctioneer", func() {
 				taskDef := exampleTaskDefinition()
 				taskDef.DiskMb = 1
 				taskDef.MemoryMb = 1
+				taskDef.MaxPids = 1
 				err := bbsClient.DesireTask(logger, "guid", "domain", taskDef)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -180,6 +182,7 @@ var _ = Describe("Auctioneer", func() {
 				taskDef = exampleTaskDefinition()
 				taskDef.DiskMb = 1000
 				taskDef.MemoryMb = 1000
+				taskDef.MaxPids = 1000
 			})
 
 			It("should not place the tasks and mark the task as failed in the BBS", func() {
