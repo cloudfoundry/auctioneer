@@ -6,7 +6,9 @@ import (
 	"strings"
 
 	"code.cloudfoundry.org/bbs"
+	bbsconfig "code.cloudfoundry.org/bbs/cmd/bbs/config"
 	bbstestrunner "code.cloudfoundry.org/bbs/cmd/bbs/testrunner"
+	"code.cloudfoundry.org/bbs/encryption"
 	"code.cloudfoundry.org/bbs/models"
 	"code.cloudfoundry.org/bbs/test_helpers"
 	"code.cloudfoundry.org/bbs/test_helpers/sqlrunner"
@@ -39,7 +41,7 @@ var (
 	consulRunner *consulrunner.ClusterRunner
 	consulClient consuladapter.Client
 
-	bbsArgs    bbstestrunner.Args
+	bbsConfig  bbsconfig.BBSConfig
 	bbsBinPath string
 	bbsURL     *url.URL
 	bbsRunner  *ginkgomon.Runner
@@ -106,15 +108,18 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 
 	bbsClient = bbs.NewClient(bbsURL.String())
 
-	bbsArgs = bbstestrunner.Args{
-		Address:           bbsAddress,
+	bbsConfig = bbsconfig.BBSConfig{
+		ListenAddress:     bbsAddress,
 		AdvertiseURL:      bbsURL.String(),
 		AuctioneerAddress: "http://" + auctioneerLocation,
 		ConsulCluster:     consulRunner.ConsulCluster(),
 		HealthAddress:     healthAddress,
 
-		EncryptionKeys:           []string{"label:key"},
-		ActiveKeyLabel:           "label",
+		EncryptionConfig: encryption.EncryptionConfig{
+			EncryptionKeys: map[string]string{"label": "key"},
+			ActiveKeyLabel: "label",
+		},
+
 		DatabaseDriver:           sqlRunner.DriverName(),
 		DatabaseConnectionString: sqlRunner.ConnectionString(),
 	}
@@ -123,7 +128,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 var _ = BeforeEach(func() {
 	consulRunner.Reset()
 
-	bbsRunner = bbstestrunner.New(bbsBinPath, bbsArgs)
+	bbsRunner = bbstestrunner.New(bbsBinPath, bbsConfig)
 	bbsProcess = ginkgomon.Invoke(bbsRunner)
 
 	consulClient = consulRunner.NewClient()
