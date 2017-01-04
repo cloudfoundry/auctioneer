@@ -9,22 +9,24 @@ import (
 	"code.cloudfoundry.org/auctioneer"
 	"code.cloudfoundry.org/auctioneer/handlers"
 	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagertest"
 	"code.cloudfoundry.org/rep"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
 )
 
 var _ = Describe("LRPAuctionHandler", func() {
 	var (
-		logger           lager.Logger
+		logger           *lagertest.TestLogger
 		runner           *fake_auction_runner.FakeAuctionRunner
 		responseRecorder *httptest.ResponseRecorder
 		handler          *handlers.LRPAuctionHandler
 	)
 
 	BeforeEach(func() {
-		logger = lager.NewLogger("test")
+		logger = lagertest.NewTestLogger("test")
 		logger.RegisterSink(lager.NewWriterSink(GinkgoWriter, lager.DEBUG))
 		runner = new(fake_auction_runner.FakeAuctionRunner)
 		responseRecorder = httptest.NewRecorder()
@@ -65,6 +67,10 @@ var _ = Describe("LRPAuctionHandler", func() {
 
 				submittedStart := runner.ScheduleLRPsForAuctionsArgsForCall(0)
 				Expect(submittedStart).To(Equal(starts))
+			})
+
+			It("should log the list of lrps as a json object with guid and indices keys", func() {
+				Expect(logger.Buffer()).To(gbytes.Say(`"guid":"some-guid","indices":\[2,3\]`))
 			})
 		})
 

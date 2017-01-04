@@ -57,6 +57,24 @@ func (h *LRPAuctionHandler) Create(w http.ResponseWriter, r *http.Request, logge
 	}
 
 	h.runner.ScheduleLRPsForAuctions(validStarts)
-	logger.Info("submitted", lager.Data{"lrps": lrpGuids})
+
+	logLRPGuids(lrpGuids, logger)
+
 	writeStatusAcceptedResponse(w)
+}
+
+func logLRPGuids(lrps map[string][]int, logger lager.Logger) {
+	type lrpStruct struct {
+		Guid    string `json:"guid"`
+		Indices []int  `json:"indices"`
+	}
+
+	lrpArray := []lrpStruct{}
+
+	for guid, indices := range lrps {
+		lrp := lrpStruct{guid, indices}
+		lrpArray = append(lrpArray, lrp)
+	}
+
+	logger.Info("submitted", lager.Data{"lrps": lrpArray})
 }
