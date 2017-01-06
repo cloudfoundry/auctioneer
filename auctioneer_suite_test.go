@@ -19,9 +19,11 @@ func TestAuctioneer(t *testing.T) {
 
 var _ = BeforeSuite(func() {
 	consulRunner = consulrunner.NewClusterRunner(
-		9001+config.GinkgoConfig.ParallelNode*consulrunner.PortOffsetLength,
-		1,
-		"http",
+		consulrunner.ClusterRunnerConfig{
+			StartingPort: 9001 + config.GinkgoConfig.ParallelNode*consulrunner.PortOffsetLength,
+			NumNodes:     1,
+			Scheme:       "http",
+		},
 	)
 
 	consulRunner.Start()

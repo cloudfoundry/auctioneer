@@ -83,9 +83,11 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	sqlProcess = ginkgomon.Invoke(sqlRunner)
 
 	consulRunner = consulrunner.NewClusterRunner(
-		9001+GinkgoParallelNode()*consulrunner.PortOffsetLength,
-		1,
-		"http",
+		consulrunner.ClusterRunnerConfig{
+			StartingPort: 9001 + GinkgoParallelNode()*consulrunner.PortOffsetLength,
+			NumNodes:     1,
+			Scheme:       "http",
+		},
 	)
 
 	auctioneerServerPort = 1800 + GinkgoParallelNode()
