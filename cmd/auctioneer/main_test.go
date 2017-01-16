@@ -186,6 +186,44 @@ var _ = Describe("Auctioneer", func() {
 		})
 	})
 
+	Context("when exceeding max inflight container counts", func() {
+		BeforeEach(func() {
+			auctioneerConfig.StartingContainerCountMaximum = 1
+		})
+
+		It("should only start up to the max inflight processes", func() {
+			auctioneerProcess = ginkgomon.Invoke(runner)
+
+			err := auctioneerClient.RequestLRPAuctions(logger, []*auctioneer.LRPStartRequest{{
+				ProcessGuid: exampleDesiredLRP.ProcessGuid,
+				Domain:      exampleDesiredLRP.Domain,
+				Indices:     []int{0},
+				Resource: rep.Resource{
+					MemoryMB: 5,
+					DiskMB:   5,
+				},
+				PlacementConstraint: rep.PlacementConstraint{
+					RootFs: exampleDesiredLRP.RootFs,
+				},
+			}})
+
+			Expect(err).NotTo(HaveOccurred())
+
+			err = auctioneerClient.RequestLRPAuctions(logger, []*auctioneer.LRPStartRequest{{
+				ProcessGuid: exampleDesiredLRP.ProcessGuid,
+				Domain:      exampleDesiredLRP.Domain,
+				Indices:     []int{1},
+				Resource: rep.Resource{
+					MemoryMB: 5,
+					DiskMB:   5,
+				},
+			}})
+			Expect(err).NotTo(HaveOccurred())
+
+			Eventually(linuxCell.LRPs).Should(HaveLen(1))
+		})
+	})
+
 	Context("when a task message arrives", func() {
 		Context("when there are sufficient resources to start the task", func() {
 			It("should start the task running on reps of the appropriate stack", func() {

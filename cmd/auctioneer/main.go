@@ -91,6 +91,7 @@ func main() {
 		time.Duration(cfg.LockTTL),
 		time.Duration(cfg.LockRetryInterval),
 	)
+
 	registrationRunner := initializeRegistrationRunner(logger, consulClient, clock, port)
 
 	var auctionServer ifrit.Runner
@@ -161,6 +162,7 @@ func initializeAuctionRunner(logger lager.Logger, cfg config.AuctioneerConfig, b
 		clock.NewClock(),
 		workPool,
 		cfg.StartingContainerWeight,
+		cfg.StartingContainerCountMaximum,
 	)
 }
 
