@@ -17,6 +17,7 @@ import (
 	"code.cloudfoundry.org/auctioneer"
 	"code.cloudfoundry.org/auctioneer/auctionmetricemitterdelegate"
 	"code.cloudfoundry.org/auctioneer/auctionrunnerdelegate"
+	"code.cloudfoundry.org/auctioneer/cmd/auctioneer/config"
 	"code.cloudfoundry.org/auctioneer/handlers"
 	"code.cloudfoundry.org/bbs"
 	"code.cloudfoundry.org/cfhttp"
@@ -39,142 +40,10 @@ import (
 	"github.com/tedsuo/ifrit/sigmon"
 )
 
-var communicationTimeout = flag.Duration(
-	"communicationTimeout",
-	10*time.Second,
-	"Timeout applied to all HTTP requests.",
-)
-
-var cellStateTimeout = flag.Duration(
-	"cellStateTimeout",
-	1*time.Second,
-	"Timeout applied to HTTP requests to the Cell State endpoint.",
-)
-
-var consulCluster = flag.String(
-	"consulCluster",
+var configFilePath = flag.String(
+	"config",
 	"",
-	"comma-separated list of consul server addresses (ip:port)",
-)
-
-var dropsondePort = flag.Int(
-	"dropsondePort",
-	3457,
-	"port the local metron agent is listening on",
-)
-
-var lockTTL = flag.Duration(
-	"lockTTL",
-	locket.DefaultSessionTTL,
-	"TTL for service lock",
-)
-
-var lockRetryInterval = flag.Duration(
-	"lockRetryInterval",
-	locket.RetryInterval,
-	"interval to wait before retrying a failed lock acquisition",
-)
-
-var listenAddr = flag.String(
-	"listenAddr",
-	"0.0.0.0:9016",
-	"host:port to serve auction and LRP stop requests on",
-)
-
-var bbsAddress = flag.String(
-	"bbsAddress",
-	"",
-	"Address to the BBS Server",
-)
-
-var bbsCACert = flag.String(
-	"bbsCACert",
-	"",
-	"path to certificate authority cert used for mutually authenticated TLS BBS communication",
-)
-
-var bbsClientCert = flag.String(
-	"bbsClientCert",
-	"",
-	"path to client cert used for mutually authenticated TLS BBS communication",
-)
-
-var bbsClientKey = flag.String(
-	"bbsClientKey",
-	"",
-	"path to client key used for mutually authenticated TLS BBS communication",
-)
-
-var bbsClientSessionCacheSize = flag.Int(
-	"bbsClientSessionCacheSize",
-	0,
-	"Capacity of the ClientSessionCache option on the TLS configuration. If zero, golang's default will be used",
-)
-
-var repRequireTLS = flag.Bool(
-	"repRequireTLS",
-	false,
-	"whether tls connection to the rep is required or preferred",
-)
-
-var repCACert = flag.String(
-	"repCACert",
-	"",
-	"path to certificate authority cert used for mutually authenticated TLS REP communication",
-)
-
-var repClientCert = flag.String(
-	"repClientCert",
-	"",
-	"path to client cert used for mutually authenticated TLS REP communication",
-)
-
-var repClientKey = flag.String(
-	"repClientKey",
-	"",
-	"path to client key used for mutually authenticated TLS REP communication",
-)
-
-var repClientSessionCacheSize = flag.Int(
-	"repClientSessionCacheSize",
-	0,
-	"Capacity of the ClientSessionCache option on the TLS configuration. If zero, golang's default will be used",
-)
-
-var bbsMaxIdleConnsPerHost = flag.Int(
-	"bbsMaxIdleConnsPerHost",
-	0,
-	"Controls the maximum number of idle (keep-alive) connctions per host. If zero, golang's default will be used",
-)
-
-var auctionRunnerWorkers = flag.Int(
-	"auctionRunnerWorkers",
-	1000,
-	"Max concurrency for cell operations in the auction runner",
-)
-
-var startingContainerWeight = flag.Float64(
-	"startingContainerWeight",
-	0.25,
-	"Factor to bias against cells with starting containers (0.0 - 1.0)",
-)
-
-var caCertFile = flag.String(
-	"caCertFile",
-	"",
-	"The path to the CA certificate file.",
-)
-
-var serverCertFile = flag.String(
-	"serverCertFile",
-	"",
-	"The path to the server certificate file.",
-)
-
-var serverKeyFile = flag.String(
-	"serverKeyFile",
-	"",
-	"The path to the server key file.",
+	"Path to JSON configuration file",
 )
 
 const (
@@ -184,25 +53,29 @@ const (
 )
 
 func main() {
-	debugserver.AddFlags(flag.CommandLine)
-	lagerflags.AddFlags(flag.CommandLine)
 	flag.Parse()
 
-	cfhttp.Initialize(*communicationTimeout)
+	cfg, err := config.NewAuctioneerConfig(*configFilePath)
+	if err != nil {
+		// TODO: Test me?
+		panic(err)
+	}
 
-	logger, reconfigurableSink := lagerflags.New("auctioneer")
-	initializeDropsonde(logger)
+	cfhttp.Initialize(time.Duration(cfg.CommunicationTimeout))
 
-	if err := validateBBSAddress(); err != nil {
+	logger, reconfigurableSink := lagerflags.NewFromConfig("auctioneer", cfg.LagerConfig)
+	initializeDropsonde(logger, cfg.DropsondePort)
+
+	if err := validateBBSAddress(cfg.BBSAddress); err != nil {
 		logger.Fatal("invalid-bbs-address", err)
 	}
 
-	consulClient, err := consuladapter.NewClientFromUrl(*consulCluster)
+	consulClient, err := consuladapter.NewClientFromUrl(cfg.ConsulCluster)
 	if err != nil {
 		logger.Fatal("new-client-failed", err)
 	}
 
-	port, err := strconv.Atoi(strings.Split(*listenAddr, ":")[1])
+	port, err := strconv.Atoi(strings.Split(cfg.ListenAddress, ":")[1])
 	if err != nil {
 		logger.Fatal("invalid-port", err)
 	}
@@ -210,20 +83,25 @@ func main() {
 	clock := clock.NewClock()
 	auctioneerServiceClient := auctioneer.NewServiceClient(consulClient, clock)
 
-	auctionRunner := initializeAuctionRunner(logger, *cellStateTimeout,
-		initializeBBSClient(logger), *startingContainerWeight)
-	lockMaintainer := initializeLockMaintainer(logger, auctioneerServiceClient, port)
+	auctionRunner := initializeAuctionRunner(logger, cfg, initializeBBSClient(logger, cfg))
+	lockMaintainer := initializeLockMaintainer(
+		logger,
+		auctioneerServiceClient,
+		port,
+		time.Duration(cfg.LockTTL),
+		time.Duration(cfg.LockRetryInterval),
+	)
 	registrationRunner := initializeRegistrationRunner(logger, consulClient, clock, port)
 
 	var auctionServer ifrit.Runner
-	if *serverCertFile != "" || *serverKeyFile != "" || *caCertFile != "" {
-		tlsConfig, err := cfhttp.NewTLSConfig(*serverCertFile, *serverKeyFile, *caCertFile)
+	if cfg.ServerCertFile != "" || cfg.ServerKeyFile != "" || cfg.CACertFile != "" {
+		tlsConfig, err := cfhttp.NewTLSConfig(cfg.ServerCertFile, cfg.ServerKeyFile, cfg.CACertFile)
 		if err != nil {
 			logger.Fatal("invalid-tls-config", err)
 		}
-		auctionServer = http_server.NewTLSServer(*listenAddr, handlers.New(auctionRunner, logger), tlsConfig)
+		auctionServer = http_server.NewTLSServer(cfg.ListenAddress, handlers.New(auctionRunner, logger), tlsConfig)
 	} else {
-		auctionServer = http_server.New(*listenAddr, handlers.New(auctionRunner, logger))
+		auctionServer = http_server.New(cfg.ListenAddress, handlers.New(auctionRunner, logger))
 	}
 
 	members := grouper.Members{
@@ -233,9 +111,9 @@ func main() {
 		{"registration-runner", registrationRunner},
 	}
 
-	if dbgAddr := debugserver.DebugAddress(flag.CommandLine); dbgAddr != "" {
+	if cfg.DebugAddress != "" {
 		members = append(grouper.Members{
-			{"debug-server", debugserver.Runner(dbgAddr, reconfigurableSink)},
+			{"debug-server", debugserver.Runner(cfg.DebugAddress, reconfigurableSink)},
 		}, members...)
 	}
 
@@ -254,15 +132,15 @@ func main() {
 	logger.Info("exited")
 }
 
-func initializeAuctionRunner(logger lager.Logger, cellStateTimeout time.Duration, bbsClient bbs.InternalClient, startingContainerWeight float64) auctiontypes.AuctionRunner {
+func initializeAuctionRunner(logger lager.Logger, cfg config.AuctioneerConfig, bbsClient bbs.InternalClient) auctiontypes.AuctionRunner {
 	httpClient := cfhttp.NewClient()
-	stateClient := cfhttp.NewCustomTimeoutClient(cellStateTimeout)
+	stateClient := cfhttp.NewCustomTimeoutClient(time.Duration(cfg.CellStateTimeout))
 	repTLSConfig := &rep.TLSConfig{
-		RequireTLS:      *repRequireTLS,
-		CaCertFile:      *repCACert,
-		CertFile:        *repClientCert,
-		KeyFile:         *repClientKey,
-		ClientCacheSize: *repClientSessionCacheSize,
+		RequireTLS:      cfg.RepRequireTLS,
+		CaCertFile:      cfg.RepCACert,
+		CertFile:        cfg.RepClientCert,
+		KeyFile:         cfg.RepClientKey,
+		ClientCacheSize: cfg.RepClientSessionCacheSize,
 	}
 	repClientFactory, err := rep.NewClientFactory(httpClient, stateClient, repTLSConfig)
 	if err != nil {
@@ -271,9 +149,9 @@ func initializeAuctionRunner(logger lager.Logger, cellStateTimeout time.Duration
 
 	delegate := auctionrunnerdelegate.New(repClientFactory, bbsClient, logger)
 	metricEmitter := auctionmetricemitterdelegate.New()
-	workPool, err := workpool.NewWorkPool(*auctionRunnerWorkers)
+	workPool, err := workpool.NewWorkPool(cfg.AuctionRunnerWorkers)
 	if err != nil {
-		logger.Fatal("failed-to-construct-auction-runner-workpool", err, lager.Data{"num-workers": *auctionRunnerWorkers}) // should never happen
+		logger.Fatal("failed-to-construct-auction-runner-workpool", err, lager.Data{"num-workers": cfg.AuctionRunnerWorkers}) // should never happen
 	}
 
 	return auctionrunner.New(
@@ -282,20 +160,20 @@ func initializeAuctionRunner(logger lager.Logger, cellStateTimeout time.Duration
 		metricEmitter,
 		clock.NewClock(),
 		workPool,
-		startingContainerWeight,
+		cfg.StartingContainerWeight,
 	)
 }
 
-func initializeDropsonde(logger lager.Logger) {
-	dropsondeDestination := fmt.Sprint("localhost:", *dropsondePort)
+func initializeDropsonde(logger lager.Logger, dropsondePort int) {
+	dropsondeDestination := fmt.Sprint("localhost:", dropsondePort)
 	err := dropsonde.Initialize(dropsondeDestination, dropsondeOrigin)
 	if err != nil {
 		logger.Error("failed to initialize dropsonde: %v", err)
 	}
 }
 
-func initializeAuctionServer(logger lager.Logger, runner auctiontypes.AuctionRunner, tlsConfig *tls.Config) ifrit.Runner {
-	return http_server.NewTLSServer(*listenAddr, handlers.New(runner, logger), tlsConfig)
+func initializeAuctionServer(logger lager.Logger, listenAddr string, runner auctiontypes.AuctionRunner, tlsConfig *tls.Config) ifrit.Runner {
+	return http_server.NewTLSServer(listenAddr, handlers.New(runner, logger), tlsConfig)
 }
 
 func initializeRegistrationRunner(logger lager.Logger, consulClient consuladapter.Client, clock clock.Clock, port int) ifrit.Runner {
@@ -309,7 +187,13 @@ func initializeRegistrationRunner(logger lager.Logger, consulClient consuladapte
 	return locket.NewRegistrationRunner(logger, registration, consulClient, locket.RetryInterval, clock)
 }
 
-func initializeLockMaintainer(logger lager.Logger, serviceClient auctioneer.ServiceClient, port int) ifrit.Runner {
+func initializeLockMaintainer(
+	logger lager.Logger,
+	serviceClient auctioneer.ServiceClient,
+	port int,
+	lockTTL time.Duration,
+	lockRetryInterval time.Duration,
+) ifrit.Runner {
 	uuid, err := uuid.NewV4()
 	if err != nil {
 		logger.Fatal("Couldn't generate uuid", err)
@@ -323,7 +207,7 @@ func initializeLockMaintainer(logger lager.Logger, serviceClient auctioneer.Serv
 	address := fmt.Sprintf("%s://%s:%d", serverProtocol, localIP, port)
 	auctioneerPresence := auctioneer.NewPresence(uuid.String(), address)
 
-	lockMaintainer, err := serviceClient.NewAuctioneerLockRunner(logger, auctioneerPresence, *lockRetryInterval, *lockTTL)
+	lockMaintainer, err := serviceClient.NewAuctioneerLockRunner(logger, auctioneerPresence, lockRetryInterval, lockTTL)
 	if err != nil {
 		logger.Fatal("Couldn't create lock maintainer", err)
 	}
@@ -331,24 +215,31 @@ func initializeLockMaintainer(logger lager.Logger, serviceClient auctioneer.Serv
 	return lockMaintainer
 }
 
-func validateBBSAddress() error {
-	if *bbsAddress == "" {
+func validateBBSAddress(bbsAddress string) error {
+	if bbsAddress == "" {
 		return errors.New("bbsAddress is required")
 	}
 	return nil
 }
 
-func initializeBBSClient(logger lager.Logger) bbs.InternalClient {
-	bbsURL, err := url.Parse(*bbsAddress)
+func initializeBBSClient(logger lager.Logger, cfg config.AuctioneerConfig) bbs.InternalClient {
+	bbsURL, err := url.Parse(cfg.BBSAddress)
 	if err != nil {
 		logger.Fatal("Invalid BBS URL", err)
 	}
 
 	if bbsURL.Scheme != "https" {
-		return bbs.NewClient(*bbsAddress)
+		return bbs.NewClient(cfg.BBSAddress)
 	}
 
-	bbsClient, err := bbs.NewSecureClient(*bbsAddress, *bbsCACert, *bbsClientCert, *bbsClientKey, *bbsClientSessionCacheSize, *bbsMaxIdleConnsPerHost)
+	bbsClient, err := bbs.NewSecureClient(
+		cfg.BBSAddress,
+		cfg.BBSCACertFile,
+		cfg.BBSClientCertFile,
+		cfg.BBSClientKeyFile,
+		cfg.BBSClientSessionCacheSize,
+		cfg.BBSMaxIdleConnsPerHost,
+	)
 	if err != nil {
 		logger.Fatal("Failed to configure secure BBS client", err)
 	}

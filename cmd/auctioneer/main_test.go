@@ -1,14 +1,21 @@
 package main_test
 
 import (
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"net"
+	"os"
 	"os/exec"
 	"time"
 
 	"code.cloudfoundry.org/auctioneer"
+	"code.cloudfoundry.org/auctioneer/cmd/auctioneer/config"
 	"code.cloudfoundry.org/bbs"
 	"code.cloudfoundry.org/bbs/models"
 	"code.cloudfoundry.org/bbs/models/test/model_helpers"
 	"code.cloudfoundry.org/clock"
+	"code.cloudfoundry.org/durationjson"
 	"code.cloudfoundry.org/locket"
 	"code.cloudfoundry.org/rep"
 	"github.com/hashicorp/consul/api"
@@ -47,7 +54,7 @@ func exampleTaskDefinition() *models.TaskDefinition {
 
 var _ = Describe("Auctioneer", func() {
 	var (
-		auctioneerArgs []string
+		auctioneerConfig config.AuctioneerConfig
 
 		runner            *ginkgomon.Runner
 		auctioneerProcess ifrit.Process
@@ -56,25 +63,33 @@ var _ = Describe("Auctioneer", func() {
 	)
 
 	BeforeEach(func() {
-		auctioneerArgs = []string{}
+		auctioneerConfig = config.AuctioneerConfig{
+			BBSAddress:        bbsURL.String(),
+			ListenAddress:     auctioneerLocation,
+			LockRetryInterval: durationjson.Duration(time.Second),
+			ConsulCluster:     consulRunner.ConsulCluster(),
+		}
 		auctioneerClient = auctioneer.NewClient("http://" + auctioneerLocation)
 	})
 
 	JustBeforeEach(func() {
-		auctioneerArgs = append([]string{
-			"-bbsAddress", bbsURL.String(),
-			"-listenAddr", auctioneerLocation,
-			"-lockRetryInterval", "1s",
-			"-consulCluster", consulRunner.ConsulCluster(),
-		}, auctioneerArgs...)
+		configFile, err := ioutil.TempFile("", "auctioneer-config")
+		Expect(err).NotTo(HaveOccurred())
+
+		encoder := json.NewEncoder(configFile)
+		err = encoder.Encode(&auctioneerConfig)
+		Expect(err).NotTo(HaveOccurred())
 
 		runner = ginkgomon.New(ginkgomon.Config{
 			Name: "auctioneer",
 			Command: exec.Command(
 				auctioneerPath,
-				auctioneerArgs...,
+				"-config", configFile.Name(),
 			),
 			StartCheck: "auctioneer.started",
+			Cleanup: func() {
+				os.RemoveAll(configFile.Name())
+			},
 		})
 	})
 
@@ -119,6 +134,19 @@ var _ = Describe("Auctioneer", func() {
 				ServiceID:   "auctioneer",
 				ServiceName: "auctioneer",
 			}))
+		})
+
+		Context("when a debug address is specified", func() {
+			BeforeEach(func() {
+				auctioneerConfig.DebugAddress = fmt.Sprintf("0.0.0.0:%d", 1234+GinkgoParallelNode())
+			})
+
+			It("starts the debug server", func() {
+				auctioneerProcess = ginkgomon.Invoke(runner)
+
+				_, err := net.Dial("tcp", auctioneerConfig.DebugAddress)
+				Expect(err).NotTo(HaveOccurred())
+			})
 		})
 	})
 
@@ -275,11 +303,9 @@ var _ = Describe("Auctioneer", func() {
 			serverCertFile = "fixtures/green-certs/server.crt"
 			serverKeyFile = "fixtures/green-certs/server.key"
 
-			auctioneerArgs = []string{
-				"-caCertFile", caCertFile,
-				"-serverCertFile", serverCertFile,
-				"-serverKeyFile", serverKeyFile,
-			}
+			auctioneerConfig.CACertFile = caCertFile
+			auctioneerConfig.ServerCertFile = serverCertFile
+			auctioneerConfig.ServerKeyFile = serverKeyFile
 		})
 
 		JustBeforeEach(func() {
@@ -292,11 +318,9 @@ var _ = Describe("Auctioneer", func() {
 
 		Context("when invalid values for the certificates are supplied", func() {
 			BeforeEach(func() {
-				auctioneerArgs = []string{
-					"-caCertFile", caCertFile,
-					"-serverCertFile", "invalid-certs/server.cr",
-					"-serverKeyFile", serverKeyFile,
-				}
+				auctioneerConfig.CACertFile = caCertFile
+				auctioneerConfig.ServerCertFile = "invalid-certs/server.cr"
+				auctioneerConfig.ServerKeyFile = serverKeyFile
 			})
 
 			It("fails", func() {
@@ -309,10 +333,9 @@ var _ = Describe("Auctioneer", func() {
 		Context("when invalid combinations of the certificates are supplied", func() {
 			Context("when the server cert file isn't specified", func() {
 				BeforeEach(func() {
-					auctioneerArgs = []string{
-						"-caCertFile", caCertFile,
-						"-serverKeyFile", serverKeyFile,
-					}
+					auctioneerConfig.CACertFile = caCertFile
+					auctioneerConfig.ServerCertFile = ""
+					auctioneerConfig.ServerKeyFile = serverKeyFile
 				})
 
 				It("fails", func() {
@@ -324,9 +347,9 @@ var _ = Describe("Auctioneer", func() {
 
 			Context("when the server cert file and server key file aren't specified", func() {
 				BeforeEach(func() {
-					auctioneerArgs = []string{
-						"-caCertFile", caCertFile,
-					}
+					auctioneerConfig.CACertFile = caCertFile
+					auctioneerConfig.ServerCertFile = ""
+					auctioneerConfig.ServerKeyFile = ""
 				})
 
 				It("fails", func() {
@@ -338,10 +361,9 @@ var _ = Describe("Auctioneer", func() {
 
 			Context("when the server key file isn't specified", func() {
 				BeforeEach(func() {
-					auctioneerArgs = []string{
-						"-caCertFile", caCertFile,
-						"-serverCertFile", serverCertFile,
-					}
+					auctioneerConfig.CACertFile = caCertFile
+					auctioneerConfig.ServerCertFile = serverCertFile
+					auctioneerConfig.ServerKeyFile = ""
 				})
 
 				It("fails", func() {
@@ -354,11 +376,9 @@ var _ = Describe("Auctioneer", func() {
 
 		Context("when the server key and the CA cert don't match", func() {
 			BeforeEach(func() {
-				auctioneerArgs = []string{
-					"-caCertFile", caCertFile,
-					"-serverCertFile", serverCertFile,
-					"-serverKeyFile", "fixtures/blue-certs/server.key",
-				}
+				auctioneerConfig.CACertFile = caCertFile
+				auctioneerConfig.ServerCertFile = serverCertFile
+				auctioneerConfig.ServerKeyFile = "fixtures/blue-certs/server.key"
 			})
 
 			It("fails", func() {
@@ -395,11 +415,9 @@ var _ = Describe("Auctioneer", func() {
 
 		Context("when the auctioneer is configured with TLS", func() {
 			BeforeEach(func() {
-				auctioneerArgs = []string{
-					"-caCertFile", "fixtures/green-certs/ca.crt",
-					"-serverCertFile", "fixtures/green-certs/server.crt",
-					"-serverKeyFile", "fixtures/green-certs/server.key",
-				}
+				auctioneerConfig.CACertFile = "fixtures/green-certs/ca.crt"
+				auctioneerConfig.ServerCertFile = "fixtures/green-certs/server.crt"
+				auctioneerConfig.ServerKeyFile = "fixtures/green-certs/server.key"
 			})
 
 			Context("and the auctioneer client is not configured with TLS", func() {
