@@ -21,7 +21,7 @@ type AuctioneerConfig struct {
 	ListenAddress                 string                `json:"listen_address,omitempty"`
 	AuctionRunnerWorkers          int                   `json:"auction_runner_workers,omitempty"`
 	StartingContainerWeight       float64               `json:"starting_container_weight,omitempty"`
-	StartingContainerCountMaximum uint                  `json:"starting_container_count_maximum,omitempty"`
+	StartingContainerCountMaximum int                   `json:"starting_container_count_maximum,omitempty"`
 	CACertFile                    string                `json:"ca_cert_file,omitempty"`
 	ServerCertFile                string                `json:"server_cert_file,omitempty"`
 	ServerKeyFile                 string                `json:"server_key_file,omitempty"`
@@ -51,7 +51,7 @@ func DefaultAuctioneerConfig() AuctioneerConfig {
 		ListenAddress:                 "0.0.0.0:9016",
 		AuctionRunnerWorkers:          1000,
 		StartingContainerWeight:       .25,
-		StartingContainerCountMaximum: uint(0),
+		StartingContainerCountMaximum: 0,
 		LagerConfig:                   lagerflags.DefaultLagerConfig(),
 	}
 }

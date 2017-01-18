@@ -79,7 +79,7 @@ var _ = Describe("AuctioneerConfig", func() {
 			ListenAddress:                 "0.0.0.0:9090",
 			AuctionRunnerWorkers:          10,
 			StartingContainerWeight:       .5,
-			StartingContainerCountMaximum: uint(10),
+			StartingContainerCountMaximum: 10,
 			CACertFile:                    "/path-to-cert",
 			ServerCertFile:                "/path-to-server-cert",
 			ServerKeyFile:                 "/path-to-server-key",
