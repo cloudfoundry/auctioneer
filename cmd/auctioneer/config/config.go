@@ -37,6 +37,9 @@ type AuctioneerConfig struct {
 	RepClientSessionCacheSize     int                   `json:"rep_client_session_cache_size,omitempty"`
 	RepRequireTLS                 bool                  `json:"rep_require_tls,omitempty"`
 
+	LocketAddress  string `json:"locket_address"`
+	SkipConsulLock bool   `json:"skip_consul_lock"`
+
 	debugserver.DebugServerConfig
 	lagerflags.LagerConfig
 }

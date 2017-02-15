@@ -45,7 +45,9 @@ var _ = Describe("AuctioneerConfig", func() {
 			"rep_client_session_cache_size": 10,
 			"rep_require_tls": true,
 			"debug_address": "127.0.0.1:17017",
-			"log_level": "debug"
+			"log_level": "debug",
+			"locket_address": "laksdjflksdajflkajsdf",
+			"skip_consul_lock": true
     }`
 	})
 
@@ -100,6 +102,8 @@ var _ = Describe("AuctioneerConfig", func() {
 			LagerConfig: lagerflags.LagerConfig{
 				LogLevel: "debug",
 			},
+			LocketAddress:  "laksdjflksdajflkajsdf",
+			SkipConsulLock: true,
 		}
 
 		Expect(auctioneerConfig).To(Equal(expectedConfig))

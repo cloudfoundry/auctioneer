@@ -48,6 +48,8 @@ var (
 	bbsProcess ifrit.Process
 	bbsClient  bbs.InternalClient
 
+	locketBinPath string
+
 	sqlProcess ifrit.Process
 	sqlRunner  sqlrunner.SQLRunner
 
@@ -69,14 +71,16 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 
 	compiledAuctioneerPath, err := gexec.Build("code.cloudfoundry.org/auctioneer/cmd/auctioneer", "-race")
 	Expect(err).NotTo(HaveOccurred())
-	return []byte(strings.Join([]string{compiledAuctioneerPath, bbsConfig}, ","))
-}, func(pathsByte []byte) {
-	path := string(pathsByte)
-	compiledAuctioneerPath := strings.Split(path, ",")[0]
-	bbsBinPath = strings.Split(path, ",")[1]
 
-	bbsBinPath = strings.Split(path, ",")[1]
-	auctioneerPath = string(compiledAuctioneerPath)
+	locketPath, err := gexec.Build("code.cloudfoundry.org/locket/cmd/locket", "-race")
+	Expect(err).NotTo(HaveOccurred())
+
+	return []byte(strings.Join([]string{compiledAuctioneerPath, bbsConfig, locketPath}, ","))
+}, func(pathsByte []byte) {
+	paths := string(pathsByte)
+	auctioneerPath = strings.Split(paths, ",")[0]
+	bbsBinPath = strings.Split(paths, ",")[1]
+	locketBinPath = strings.Split(paths, ",")[2]
 
 	dbName := fmt.Sprintf("diego_%d", GinkgoParallelNode())
 	sqlRunner = test_helpers.NewSQLRunner(dbName)

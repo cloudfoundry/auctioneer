@@ -11,6 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"google.golang.org/grpc"
+
 	"github.com/hashicorp/consul/api"
 	"github.com/nu7hatch/gouuid"
 
@@ -27,6 +29,8 @@ import (
 	"code.cloudfoundry.org/lager/lagerflags"
 	"code.cloudfoundry.org/localip"
 	"code.cloudfoundry.org/locket"
+	"code.cloudfoundry.org/locket/lock"
+	locketmodels "code.cloudfoundry.org/locket/models"
 	"code.cloudfoundry.org/rep"
 
 	"code.cloudfoundry.org/auction/auctionrunner"
@@ -50,6 +54,7 @@ const (
 	auctionRunnerTimeout = 10 * time.Second
 	dropsondeOrigin      = "auctioneer"
 	serverProtocol       = "http"
+	auctioneerLockKey    = "auctioneer"
 )
 
 func main() {
@@ -84,13 +89,49 @@ func main() {
 	auctioneerServiceClient := auctioneer.NewServiceClient(consulClient, clock)
 
 	auctionRunner := initializeAuctionRunner(logger, cfg, initializeBBSClient(logger, cfg))
-	lockMaintainer := initializeLockMaintainer(
-		logger,
-		auctioneerServiceClient,
-		port,
-		time.Duration(cfg.LockTTL),
-		time.Duration(cfg.LockRetryInterval),
-	)
+
+	members := []grouper.Member{}
+	if !cfg.SkipConsulLock {
+		lockMaintainer := initializeLockMaintainer(
+			logger,
+			auctioneerServiceClient,
+			port,
+			time.Duration(cfg.LockTTL),
+			time.Duration(cfg.LockRetryInterval),
+		)
+		members = append(members, grouper.Member{"lock-maintainer", lockMaintainer})
+	}
+
+	if cfg.LocketAddress != "" {
+		conn, err := grpc.Dial(cfg.LocketAddress, grpc.WithInsecure())
+		if err != nil {
+			logger.Fatal("failed-to-connect-to-locket", err)
+		}
+		locketClient := locketmodels.NewLocketClient(conn)
+
+		guid, err := uuid.NewV4()
+		if err != nil {
+			logger.Fatal("failed-to-generate-guid", err)
+		}
+
+		lockIdentifier := &locketmodels.Resource{
+			Key:   auctioneerLockKey,
+			Owner: guid.String(),
+		}
+
+		members = append(members, grouper.Member{"sql-lock", lock.NewLockRunner(
+			logger,
+			locketClient,
+			lockIdentifier,
+			locket.DefaultSessionTTLInSeconds,
+			clock,
+			locket.RetryInterval,
+		)})
+	}
+
+	if len(members) < 1 {
+		logger.Fatal("no-locks-configured", errors.New("Lock configuration must be provided"))
+	}
 
 	registrationRunner := initializeRegistrationRunner(logger, consulClient, clock, port)
 
@@ -105,12 +146,11 @@ func main() {
 		auctionServer = http_server.New(cfg.ListenAddress, handlers.New(auctionRunner, logger))
 	}
 
-	members := grouper.Members{
-		{"lock-maintainer", lockMaintainer},
+	members = append(members, grouper.Members{
 		{"auction-runner", auctionRunner},
 		{"auction-server", auctionServer},
 		{"registration-runner", registrationRunner},
-	}
+	}...)
 
 	if cfg.DebugAddress != "" {
 		members = append(grouper.Members{

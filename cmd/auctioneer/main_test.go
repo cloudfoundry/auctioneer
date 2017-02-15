@@ -9,6 +9,8 @@ import (
 	"os/exec"
 	"time"
 
+	"google.golang.org/grpc"
+
 	"code.cloudfoundry.org/auctioneer"
 	"code.cloudfoundry.org/auctioneer/cmd/auctioneer/config"
 	"code.cloudfoundry.org/bbs"
@@ -16,7 +18,12 @@ import (
 	"code.cloudfoundry.org/bbs/models/test/model_helpers"
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/durationjson"
+	"code.cloudfoundry.org/localip"
 	"code.cloudfoundry.org/locket"
+	locketconfig "code.cloudfoundry.org/locket/cmd/locket/config"
+	locketrunner "code.cloudfoundry.org/locket/cmd/locket/testrunner"
+	"code.cloudfoundry.org/locket/lock"
+	locketmodels "code.cloudfoundry.org/locket/models"
 	"code.cloudfoundry.org/rep"
 	"github.com/hashicorp/consul/api"
 	. "github.com/onsi/ginkgo"
@@ -60,9 +67,26 @@ var _ = Describe("Auctioneer", func() {
 		auctioneerProcess ifrit.Process
 
 		auctioneerClient auctioneer.Client
+
+		locketRunner  ifrit.Runner
+		locketProcess ifrit.Process
+		locketAddress string
 	)
 
 	BeforeEach(func() {
+		locketPort, err := localip.LocalPort()
+		Expect(err).NotTo(HaveOccurred())
+
+		locketAddress = fmt.Sprintf("localhost:%d", locketPort)
+		locketConfig := locketconfig.LocketConfig{
+			ListenAddress:            locketAddress,
+			DatabaseDriver:           sqlRunner.DriverName(),
+			DatabaseConnectionString: sqlRunner.ConnectionString(),
+		}
+
+		locketRunner = locketrunner.NewLocketRunner(locketBinPath, locketConfig)
+		locketProcess = ginkgomon.Invoke(locketRunner)
+
 		auctioneerConfig = config.AuctioneerConfig{
 			BBSAddress:        bbsURL.String(),
 			ListenAddress:     auctioneerLocation,
@@ -94,7 +118,8 @@ var _ = Describe("Auctioneer", func() {
 	})
 
 	AfterEach(func() {
-		ginkgomon.Kill(auctioneerProcess)
+		ginkgomon.Interrupt(locketProcess)
+		ginkgomon.Interrupt(auctioneerProcess)
 	})
 
 	Context("when the bbs is down", func() {
@@ -273,7 +298,7 @@ var _ = Describe("Auctioneer", func() {
 		})
 	})
 
-	Context("when the auctioneer loses the lock", func() {
+	Context("when the auctioneer loses the consul lock", func() {
 		It("exits with an error", func() {
 			auctioneerProcess = ginkgomon.Invoke(runner)
 
@@ -283,7 +308,7 @@ var _ = Describe("Auctioneer", func() {
 		})
 	})
 
-	Context("when the auctioneer cannot acquire the lock on startup", func() {
+	Context("when the auctioneer cannot acquire the consul lock on startup", func() {
 		var (
 			task                       *rep.Task
 			competingAuctioneerProcess ifrit.Process
@@ -305,8 +330,6 @@ var _ = Describe("Auctioneer", func() {
 			competingAuctioneerLock := locket.NewLock(logger, consulClient, locket.LockSchemaPath("auctioneer_lock"), []byte{}, clock.NewClock(), 500*time.Millisecond, 10*time.Second)
 			competingAuctioneerProcess = ifrit.Invoke(competingAuctioneerLock)
 
-			runner.StartCheck = "auctioneer.lock-bbs.lock.acquiring-lock"
-
 			auctioneerProcess = ifrit.Background(runner)
 		})
 
@@ -315,7 +338,7 @@ var _ = Describe("Auctioneer", func() {
 		})
 
 		It("should not advertise its presence, and should not be reachable", func() {
-			Eventually(func() error {
+			Consistently(func() error {
 				return auctioneerClient.RequestTaskAuctions(logger, []*auctioneer.TaskStartRequest{
 					&auctioneer.TaskStartRequest{*task},
 				})
@@ -330,6 +353,140 @@ var _ = Describe("Auctioneer", func() {
 					&auctioneer.TaskStartRequest{*task},
 				})
 			}).ShouldNot(HaveOccurred())
+		})
+	})
+
+	Context("when the auctioneer is configured to grab the lock from the sql locking server", func() {
+		var (
+			task                       *rep.Task
+			competingAuctioneerProcess ifrit.Process
+		)
+
+		BeforeEach(func() {
+			task = &rep.Task{
+				TaskGuid: "task-guid",
+				Domain:   "test",
+				Resource: rep.Resource{
+					MemoryMB: 124,
+					DiskMB:   456,
+				},
+				PlacementConstraint: rep.PlacementConstraint{
+					RootFs: "some-rootfs",
+				},
+			}
+
+			auctioneerConfig.LocketAddress = locketAddress
+		})
+
+		JustBeforeEach(func() {
+			auctioneerProcess = ifrit.Background(runner)
+		})
+
+		AfterEach(func() {
+			ginkgomon.Interrupt(auctioneerProcess)
+		})
+
+		It("acquires the lock and becomes active", func() {
+			Eventually(func() error {
+				return auctioneerClient.RequestTaskAuctions(logger, []*auctioneer.TaskStartRequest{
+					&auctioneer.TaskStartRequest{*task},
+				})
+			}).ShouldNot(HaveOccurred())
+		})
+
+		Context("and the locking server becomes unreachable after grabbing the lock", func() {
+			It("exits", func() {
+				ginkgomon.Interrupt(locketProcess)
+				Eventually(auctioneerProcess.Wait()).Should(Receive())
+			})
+		})
+
+		Context("when the consul lock is not required", func() {
+			BeforeEach(func() {
+				auctioneerConfig.SkipConsulLock = true
+
+				competingAuctioneerLock := locket.NewLock(logger, consulClient, locket.LockSchemaPath("auctioneer_lock"), []byte{}, clock.NewClock(), 500*time.Millisecond, 10*time.Second)
+				competingAuctioneerProcess = ifrit.Invoke(competingAuctioneerLock)
+			})
+
+			AfterEach(func() {
+				ginkgomon.Interrupt(competingAuctioneerProcess)
+			})
+
+			It("only grabs the sql lock and starts succesfully", func() {
+				Eventually(func() error {
+					return auctioneerClient.RequestTaskAuctions(logger, []*auctioneer.TaskStartRequest{
+						&auctioneer.TaskStartRequest{*task},
+					})
+				}).ShouldNot(HaveOccurred())
+			})
+		})
+
+		Context("when the lock is not available", func() {
+			var competingProcess ifrit.Process
+
+			BeforeEach(func() {
+				conn, err := grpc.Dial(locketAddress, grpc.WithInsecure())
+				Expect(err).NotTo(HaveOccurred())
+				locketClient := locketmodels.NewLocketClient(conn)
+
+				lockIdentifier := &locketmodels.Resource{
+					Key:   "auctioneer",
+					Owner: "Your worst enemy.",
+					Value: "Something",
+				}
+
+				clock := clock.NewClock()
+				competingRunner := lock.NewLockRunner(logger, locketClient, lockIdentifier, 5, clock, locket.RetryInterval)
+				competingProcess = ginkgomon.Invoke(competingRunner)
+			})
+
+			AfterEach(func() {
+				ginkgomon.Interrupt(competingProcess)
+			})
+
+			It("starts but does not accept auctions", func() {
+				Consistently(func() error {
+					return auctioneerClient.RequestTaskAuctions(logger, []*auctioneer.TaskStartRequest{
+						&auctioneer.TaskStartRequest{*task},
+					})
+				}).Should(HaveOccurred())
+			})
+
+			Context("and the lock becomes available", func() {
+				JustBeforeEach(func() {
+					ginkgomon.Interrupt(competingProcess)
+				})
+
+				It("acquires the lock and becomes active", func() {
+					Eventually(func() error {
+						return auctioneerClient.RequestTaskAuctions(logger, []*auctioneer.TaskStartRequest{
+							&auctioneer.TaskStartRequest{*task},
+						})
+					}).ShouldNot(HaveOccurred())
+				})
+			})
+		})
+
+		Context("and the configuration is invalid", func() {
+			BeforeEach(func() {
+				auctioneerConfig.LocketAddress = "{{{}}}}{{{{"
+			})
+
+			It("exits with an error", func() {
+				Eventually(auctioneerProcess.Wait()).Should(Receive())
+			})
+		})
+
+		Context("when neither lock is configured", func() {
+			BeforeEach(func() {
+				auctioneerConfig.LocketAddress = ""
+				auctioneerConfig.SkipConsulLock = true
+			})
+
+			It("exits with an error", func() {
+				Eventually(auctioneerProcess.Wait()).Should(Receive())
+			})
 		})
 	})
 
@@ -351,7 +508,7 @@ var _ = Describe("Auctioneer", func() {
 		})
 
 		AfterEach(func() {
-			ginkgomon.Kill(auctioneerProcess)
+			ginkgomon.Interrupt(auctioneerProcess)
 		})
 
 		Context("when invalid values for the certificates are supplied", func() {
