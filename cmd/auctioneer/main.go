@@ -226,7 +226,7 @@ func initializeRegistrationRunner(logger lager.Logger, consulClient consuladapte
 			TTL: "20s",
 		},
 	}
-	return locket.NewRegistrationRunner(logger, registration, consulClient, locket.RetryInterval, clock)
+	return locket.NewRegistrationRunner(logger, registration, consulClient, locket.SQLRetryInterval, clock)
 }
 
 func initializeLockMaintainer(
