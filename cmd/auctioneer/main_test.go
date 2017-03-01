@@ -455,6 +455,8 @@ var _ = Describe("Auctioneer", func() {
 
 			Context("and the lock becomes available", func() {
 				JustBeforeEach(func() {
+					Eventually(runner.Buffer()).Should(gbytes.Say(
+						"failed-to-acquire-lock"))
 					ginkgomon.Interrupt(competingProcess)
 				})
 
@@ -463,7 +465,7 @@ var _ = Describe("Auctioneer", func() {
 						return auctioneerClient.RequestTaskAuctions(logger, []*auctioneer.TaskStartRequest{
 							&auctioneer.TaskStartRequest{*task},
 						})
-					}).ShouldNot(HaveOccurred())
+					}, 2*time.Second).ShouldNot(HaveOccurred())
 				})
 			})
 		})
