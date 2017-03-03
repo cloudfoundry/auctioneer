@@ -17,6 +17,7 @@ import (
 	"code.cloudfoundry.org/consuladapter/consulrunner"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
+	"code.cloudfoundry.org/rep/maintain"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
@@ -139,10 +140,10 @@ var _ = BeforeEach(func() {
 
 	consulClient = consulRunner.NewClient()
 
-	serviceClient := bbs.NewServiceClient(consulClient, clock.NewClock())
+	cellPresenceClient := maintain.NewCellPresenceClient(consulClient, clock.NewClock())
 
-	dotNetCell = SpinUpFakeCell(serviceClient, "dot-net-cell", "", dotNetStack)
-	linuxCell = SpinUpFakeCell(serviceClient, "linux-cell", "", linuxStack)
+	dotNetCell = SpinUpFakeCell(cellPresenceClient, "dot-net-cell", "", dotNetStack)
+	linuxCell = SpinUpFakeCell(cellPresenceClient, "linux-cell", "", linuxStack)
 })
 
 var _ = AfterEach(func() {

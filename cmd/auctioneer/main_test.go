@@ -82,6 +82,7 @@ var _ = Describe("Auctioneer", func() {
 			ListenAddress:            locketAddress,
 			DatabaseDriver:           sqlRunner.DriverName(),
 			DatabaseConnectionString: sqlRunner.ConnectionString(),
+			ConsulCluster:            consulRunner.ConsulCluster(),
 		}
 
 		locketRunner = locketrunner.NewLocketRunner(locketBinPath, locketConfig)

@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/auction/simulation/simulationrep"
-	"code.cloudfoundry.org/bbs"
 	"code.cloudfoundry.org/bbs/models"
 	"code.cloudfoundry.org/locket"
 	"code.cloudfoundry.org/rep"
@@ -19,6 +18,7 @@ import (
 	executorfakes "code.cloudfoundry.org/executor/fakes"
 	"code.cloudfoundry.org/rep/evacuation/evacuation_context/fake_evacuation_context"
 	rephandlers "code.cloudfoundry.org/rep/handlers"
+	"code.cloudfoundry.org/rep/maintain"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/rata"
 )
@@ -34,7 +34,7 @@ type FakeCell struct {
 	SimulationRep rep.SimClient
 }
 
-func SpinUpFakeCell(serviceClient bbs.ServiceClient, cellID string, repUrl string, stack string) *FakeCell {
+func SpinUpFakeCell(cellPresenceClient maintain.CellPresenceClient, cellID string, repUrl string, stack string) *FakeCell {
 	fakeRep := &FakeCell{
 		cellID: cellID,
 		repUrl: repUrl,
@@ -42,9 +42,9 @@ func SpinUpFakeCell(serviceClient bbs.ServiceClient, cellID string, repUrl strin
 		logger: lager.NewLogger("fake-cell"),
 	}
 
-	fakeRep.SpinUp(serviceClient)
+	fakeRep.SpinUp(cellPresenceClient)
 	Eventually(func() bool {
-		cells, err := serviceClient.Cells(logger)
+		cells, err := cellPresenceClient.Cells(logger)
 		Expect(err).NotTo(HaveOccurred())
 		return cells.HasCellID(cellID)
 	}).Should(BeTrue())
@@ -68,7 +68,7 @@ func (f *FakeCell) Tasks() ([]rep.Task, error) {
 	return state.Tasks, nil
 }
 
-func (f *FakeCell) SpinUp(serviceClient bbs.ServiceClient) {
+func (f *FakeCell) SpinUp(cellPresenceClient maintain.CellPresenceClient) {
 	//make a test-friendly AuctionRepDelegate using the auction package's SimulationRepDelegate
 	f.SimulationRep = simulationrep.New(f.stack, "Z0", rep.Resources{
 		DiskMB:     100,
@@ -100,7 +100,7 @@ func (f *FakeCell) SpinUp(serviceClient bbs.ServiceClient) {
 		[]string{},
 	)
 
-	f.heartbeater = ifrit.Invoke(serviceClient.NewCellPresenceRunner(logger, &presence, time.Second, locket.DefaultSessionTTL))
+	f.heartbeater = ifrit.Invoke(cellPresenceClient.NewCellPresenceRunner(logger, &presence, time.Second, locket.DefaultSessionTTL))
 }
 
 func (f *FakeCell) Stop() {
