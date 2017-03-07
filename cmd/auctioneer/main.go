@@ -11,8 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"google.golang.org/grpc"
-
 	"github.com/hashicorp/consul/api"
 	"github.com/nu7hatch/gouuid"
 
@@ -103,11 +101,10 @@ func main() {
 	}
 
 	if cfg.LocketAddress != "" {
-		conn, err := grpc.Dial(cfg.LocketAddress, grpc.WithInsecure())
+		locketClient, err := locket.NewClient(logger, cfg.ClientLocketConfig)
 		if err != nil {
 			logger.Fatal("failed-to-connect-to-locket", err)
 		}
-		locketClient := locketmodels.NewLocketClient(conn)
 
 		guid, err := uuid.NewV4()
 		if err != nil {

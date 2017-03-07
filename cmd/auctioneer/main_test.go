@@ -4,12 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net"
 	"os"
 	"os/exec"
 	"time"
 
-	"google.golang.org/grpc"
+	"google.golang.org/grpc/grpclog"
 
 	"code.cloudfoundry.org/auctioneer"
 	"code.cloudfoundry.org/auctioneer/cmd/auctioneer/config"
@@ -74,20 +75,6 @@ var _ = Describe("Auctioneer", func() {
 	)
 
 	BeforeEach(func() {
-		locketPort, err := localip.LocalPort()
-		Expect(err).NotTo(HaveOccurred())
-
-		locketAddress = fmt.Sprintf("localhost:%d", locketPort)
-		locketConfig := locketconfig.LocketConfig{
-			ListenAddress:            locketAddress,
-			DatabaseDriver:           sqlRunner.DriverName(),
-			DatabaseConnectionString: sqlRunner.ConnectionString(),
-			ConsulCluster:            consulRunner.ConsulCluster(),
-		}
-
-		locketRunner = locketrunner.NewLocketRunner(locketBinPath, locketConfig)
-		locketProcess = ginkgomon.Invoke(locketRunner)
-
 		auctioneerConfig = config.AuctioneerConfig{
 			BBSAddress:        bbsURL.String(),
 			ListenAddress:     auctioneerLocation,
@@ -376,6 +363,19 @@ var _ = Describe("Auctioneer", func() {
 				},
 			}
 
+			locketPort, err := localip.LocalPort()
+			Expect(err).NotTo(HaveOccurred())
+			locketAddress = fmt.Sprintf("localhost:%d", locketPort)
+
+			locketRunner = locketrunner.NewLocketRunner(locketBinPath, func(cfg *locketconfig.LocketConfig) {
+				cfg.ConsulCluster = consulRunner.ConsulCluster()
+				cfg.DatabaseConnectionString = sqlRunner.ConnectionString()
+				cfg.DatabaseDriver = sqlRunner.DriverName()
+				cfg.ListenAddress = locketAddress
+			})
+			locketProcess = ginkgomon.Invoke(locketRunner)
+
+			auctioneerConfig.ClientLocketConfig = locketrunner.ClientLocketConfig()
 			auctioneerConfig.LocketAddress = locketAddress
 		})
 
@@ -427,9 +427,9 @@ var _ = Describe("Auctioneer", func() {
 			var competingProcess ifrit.Process
 
 			BeforeEach(func() {
-				conn, err := grpc.Dial(locketAddress, grpc.WithInsecure())
+				locketClient, err := locket.NewClient(logger, auctioneerConfig.ClientLocketConfig)
 				Expect(err).NotTo(HaveOccurred())
-				locketClient := locketmodels.NewLocketClient(conn)
+				grpclog.SetLogger(log.New(ioutil.Discard, "", 0))
 
 				lockIdentifier := &locketmodels.Resource{
 					Key:   "auctioneer",

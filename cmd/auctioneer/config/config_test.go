@@ -10,6 +10,7 @@ import (
 	"code.cloudfoundry.org/debugserver"
 	"code.cloudfoundry.org/durationjson"
 	"code.cloudfoundry.org/lager/lagerflags"
+	"code.cloudfoundry.org/locket"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -20,34 +21,37 @@ var _ = Describe("AuctioneerConfig", func() {
 
 	BeforeEach(func() {
 		configData = `{
-			"communication_timeout": "15s",
-			"cell_state_timeout": "2s",
-			"consul_cluster": "1.1.1.1",
-			"dropsonde_port": 1234,
-			"lock_ttl": "20s",
-			"lock_retry_interval": "1m",
-			"listen_address": "0.0.0.0:9090",
 			"auction_runner_workers": 10,
-			"starting_container_weight": 0.5,
-			"starting_container_count_maximum": 10,
-			"ca_cert_file": "/path-to-cert",
-			"server_cert_file": "/path-to-server-cert",
-			"server_key_file": "/path-to-server-key",
 			"bbs_address": "1.1.1.1:9091",
 			"bbs_ca_cert_file": "/tmp/bbs_ca_cert",
 			"bbs_client_cert_file": "/tmp/bbs_client_cert",
 			"bbs_client_key_file": "/tmp/bbs_client_key",
 			"bbs_client_session_cache_size": 100,
 			"bbs_max_idle_conns_per_host": 10,
+			"ca_cert_file": "/path-to-cert",
+			"cell_state_timeout": "2s",
+			"communication_timeout": "15s",
+			"consul_cluster": "1.1.1.1",
+			"debug_address": "127.0.0.1:17017",
+			"dropsonde_port": 1234,
+			"listen_address": "0.0.0.0:9090",
+			"lock_retry_interval": "1m",
+			"lock_ttl": "20s",
+			"locket_address": "laksdjflksdajflkajsdf",
+			"locket_ca_cert": "locket-ca-cert",
+			"locket_client_cert": "locket-client-cert",
+			"locket_client_key": "locket-client-key",
+			"log_level": "debug",
 			"rep_ca_cert": "/var/vcap/jobs/auctioneer/config/rep.ca",
 			"rep_client_cert": "/var/vcap/jobs/auctioneer/config/rep.crt",
 			"rep_client_key": "/var/vcap/jobs/auctioneer/config/rep.key",
 			"rep_client_session_cache_size": 10,
 			"rep_require_tls": true,
-			"debug_address": "127.0.0.1:17017",
-			"log_level": "debug",
-			"locket_address": "laksdjflksdajflkajsdf",
-			"skip_consul_lock": true
+			"server_cert_file": "/path-to-server-cert",
+			"server_key_file": "/path-to-server-key",
+			"skip_consul_lock": true,
+			"starting_container_count_maximum": 10,
+			"starting_container_weight": 0.5
     }`
 	})
 
@@ -72,38 +76,43 @@ var _ = Describe("AuctioneerConfig", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		expectedConfig := config.AuctioneerConfig{
-			CommunicationTimeout:          durationjson.Duration(15 * time.Second),
-			CellStateTimeout:              durationjson.Duration(2 * time.Second),
-			ConsulCluster:                 "1.1.1.1",
-			DropsondePort:                 1234,
-			LockTTL:                       durationjson.Duration(20 * time.Second),
-			LockRetryInterval:             durationjson.Duration(1 * time.Minute),
+			AuctionRunnerWorkers:      10,
+			BBSAddress:                "1.1.1.1:9091",
+			BBSCACertFile:             "/tmp/bbs_ca_cert",
+			BBSClientCertFile:         "/tmp/bbs_client_cert",
+			BBSClientKeyFile:          "/tmp/bbs_client_key",
+			BBSClientSessionCacheSize: 100,
+			BBSMaxIdleConnsPerHost:    10,
+			CACertFile:                "/path-to-cert",
+			CellStateTimeout:          durationjson.Duration(2 * time.Second),
+			ClientLocketConfig: locket.ClientLocketConfig{
+				LocketAddress:        "laksdjflksdajflkajsdf",
+				LocketCACertFile:     "locket-ca-cert",
+				LocketClientCertFile: "locket-client-cert",
+				LocketClientKeyFile:  "locket-client-key",
+			},
+			CommunicationTimeout: durationjson.Duration(15 * time.Second),
+			ConsulCluster:        "1.1.1.1",
+			DebugServerConfig: debugserver.DebugServerConfig{
+				DebugAddress: "127.0.0.1:17017",
+			},
+			DropsondePort: 1234,
+			LagerConfig: lagerflags.LagerConfig{
+				LogLevel: "debug",
+			},
 			ListenAddress:                 "0.0.0.0:9090",
-			AuctionRunnerWorkers:          10,
-			StartingContainerWeight:       .5,
-			StartingContainerCountMaximum: 10,
-			CACertFile:                    "/path-to-cert",
-			ServerCertFile:                "/path-to-server-cert",
-			ServerKeyFile:                 "/path-to-server-key",
-			BBSAddress:                    "1.1.1.1:9091",
-			BBSCACertFile:                 "/tmp/bbs_ca_cert",
-			BBSClientCertFile:             "/tmp/bbs_client_cert",
-			BBSClientKeyFile:              "/tmp/bbs_client_key",
-			BBSClientSessionCacheSize:     100,
-			BBSMaxIdleConnsPerHost:        10,
+			LockRetryInterval:             durationjson.Duration(1 * time.Minute),
+			LockTTL:                       durationjson.Duration(20 * time.Second),
 			RepCACert:                     "/var/vcap/jobs/auctioneer/config/rep.ca",
 			RepClientCert:                 "/var/vcap/jobs/auctioneer/config/rep.crt",
 			RepClientKey:                  "/var/vcap/jobs/auctioneer/config/rep.key",
 			RepClientSessionCacheSize:     10,
 			RepRequireTLS:                 true,
-			DebugServerConfig: debugserver.DebugServerConfig{
-				DebugAddress: "127.0.0.1:17017",
-			},
-			LagerConfig: lagerflags.LagerConfig{
-				LogLevel: "debug",
-			},
-			LocketAddress:  "laksdjflksdajflkajsdf",
-			SkipConsulLock: true,
+			ServerCertFile:                "/path-to-server-cert",
+			ServerKeyFile:                 "/path-to-server-key",
+			SkipConsulLock:                true,
+			StartingContainerCountMaximum: 10,
+			StartingContainerWeight:       .5,
 		}
 
 		Expect(auctioneerConfig).To(Equal(expectedConfig))
