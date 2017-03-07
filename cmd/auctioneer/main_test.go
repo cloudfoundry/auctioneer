@@ -4,13 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net"
 	"os"
 	"os/exec"
 	"time"
-
-	"google.golang.org/grpc/grpclog"
 
 	"code.cloudfoundry.org/auctioneer"
 	"code.cloudfoundry.org/auctioneer/cmd/auctioneer/config"
@@ -429,7 +426,6 @@ var _ = Describe("Auctioneer", func() {
 			BeforeEach(func() {
 				locketClient, err := locket.NewClient(logger, auctioneerConfig.ClientLocketConfig)
 				Expect(err).NotTo(HaveOccurred())
-				grpclog.SetLogger(log.New(ioutil.Discard, "", 0))
 
 				lockIdentifier := &locketmodels.Resource{
 					Key:   "auctioneer",
