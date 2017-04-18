@@ -64,6 +64,9 @@ func NewAuctioneerConfig(configPath string) (AuctioneerConfig, error) {
 	if err != nil {
 		return AuctioneerConfig{}, err
 	}
+
+	defer configFile.Close()
+
 	decoder := json.NewDecoder(configFile)
 
 	err = decoder.Decode(&cfg)
