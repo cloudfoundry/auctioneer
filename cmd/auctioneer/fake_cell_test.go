@@ -16,6 +16,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	executorfakes "code.cloudfoundry.org/executor/fakes"
+	"code.cloudfoundry.org/rep/auctioncellrep/auctioncellrepfakes"
 	"code.cloudfoundry.org/rep/evacuation/evacuation_context/fake_evacuation_context"
 	rephandlers "code.cloudfoundry.org/rep/handlers"
 	"code.cloudfoundry.org/rep/maintain"
@@ -83,7 +84,17 @@ func (f *FakeCell) SpinUp(cellPresenceClient maintain.CellPresenceClient) {
 	fakeExecutorClient := new(executorfakes.FakeClient)
 	fakeEvacuatable := new(fake_evacuation_context.FakeEvacuatable)
 
-	handlers := rephandlers.NewLegacy(f.SimulationRep, fakeExecutorClient, fakeEvacuatable, logger)
+	fakeAuctionCellClient := new(auctioncellrepfakes.FakeAuctionCellClient)
+	fakeAuctionCellClient.StateStub = func(logger lager.Logger) (rep.CellState, bool, error) {
+		state, err := f.SimulationRep.State(logger)
+		if err != nil {
+			return rep.CellState{}, false, err
+		}
+		return state, true, nil
+	}
+	fakeAuctionCellClient.PerformStub = f.SimulationRep.Perform
+
+	handlers := rephandlers.NewLegacy(fakeAuctionCellClient, fakeExecutorClient, fakeEvacuatable, logger)
 	router, err := rata.NewRouter(rep.Routes, handlers)
 	Expect(err).NotTo(HaveOccurred())
 	f.server = httptest.NewServer(router)
