@@ -27,6 +27,7 @@ import (
 	"code.cloudfoundry.org/lager/lagerflags"
 	"code.cloudfoundry.org/localip"
 	"code.cloudfoundry.org/locket"
+	"code.cloudfoundry.org/locket/jointlock"
 	"code.cloudfoundry.org/locket/lock"
 	locketmodels "code.cloudfoundry.org/locket/models"
 	"code.cloudfoundry.org/rep"
@@ -88,7 +89,7 @@ func main() {
 
 	auctionRunner := initializeAuctionRunner(logger, cfg, initializeBBSClient(logger, cfg))
 
-	members := []grouper.Member{}
+	locks := []grouper.Member{}
 	if !cfg.SkipConsulLock {
 		lockMaintainer := initializeLockMaintainer(
 			logger,
@@ -97,7 +98,7 @@ func main() {
 			time.Duration(cfg.LockTTL),
 			time.Duration(cfg.LockRetryInterval),
 		)
-		members = append(members, grouper.Member{"lock-maintainer", lockMaintainer})
+		locks = append(locks, grouper.Member{"lock-maintainer", lockMaintainer})
 	}
 
 	if cfg.LocketAddress != "" {
@@ -117,7 +118,7 @@ func main() {
 			Type:  locketmodels.LockType,
 		}
 
-		members = append(members, grouper.Member{"sql-lock", lock.NewLockRunner(
+		locks = append(locks, grouper.Member{"sql-lock", lock.NewLockRunner(
 			logger,
 			locketClient,
 			lockIdentifier,
@@ -127,8 +128,14 @@ func main() {
 		)})
 	}
 
-	if len(members) < 1 {
+	var lock ifrit.Runner
+	switch len(locks) {
+	case 0:
 		logger.Fatal("no-locks-configured", errors.New("Lock configuration must be provided"))
+	case 1:
+		lock = locks[0]
+	default:
+		lock = jointlock.NewJointLock(clock, locket.DefaultSessionTTL, locks...)
 	}
 
 	registrationRunner := initializeRegistrationRunner(logger, consulClient, clock, port)
@@ -144,11 +151,12 @@ func main() {
 		auctionServer = http_server.New(cfg.ListenAddress, handlers.New(auctionRunner, logger))
 	}
 
-	members = append(members, grouper.Members{
+	members := grouper.Members{
+		{"lock", lock},
 		{"auction-runner", auctionRunner},
 		{"auction-server", auctionServer},
 		{"registration-runner", registrationRunner},
-	}...)
+	}
 
 	if cfg.DebugAddress != "" {
 		members = append(grouper.Members{

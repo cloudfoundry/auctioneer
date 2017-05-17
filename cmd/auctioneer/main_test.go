@@ -434,7 +434,14 @@ var _ = Describe("Auctioneer", func() {
 				}
 
 				clock := clock.NewClock()
-				competingRunner := lock.NewLockRunner(logger, locketClient, lockIdentifier, 5, clock, locket.RetryInterval)
+				competingRunner := lock.NewLockRunner(
+					logger,
+					locketClient,
+					lockIdentifier,
+					locket.DefaultSessionTTLInSeconds,
+					clock,
+					locket.RetryInterval,
+				)
 				competingProcess = ginkgomon.Invoke(competingRunner)
 			})
 
@@ -448,6 +455,12 @@ var _ = Describe("Auctioneer", func() {
 						&auctioneer.TaskStartRequest{*task},
 					})
 				}).Should(HaveOccurred())
+			})
+
+			Context("and continues to be unavailable", func() {
+				It("exits", func() {
+					Eventually(auctioneerProcess.Wait(), locket.DefaultSessionTTL*2).Should(Receive())
+				})
 			})
 
 			Context("and the lock becomes available", func() {
