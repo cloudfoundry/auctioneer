@@ -1,6 +1,7 @@
 package main_test
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -77,6 +78,7 @@ var _ = Describe("Auctioneer", func() {
 			ListenAddress:     auctioneerLocation,
 			LockRetryInterval: durationjson.Duration(time.Second),
 			ConsulCluster:     consulRunner.ConsulCluster(),
+			UUID:              "auctioneer-boshy-bosh",
 		}
 		auctioneerClient = auctioneer.NewClient("http://" + auctioneerLocation)
 	})
@@ -392,6 +394,21 @@ var _ = Describe("Auctioneer", func() {
 			}).ShouldNot(HaveOccurred())
 		})
 
+		It("uses the configured UUID as the owner", func() {
+			locketClient, err := locket.NewClient(logger, auctioneerConfig.ClientLocketConfig)
+			Expect(err).NotTo(HaveOccurred())
+
+			var lock *locketmodels.FetchResponse
+			Eventually(func() error {
+				lock, err = locketClient.Fetch(context.Background(), &locketmodels.FetchRequest{
+					Key: "auctioneer",
+				})
+				return err
+			}).ShouldNot(HaveOccurred())
+
+			Expect(lock.Resource.Owner).To(Equal(auctioneerConfig.UUID))
+		})
+
 		Context("and the locking server becomes unreachable after grabbing the lock", func() {
 			It("exits", func() {
 				ginkgomon.Interrupt(locketProcess)
@@ -480,9 +497,19 @@ var _ = Describe("Auctioneer", func() {
 			})
 		})
 
-		Context("and the configuration is invalid", func() {
+		Context("and the locket address is invalid", func() {
 			BeforeEach(func() {
 				auctioneerConfig.LocketAddress = "{{{}}}}{{{{"
+			})
+
+			It("exits with an error", func() {
+				Eventually(auctioneerProcess.Wait()).Should(Receive())
+			})
+		})
+
+		Context("and the UUID is not present", func() {
+			BeforeEach(func() {
+				auctioneerConfig.UUID = ""
 			})
 
 			It("exits with an error", func() {

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"crypto/tls"
 	"errors"
 	"flag"
 	"fmt"
@@ -50,10 +49,9 @@ var configFilePath = flag.String(
 )
 
 const (
-	auctionRunnerTimeout = 10 * time.Second
-	dropsondeOrigin      = "auctioneer"
-	serverProtocol       = "http"
-	auctioneerLockKey    = "auctioneer"
+	dropsondeOrigin   = "auctioneer"
+	serverProtocol    = "http"
+	auctioneerLockKey = "auctioneer"
 )
 
 func main() {
@@ -102,19 +100,18 @@ func main() {
 	}
 
 	if cfg.LocketAddress != "" {
+		if cfg.UUID == "" {
+			logger.Fatal("invalid-uuid", errors.New("invalid-uuid-from-config"))
+		}
+
 		locketClient, err := locket.NewClient(logger, cfg.ClientLocketConfig)
 		if err != nil {
 			logger.Fatal("failed-to-connect-to-locket", err)
 		}
 
-		guid, err := uuid.NewV4()
-		if err != nil {
-			logger.Fatal("failed-to-generate-guid", err)
-		}
-
 		lockIdentifier := &locketmodels.Resource{
 			Key:   auctioneerLockKey,
-			Owner: guid.String(),
+			Owner: cfg.UUID,
 			Type:  locketmodels.LockType,
 		}
 
@@ -218,10 +215,6 @@ func initializeDropsonde(logger lager.Logger, dropsondePort int) {
 	if err != nil {
 		logger.Error("failed to initialize dropsonde: %v", err)
 	}
-}
-
-func initializeAuctionServer(logger lager.Logger, listenAddr string, runner auctiontypes.AuctionRunner, tlsConfig *tls.Config) ifrit.Runner {
-	return http_server.NewTLSServer(listenAddr, handlers.New(runner, logger), tlsConfig)
 }
 
 func initializeRegistrationRunner(logger lager.Logger, consulClient consuladapter.Client, clock clock.Clock, port int) ifrit.Runner {

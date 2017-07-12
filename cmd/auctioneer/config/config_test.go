@@ -51,7 +51,8 @@ var _ = Describe("AuctioneerConfig", func() {
 			"server_key_file": "/path-to-server-key",
 			"skip_consul_lock": true,
 			"starting_container_count_maximum": 10,
-			"starting_container_weight": 0.5
+			"starting_container_weight": 0.5,
+			"uuid": "bosh-boshy-bosh-bosh"
     }`
 	})
 
@@ -113,6 +114,7 @@ var _ = Describe("AuctioneerConfig", func() {
 			SkipConsulLock:                true,
 			StartingContainerCountMaximum: 10,
 			StartingContainerWeight:       .5,
+			UUID: "bosh-boshy-bosh-bosh",
 		}
 
 		Expect(auctioneerConfig).To(Equal(expectedConfig))
