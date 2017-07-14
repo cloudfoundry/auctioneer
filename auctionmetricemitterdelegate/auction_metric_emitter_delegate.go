@@ -5,26 +5,31 @@ import (
 
 	"code.cloudfoundry.org/auction/auctiontypes"
 	"code.cloudfoundry.org/auctioneer"
+	loggregator_v2 "code.cloudfoundry.org/go-loggregator/compatibility"
 )
 
-type auctionMetricEmitterDelegate struct{}
-
-func New() auctionMetricEmitterDelegate {
-	return auctionMetricEmitterDelegate{}
+type auctionMetricEmitterDelegate struct {
+	metronClient loggregator_v2.IngressClient
 }
 
-func (_ auctionMetricEmitterDelegate) FetchStatesCompleted(fetchStatesDuration time.Duration) error {
-	return auctioneer.FetchStatesDuration.Send(fetchStatesDuration)
+func New(metronClient loggregator_v2.IngressClient) auctionMetricEmitterDelegate {
+	return auctionMetricEmitterDelegate{
+		metronClient: metronClient,
+	}
 }
 
-func (_ auctionMetricEmitterDelegate) FailedCellStateRequest() {
-	auctioneer.FailedCellStateRequests.Increment()
+func (d auctionMetricEmitterDelegate) FetchStatesCompleted(fetchStatesDuration time.Duration) error {
+	return d.metronClient.SendDuration(auctioneer.FetchStatesDuration, fetchStatesDuration)
 }
 
-func (_ auctionMetricEmitterDelegate) AuctionCompleted(results auctiontypes.AuctionResults) {
-	auctioneer.LRPAuctionsStarted.Add(uint64(len(results.SuccessfulLRPs)))
-	auctioneer.TaskAuctionsStarted.Add(uint64(len(results.SuccessfulTasks)))
+func (d auctionMetricEmitterDelegate) FailedCellStateRequest() {
+	d.metronClient.IncrementCounter(auctioneer.FailedCellStateRequests)
+}
 
-	auctioneer.LRPAuctionsFailed.Add(uint64(len(results.FailedLRPs)))
-	auctioneer.TaskAuctionsFailed.Add(uint64(len(results.FailedTasks)))
+func (d auctionMetricEmitterDelegate) AuctionCompleted(results auctiontypes.AuctionResults) {
+	d.metronClient.IncrementCounterWithDelta(auctioneer.LRPAuctionsStarted, uint64(len(results.SuccessfulLRPs)))
+	d.metronClient.IncrementCounterWithDelta(auctioneer.TaskAuctionsStarted, uint64(len(results.SuccessfulTasks)))
+
+	d.metronClient.IncrementCounterWithDelta(auctioneer.LRPAuctionsFailed, uint64(len(results.FailedLRPs)))
+	d.metronClient.IncrementCounterWithDelta(auctioneer.TaskAuctionsFailed, uint64(len(results.FailedTasks)))
 }

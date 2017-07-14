@@ -9,6 +9,7 @@ import (
 	"code.cloudfoundry.org/auctioneer/cmd/auctioneer/config"
 	"code.cloudfoundry.org/debugserver"
 	"code.cloudfoundry.org/durationjson"
+	loggregator_v2 "code.cloudfoundry.org/go-loggregator/compatibility"
 	"code.cloudfoundry.org/lager/lagerflags"
 	"code.cloudfoundry.org/locket"
 
@@ -42,6 +43,18 @@ var _ = Describe("AuctioneerConfig", func() {
 			"locket_client_cert_file": "locket-client-cert",
 			"locket_client_key_file": "locket-client-key",
 			"log_level": "debug",
+			"loggregator": {
+				"loggregator_use_v2_api": true,
+				"loggregator_api_port": 1234,
+				"loggregator_ca_path": "ca-path",
+				"loggregator_cert_path": "cert-path",
+				"loggregator_key_path": "key-path",
+				"loggregator_job_deployment": "job-deployment",
+				"loggregator_job_name": "job-name",
+				"loggregator_job_index": "job-index",
+				"loggregator_job_ip": "job-ip",
+				"loggregator_job_origin": "job-origin"
+			},
 			"rep_ca_cert": "/var/vcap/jobs/auctioneer/config/rep.ca",
 			"rep_client_cert": "/var/vcap/jobs/auctioneer/config/rep.crt",
 			"rep_client_key": "/var/vcap/jobs/auctioneer/config/rep.key",
@@ -101,9 +114,21 @@ var _ = Describe("AuctioneerConfig", func() {
 			LagerConfig: lagerflags.LagerConfig{
 				LogLevel: "debug",
 			},
-			ListenAddress:                 "0.0.0.0:9090",
-			LockRetryInterval:             durationjson.Duration(1 * time.Minute),
-			LockTTL:                       durationjson.Duration(20 * time.Second),
+			ListenAddress:     "0.0.0.0:9090",
+			LockRetryInterval: durationjson.Duration(1 * time.Minute),
+			LockTTL:           durationjson.Duration(20 * time.Second),
+			LoggregatorConfig: loggregator_v2.Config{
+				UseV2API:      true,
+				APIPort:       1234,
+				CACertPath:    "ca-path",
+				CertPath:      "cert-path",
+				KeyPath:       "key-path",
+				JobDeployment: "job-deployment",
+				JobName:       "job-name",
+				JobIndex:      "job-index",
+				JobIP:         "job-ip",
+				JobOrigin:     "job-origin",
+			},
 			RepCACert:                     "/var/vcap/jobs/auctioneer/config/rep.ca",
 			RepClientCert:                 "/var/vcap/jobs/auctioneer/config/rep.crt",
 			RepClientKey:                  "/var/vcap/jobs/auctioneer/config/rep.key",

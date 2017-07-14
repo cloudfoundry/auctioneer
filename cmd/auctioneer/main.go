@@ -22,6 +22,8 @@ import (
 	"code.cloudfoundry.org/cfhttp"
 	"code.cloudfoundry.org/consuladapter"
 	"code.cloudfoundry.org/debugserver"
+	loggregator_v2 "code.cloudfoundry.org/go-loggregator/compatibility"
+	"code.cloudfoundry.org/go-loggregator/runtimeemitter"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerflags"
 	"code.cloudfoundry.org/localip"
@@ -66,7 +68,7 @@ func main() {
 	cfhttp.Initialize(time.Duration(cfg.CommunicationTimeout))
 
 	logger, reconfigurableSink := lagerflags.NewFromConfig("auctioneer", cfg.LagerConfig)
-	initializeDropsonde(logger, cfg.DropsondePort)
+	metronClient, err := initializeMetron(logger, cfg)
 
 	if err := validateBBSAddress(cfg.BBSAddress); err != nil {
 		logger.Fatal("invalid-bbs-address", err)
@@ -85,7 +87,7 @@ func main() {
 	clock := clock.NewClock()
 	auctioneerServiceClient := auctioneer.NewServiceClient(consulClient, clock)
 
-	auctionRunner := initializeAuctionRunner(logger, cfg, initializeBBSClient(logger, cfg))
+	auctionRunner := initializeAuctionRunner(logger, cfg, initializeBBSClient(logger, cfg), metronClient)
 
 	locks := []grouper.Member{}
 	if !cfg.SkipConsulLock {
@@ -143,9 +145,9 @@ func main() {
 		if err != nil {
 			logger.Fatal("invalid-tls-config", err)
 		}
-		auctionServer = http_server.NewTLSServer(cfg.ListenAddress, handlers.New(auctionRunner, logger), tlsConfig)
+		auctionServer = http_server.NewTLSServer(cfg.ListenAddress, handlers.New(logger, auctionRunner, metronClient), tlsConfig)
 	} else {
-		auctionServer = http_server.New(cfg.ListenAddress, handlers.New(auctionRunner, logger))
+		auctionServer = http_server.New(cfg.ListenAddress, handlers.New(logger, auctionRunner, metronClient))
 	}
 
 	members := grouper.Members{
@@ -176,7 +178,7 @@ func main() {
 	logger.Info("exited")
 }
 
-func initializeAuctionRunner(logger lager.Logger, cfg config.AuctioneerConfig, bbsClient bbs.InternalClient) auctiontypes.AuctionRunner {
+func initializeAuctionRunner(logger lager.Logger, cfg config.AuctioneerConfig, bbsClient bbs.InternalClient, metronClient loggregator_v2.IngressClient) auctiontypes.AuctionRunner {
 	httpClient := cfhttp.NewClient()
 	stateClient := cfhttp.NewCustomTimeoutClient(time.Duration(cfg.CellStateTimeout))
 	repTLSConfig := &rep.TLSConfig{
@@ -192,7 +194,7 @@ func initializeAuctionRunner(logger lager.Logger, cfg config.AuctioneerConfig, b
 	}
 
 	delegate := auctionrunnerdelegate.New(repClientFactory, bbsClient, logger)
-	metricEmitter := auctionmetricemitterdelegate.New()
+	metricEmitter := auctionmetricemitterdelegate.New(metronClient)
 	workPool, err := workpool.NewWorkPool(cfg.AuctionRunnerWorkers)
 	if err != nil {
 		logger.Fatal("failed-to-construct-auction-runner-workpool", err, lager.Data{"num-workers": cfg.AuctionRunnerWorkers}) // should never happen
@@ -207,6 +209,22 @@ func initializeAuctionRunner(logger lager.Logger, cfg config.AuctioneerConfig, b
 		cfg.StartingContainerWeight,
 		cfg.StartingContainerCountMaximum,
 	)
+}
+
+func initializeMetron(logger lager.Logger, cfg config.AuctioneerConfig) (loggregator_v2.IngressClient, error) {
+	client, err := loggregator_v2.NewIngressClient(cfg.LoggregatorConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	if cfg.LoggregatorConfig.UseV2API {
+		emitter := runtimeemitter.NewV1(client)
+		go emitter.Run()
+	} else {
+		initializeDropsonde(logger, cfg.DropsondePort)
+	}
+
+	return client, nil
 }
 
 func initializeDropsonde(logger lager.Logger, dropsondePort int) {

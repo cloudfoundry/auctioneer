@@ -7,19 +7,23 @@ import (
 	"code.cloudfoundry.org/auction/auctiontypes"
 	"code.cloudfoundry.org/auctioneer"
 	"code.cloudfoundry.org/bbs/handlers/middleware"
+	loggregator_v2 "code.cloudfoundry.org/go-loggregator/compatibility"
 	"code.cloudfoundry.org/lager"
 	"github.com/tedsuo/rata"
 )
 
-func New(runner auctiontypes.AuctionRunner, logger lager.Logger) http.Handler {
+func New(logger lager.Logger, runner auctiontypes.AuctionRunner, metronClient loggregator_v2.IngressClient) http.Handler {
 	taskAuctionHandler := logWrap(NewTaskAuctionHandler(runner).Create, logger)
 	lrpAuctionHandler := logWrap(NewLRPAuctionHandler(runner).Create, logger)
 
-	emitter := middleware.NewLatencyEmitterWrapper(&auctioneerEmitter{logger: logger})
+	emitter := &auctioneerEmitter{
+		logger:       logger,
+		metronClient: metronClient,
+	}
 
 	actions := rata.Handlers{
-		auctioneer.CreateTaskAuctionsRoute: emitter.RecordLatency(taskAuctionHandler),
-		auctioneer.CreateLRPAuctionsRoute:  emitter.RecordLatency(lrpAuctionHandler),
+		auctioneer.CreateTaskAuctionsRoute: middleware.RecordLatency(taskAuctionHandler, emitter),
+		auctioneer.CreateLRPAuctionsRoute:  middleware.RecordLatency(lrpAuctionHandler, emitter),
 	}
 
 	handler, err := rata.NewRouter(auctioneer.Routes, actions)
@@ -27,7 +31,7 @@ func New(runner auctiontypes.AuctionRunner, logger lager.Logger) http.Handler {
 		panic("unable to create router: " + err.Error())
 	}
 
-	return middleware.RequestCountWrap(handler)
+	return middleware.RecordRequestCount(handler, emitter)
 }
 
 func logWrap(loggable func(http.ResponseWriter, *http.Request, lager.Logger), logger lager.Logger) http.HandlerFunc {
@@ -44,15 +48,16 @@ func logWrap(loggable func(http.ResponseWriter, *http.Request, lager.Logger), lo
 }
 
 type auctioneerEmitter struct {
-	logger lager.Logger
+	logger       lager.Logger
+	metronClient loggregator_v2.IngressClient
 }
 
 func (e *auctioneerEmitter) IncrementCounter(delta int) {
-	middleware.RequestCount.Increment()
+	e.metronClient.IncrementCounter(middleware.RequestCount)
 }
 
 func (e *auctioneerEmitter) UpdateLatency(latency time.Duration) {
-	err := middleware.RequestLatency.Send(latency)
+	err := e.metronClient.SendDuration(middleware.RequestLatency, latency)
 	if err != nil {
 		e.logger.Error("failed-to-send-latency", err)
 	}

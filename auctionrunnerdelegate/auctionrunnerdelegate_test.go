@@ -8,8 +8,6 @@ import (
 	"code.cloudfoundry.org/bbs/models"
 	"code.cloudfoundry.org/rep"
 	"code.cloudfoundry.org/rep/repfakes"
-	"github.com/cloudfoundry/dropsonde/metric_sender/fake"
-	"github.com/cloudfoundry/dropsonde/metrics"
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
@@ -25,16 +23,12 @@ var _ = Describe("Auction Runner Delegate", func() {
 	var (
 		delegate         *auctionrunnerdelegate.AuctionRunnerDelegate
 		bbsClient        *fake_bbs.FakeInternalClient
-		metricSender     *fake.FakeMetricSender
 		repClientFactory *repfakes.FakeClientFactory
 		repClient        *repfakes.FakeClient
 		logger           lager.Logger
 	)
 
 	BeforeEach(func() {
-		metricSender = fake.NewFakeMetricSender()
-		metrics.Initialize(metricSender, nil)
-
 		bbsClient = &fake_bbs.FakeInternalClient{}
 		repClientFactory = &repfakes.FakeClientFactory{}
 		repClient = &repfakes.FakeClient{}

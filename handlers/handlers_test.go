@@ -9,11 +9,10 @@ import (
 	fake_auction_runner "code.cloudfoundry.org/auction/auctiontypes/fakes"
 	"code.cloudfoundry.org/auctioneer"
 	"code.cloudfoundry.org/auctioneer/handlers"
+	mfakes "code.cloudfoundry.org/go-loggregator/testhelpers/fakes/v1"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"code.cloudfoundry.org/rep"
-	"github.com/cloudfoundry/dropsonde/metric_sender/fake"
-	"github.com/cloudfoundry/dropsonde/metrics"
 	"github.com/tedsuo/rata"
 
 	. "github.com/onsi/ginkgo"
@@ -23,10 +22,10 @@ import (
 var _ = Describe("Auction Handlers", func() {
 	var (
 		logger           *lagertest.TestLogger
-		sender           *fake.FakeMetricSender
 		runner           *fake_auction_runner.FakeAuctionRunner
 		responseRecorder *httptest.ResponseRecorder
 		handler          http.Handler
+		fakeMetronClient *mfakes.FakeIngressClient
 	)
 
 	BeforeEach(func() {
@@ -35,10 +34,9 @@ var _ = Describe("Auction Handlers", func() {
 		runner = new(fake_auction_runner.FakeAuctionRunner)
 		responseRecorder = httptest.NewRecorder()
 
-		sender = fake.NewFakeMetricSender()
-		metrics.Initialize(sender, nil)
+		fakeMetronClient = &mfakes.FakeIngressClient{}
 
-		handler = handlers.New(runner, logger)
+		handler = handlers.New(logger, runner, fakeMetronClient)
 	})
 
 	Describe("Task Handler", func() {
@@ -73,8 +71,14 @@ var _ = Describe("Auction Handlers", func() {
 			})
 
 			It("sends the correct metrics", func() {
-				Expect(sender.GetValue("RequestLatency").Value).To(BeNumerically(">", 0))
-				Expect(sender.GetCounter("RequestCount")).To(BeEquivalentTo(1))
+				Expect(fakeMetronClient.SendDurationCallCount()).To(Equal(1))
+				name, value := fakeMetronClient.SendDurationArgsForCall(0)
+				Expect(name).To(Equal("RequestLatency"))
+				Expect(value).To(BeNumerically(">", 0))
+
+				Expect(fakeMetronClient.IncrementCounterCallCount()).To(Equal(1))
+				name = fakeMetronClient.IncrementCounterArgsForCall(0)
+				Expect(name).To(Equal("RequestCount"))
 			})
 		})
 	})
@@ -119,8 +123,14 @@ var _ = Describe("Auction Handlers", func() {
 			})
 
 			It("sends the correct metrics", func() {
-				Expect(sender.GetValue("RequestLatency").Value).To(BeNumerically(">", 0))
-				Expect(sender.GetCounter("RequestCount")).To(BeEquivalentTo(1))
+				Expect(fakeMetronClient.SendDurationCallCount()).To(Equal(1))
+				name, value := fakeMetronClient.SendDurationArgsForCall(0)
+				Expect(name).To(Equal("RequestLatency"))
+				Expect(value).To(BeNumerically(">", 0))
+
+				Expect(fakeMetronClient.IncrementCounterCallCount()).To(Equal(1))
+				name = fakeMetronClient.IncrementCounterArgsForCall(0)
+				Expect(name).To(Equal("RequestCount"))
 			})
 		})
 	})

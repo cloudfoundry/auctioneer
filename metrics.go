@@ -1,12 +1,10 @@
 package auctioneer
 
-import "code.cloudfoundry.org/runtimeschema/metric"
-
 const (
-	LRPAuctionsStarted      = metric.Counter("AuctioneerLRPAuctionsStarted")
-	LRPAuctionsFailed       = metric.Counter("AuctioneerLRPAuctionsFailed")
-	TaskAuctionsStarted     = metric.Counter("AuctioneerTaskAuctionsStarted")
-	TaskAuctionsFailed      = metric.Counter("AuctioneerTaskAuctionsFailed")
-	FetchStatesDuration     = metric.Duration("AuctioneerFetchStatesDuration")
-	FailedCellStateRequests = metric.Counter("AuctioneerFailedCellStateRequests")
+	LRPAuctionsStarted      = "AuctioneerLRPAuctionsStarted"
+	LRPAuctionsFailed       = "AuctioneerLRPAuctionsFailed"
+	TaskAuctionsStarted     = "AuctioneerTaskAuctionsStarted"
+	TaskAuctionsFailed      = "AuctioneerTaskAuctionsFailed"
+	FetchStatesDuration     = "AuctioneerFetchStatesDuration"
+	FailedCellStateRequests = "AuctioneerFailedCellStateRequests"
 )

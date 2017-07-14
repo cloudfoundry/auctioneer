@@ -6,9 +6,8 @@ import (
 	"code.cloudfoundry.org/auction/auctiontypes"
 	"code.cloudfoundry.org/auctioneer/auctionmetricemitterdelegate"
 	"code.cloudfoundry.org/bbs/models"
+	mfakes "code.cloudfoundry.org/go-loggregator/testhelpers/fakes/v1"
 	"code.cloudfoundry.org/rep"
-	"github.com/cloudfoundry/dropsonde/metric_sender/fake"
-	"github.com/cloudfoundry/dropsonde/metrics"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -16,13 +15,12 @@ import (
 
 var _ = Describe("Auction Metric Emitter Delegate", func() {
 	var delegate auctiontypes.AuctionMetricEmitterDelegate
-	var metricSender *fake.FakeMetricSender
+	var fakeMetronClient *mfakes.FakeIngressClient
 
 	BeforeEach(func() {
-		metricSender = fake.NewFakeMetricSender()
-		metrics.Initialize(metricSender, nil)
+		fakeMetronClient = &mfakes.FakeIngressClient{}
 
-		delegate = auctionmetricemitterdelegate.New()
+		delegate = auctionmetricemitterdelegate.New(fakeMetronClient)
 	})
 
 	Describe("AuctionCompleted", func() {
@@ -58,10 +56,23 @@ var _ = Describe("Auction Metric Emitter Delegate", func() {
 				},
 			})
 
-			Expect(metricSender.GetCounter("AuctioneerLRPAuctionsStarted")).To(BeNumerically("==", 1))
-			Expect(metricSender.GetCounter("AuctioneerTaskAuctionsStarted")).To(BeNumerically("==", 1))
-			Expect(metricSender.GetCounter("AuctioneerLRPAuctionsFailed")).To(BeNumerically("==", 2))
-			Expect(metricSender.GetCounter("AuctioneerTaskAuctionsFailed")).To(BeNumerically("==", 1))
+			Expect(fakeMetronClient.IncrementCounterWithDeltaCallCount()).To(Equal(4))
+
+			name, value := fakeMetronClient.IncrementCounterWithDeltaArgsForCall(0)
+			Expect(name).To(Equal("AuctioneerLRPAuctionsStarted"))
+			Expect(value).To(BeEquivalentTo(1))
+
+			name, value = fakeMetronClient.IncrementCounterWithDeltaArgsForCall(1)
+			Expect(name).To(Equal("AuctioneerTaskAuctionsStarted"))
+			Expect(value).To(BeEquivalentTo(1))
+
+			name, value = fakeMetronClient.IncrementCounterWithDeltaArgsForCall(2)
+			Expect(name).To(Equal("AuctioneerLRPAuctionsFailed"))
+			Expect(value).To(BeEquivalentTo(2))
+
+			name, value = fakeMetronClient.IncrementCounterWithDeltaArgsForCall(3)
+			Expect(name).To(Equal("AuctioneerTaskAuctionsFailed"))
+			Expect(value).To(BeEquivalentTo(1))
 		})
 	})
 
@@ -70,9 +81,20 @@ var _ = Describe("Auction Metric Emitter Delegate", func() {
 			err := delegate.FetchStatesCompleted(1 * time.Second)
 			Expect(err).NotTo(HaveOccurred())
 
-			sentMetric := metricSender.GetValue("AuctioneerFetchStatesDuration")
-			Expect(sentMetric.Value).To(Equal(1e+09))
-			Expect(sentMetric.Unit).To(Equal("nanos"))
+			Expect(fakeMetronClient.SendDurationCallCount()).To(Equal(1))
+			name, value := fakeMetronClient.SendDurationArgsForCall(0)
+			Expect(name).To(Equal("AuctioneerFetchStatesDuration"))
+			Expect(value).To(Equal(1 * time.Second))
+		})
+	})
+
+	Describe("FailedCellStateRequest", func() {
+		It("should adjust the metric counters", func() {
+			delegate.FailedCellStateRequest()
+
+			Expect(fakeMetronClient.IncrementCounterCallCount()).To(Equal(1))
+			name := fakeMetronClient.IncrementCounterArgsForCall(0)
+			Expect(name).To(Equal("AuctioneerFailedCellStateRequests"))
 		})
 	})
 })
