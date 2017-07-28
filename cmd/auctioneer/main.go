@@ -112,9 +112,9 @@ func main() {
 		}
 
 		lockIdentifier := &locketmodels.Resource{
-			Key:   auctioneerLockKey,
-			Owner: cfg.UUID,
-			Type:  locketmodels.LockType,
+			Key:      auctioneerLockKey,
+			Owner:    cfg.UUID,
+			TypeCode: locketmodels.LOCK,
 		}
 
 		locks = append(locks, grouper.Member{"sql-lock", lock.NewLockRunner(

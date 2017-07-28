@@ -445,9 +445,10 @@ var _ = Describe("Auctioneer", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				lockIdentifier := &locketmodels.Resource{
-					Key:   "auctioneer",
-					Owner: "Your worst enemy.",
-					Value: "Something",
+					Key:      "auctioneer",
+					Owner:    "Your worst enemy.",
+					Value:    "Something",
+					TypeCode: locketmodels.LOCK,
 				}
 
 				clock := clock.NewClock()
