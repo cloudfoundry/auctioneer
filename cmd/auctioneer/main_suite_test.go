@@ -133,8 +133,9 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 			ActiveKeyLabel: "label",
 		},
 
-		DatabaseDriver:           sqlRunner.DriverName(),
-		DatabaseConnectionString: sqlRunner.ConnectionString(),
+		DatabaseDriver:                sqlRunner.DriverName(),
+		DatabaseConnectionString:      sqlRunner.ConnectionString(),
+		DetectConsulCellRegistrations: true,
 	}
 })
 
