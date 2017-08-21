@@ -6,7 +6,7 @@ import (
 	"code.cloudfoundry.org/auction/auctiontypes"
 	"code.cloudfoundry.org/auctioneer/auctionmetricemitterdelegate"
 	"code.cloudfoundry.org/bbs/models"
-	mfakes "code.cloudfoundry.org/go-loggregator/testhelpers/fakes/v1"
+	mfakes "code.cloudfoundry.org/diego-logging-client/testhelpers"
 	"code.cloudfoundry.org/rep"
 
 	. "github.com/onsi/ginkgo"

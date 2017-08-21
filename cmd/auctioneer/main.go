@@ -22,7 +22,7 @@ import (
 	"code.cloudfoundry.org/cfhttp"
 	"code.cloudfoundry.org/consuladapter"
 	"code.cloudfoundry.org/debugserver"
-	loggregator_v2 "code.cloudfoundry.org/go-loggregator/compatibility"
+	loggingclient "code.cloudfoundry.org/diego-logging-client"
 	"code.cloudfoundry.org/go-loggregator/runtimeemitter"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerflags"
@@ -179,7 +179,7 @@ func main() {
 	logger.Info("exited")
 }
 
-func initializeAuctionRunner(logger lager.Logger, cfg config.AuctioneerConfig, bbsClient bbs.InternalClient, metronClient loggregator_v2.IngressClient) auctiontypes.AuctionRunner {
+func initializeAuctionRunner(logger lager.Logger, cfg config.AuctioneerConfig, bbsClient bbs.InternalClient, metronClient loggingclient.IngressClient) auctiontypes.AuctionRunner {
 	httpClient := cfhttp.NewClient()
 	stateClient := cfhttp.NewCustomTimeoutClient(time.Duration(cfg.CellStateTimeout))
 	repTLSConfig := &rep.TLSConfig{
@@ -212,8 +212,8 @@ func initializeAuctionRunner(logger lager.Logger, cfg config.AuctioneerConfig, b
 	)
 }
 
-func initializeMetron(logger lager.Logger, cfg config.AuctioneerConfig) (loggregator_v2.IngressClient, error) {
-	client, err := loggregator_v2.NewIngressClient(cfg.LoggregatorConfig)
+func initializeMetron(logger lager.Logger, cfg config.AuctioneerConfig) (loggingclient.IngressClient, error) {
+	client, err := loggingclient.NewIngressClient(cfg.LoggregatorConfig)
 	if err != nil {
 		return nil, err
 	}

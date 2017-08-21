@@ -7,12 +7,12 @@ import (
 	"code.cloudfoundry.org/auction/auctiontypes"
 	"code.cloudfoundry.org/auctioneer"
 	"code.cloudfoundry.org/bbs/handlers/middleware"
-	loggregator_v2 "code.cloudfoundry.org/go-loggregator/compatibility"
+	loggingclient "code.cloudfoundry.org/diego-logging-client"
 	"code.cloudfoundry.org/lager"
 	"github.com/tedsuo/rata"
 )
 
-func New(logger lager.Logger, runner auctiontypes.AuctionRunner, metronClient loggregator_v2.IngressClient) http.Handler {
+func New(logger lager.Logger, runner auctiontypes.AuctionRunner, metronClient loggingclient.IngressClient) http.Handler {
 	taskAuctionHandler := logWrap(NewTaskAuctionHandler(runner).Create, logger)
 	lrpAuctionHandler := logWrap(NewLRPAuctionHandler(runner).Create, logger)
 
@@ -49,7 +49,7 @@ func logWrap(loggable func(http.ResponseWriter, *http.Request, lager.Logger), lo
 
 type auctioneerEmitter struct {
 	logger       lager.Logger
-	metronClient loggregator_v2.IngressClient
+	metronClient loggingclient.IngressClient
 }
 
 func (e *auctioneerEmitter) IncrementCounter(delta int) {

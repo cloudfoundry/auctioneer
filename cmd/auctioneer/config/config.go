@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/debugserver"
+	loggingclient "code.cloudfoundry.org/diego-logging-client"
 	"code.cloudfoundry.org/durationjson"
-	loggregator_v2 "code.cloudfoundry.org/go-loggregator/compatibility"
 	"code.cloudfoundry.org/lager/lagerflags"
 	"code.cloudfoundry.org/locket"
 )
@@ -28,7 +28,7 @@ type AuctioneerConfig struct {
 	ListenAddress                 string                `json:"listen_address,omitempty"`
 	LockRetryInterval             durationjson.Duration `json:"lock_retry_interval,omitempty"`
 	LockTTL                       durationjson.Duration `json:"lock_ttl,omitempty"`
-	LoggregatorConfig             loggregator_v2.Config `json:"loggregator"`
+	LoggregatorConfig             loggingclient.Config  `json:"loggregator"`
 	RepCACert                     string                `json:"rep_ca_cert,omitempty"`
 	RepClientCert                 string                `json:"rep_client_cert,omitempty"`
 	RepClientKey                  string                `json:"rep_client_key,omitempty"`

@@ -5,14 +5,14 @@ import (
 
 	"code.cloudfoundry.org/auction/auctiontypes"
 	"code.cloudfoundry.org/auctioneer"
-	loggregator_v2 "code.cloudfoundry.org/go-loggregator/compatibility"
+	loggingclient "code.cloudfoundry.org/diego-logging-client"
 )
 
 type auctionMetricEmitterDelegate struct {
-	metronClient loggregator_v2.IngressClient
+	metronClient loggingclient.IngressClient
 }
 
-func New(metronClient loggregator_v2.IngressClient) auctionMetricEmitterDelegate {
+func New(metronClient loggingclient.IngressClient) auctionMetricEmitterDelegate {
 	return auctionMetricEmitterDelegate{
 		metronClient: metronClient,
 	}
