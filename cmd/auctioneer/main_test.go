@@ -8,6 +8,8 @@ import (
 	"net"
 	"os"
 	"os/exec"
+	"strconv"
+	"strings"
 	"time"
 
 	"code.cloudfoundry.org/auctioneer"
@@ -24,6 +26,8 @@ import (
 	"code.cloudfoundry.org/locket/lock"
 	locketmodels "code.cloudfoundry.org/locket/models"
 	"code.cloudfoundry.org/rep"
+	"github.com/cloudfoundry/sonde-go/events"
+	"github.com/gogo/protobuf/proto"
 	"github.com/hashicorp/consul/api"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -70,15 +74,42 @@ var _ = Describe("Auctioneer", func() {
 		locketRunner  ifrit.Runner
 		locketProcess ifrit.Process
 		locketAddress string
+
+		testMetricsListener net.PacketConn
+		testMetricsChan     chan *events.Envelope
 	)
 
 	BeforeEach(func() {
+		testMetricsListener, _ = net.ListenPacket("udp", "127.0.0.1:0")
+		testMetricsChan = make(chan *events.Envelope, 1)
+		go func() {
+			defer GinkgoRecover()
+			for {
+				buffer := make([]byte, 1024)
+				n, _, err := testMetricsListener.ReadFrom(buffer)
+				if err != nil {
+					close(testMetricsChan)
+					return
+				}
+
+				var envelope events.Envelope
+				err = proto.Unmarshal(buffer[:n], &envelope)
+				Expect(err).NotTo(HaveOccurred())
+				testMetricsChan <- &envelope
+			}
+		}()
+
+		port, err := strconv.Atoi(strings.TrimPrefix(testMetricsListener.LocalAddr().String(), "127.0.0.1:"))
+		Expect(err).NotTo(HaveOccurred())
+
 		auctioneerConfig = config.AuctioneerConfig{
 			BBSAddress:        bbsURL.String(),
 			ListenAddress:     auctioneerLocation,
 			LockRetryInterval: durationjson.Duration(time.Second),
 			ConsulCluster:     consulRunner.ConsulCluster(),
 			UUID:              "auctioneer-boshy-bosh",
+			DropsondePort:     port,
+			ReportInterval:    durationjson.Duration(10 * time.Millisecond),
 		}
 		auctioneerClient = auctioneer.NewClient("http://" + auctioneerLocation)
 	})
@@ -107,6 +138,8 @@ var _ = Describe("Auctioneer", func() {
 	AfterEach(func() {
 		ginkgomon.Interrupt(locketProcess)
 		ginkgomon.Interrupt(auctioneerProcess)
+		testMetricsListener.Close()
+		Eventually(testMetricsChan).Should(BeClosed())
 	})
 
 	Context("when the bbs is down", func() {
@@ -409,6 +442,34 @@ var _ = Describe("Auctioneer", func() {
 			Expect(lock.Resource.Owner).To(Equal(auctioneerConfig.UUID))
 		})
 
+		It("emits metric about holding lock", func() {
+			Eventually(func() error {
+				return auctioneerClient.RequestTaskAuctions(logger, []*auctioneer.TaskStartRequest{
+					&auctioneer.TaskStartRequest{*task},
+				})
+			}).ShouldNot(HaveOccurred())
+
+			var sawHeldMetric bool
+			timeout := time.After(50 * time.Millisecond)
+		OUTER_LOOP:
+			for {
+				select {
+				case envelope := <-testMetricsChan:
+					if envelope.GetEventType() == events.Envelope_ValueMetric {
+						if *envelope.ValueMetric.Name == "LockHeld" {
+							if *envelope.ValueMetric.Value == float64(1) {
+								sawHeldMetric = true
+								break
+							}
+						}
+					}
+				case <-timeout:
+					break OUTER_LOOP
+				}
+			}
+			Expect(sawHeldMetric).To(BeTrue())
+		})
+
 		Context("and the locking server becomes unreachable after grabbing the lock", func() {
 			It("exits", func() {
 				ginkgomon.Interrupt(locketProcess)
@@ -473,6 +534,30 @@ var _ = Describe("Auctioneer", func() {
 						&auctioneer.TaskStartRequest{*task},
 					})
 				}).Should(HaveOccurred())
+			})
+
+			It("emits metric about not holding lock", func() {
+				Eventually(runner.Buffer()).Should(gbytes.Say("failed-to-acquire-lock"))
+
+				var sawHeldMetric bool
+				timeout := time.After(50 * time.Millisecond)
+			OUTER_LOOP:
+				for {
+					select {
+					case envelope := <-testMetricsChan:
+						if envelope.GetEventType() == events.Envelope_ValueMetric {
+							if *envelope.ValueMetric.Name == "LockHeld" {
+								if *envelope.ValueMetric.Value == float64(0) {
+									sawHeldMetric = true
+									break
+								}
+							}
+						}
+					case <-timeout:
+						break OUTER_LOOP
+					}
+				}
+				Expect(sawHeldMetric).To(BeTrue())
 			})
 
 			Context("and continues to be unavailable", func() {

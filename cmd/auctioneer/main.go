@@ -30,6 +30,7 @@ import (
 	"code.cloudfoundry.org/locket"
 	"code.cloudfoundry.org/locket/jointlock"
 	"code.cloudfoundry.org/locket/lock"
+	"code.cloudfoundry.org/locket/lockheldmetrics"
 	locketmodels "code.cloudfoundry.org/locket/models"
 	"code.cloudfoundry.org/rep"
 
@@ -151,8 +152,13 @@ func main() {
 		auctionServer = http_server.New(cfg.ListenAddress, handlers.New(logger, auctionRunner, metronClient))
 	}
 
+	metricsTicker := clock.NewTicker(time.Duration(cfg.ReportInterval))
+	lockHeldMetronNotifier := lockheldmetrics.NewLockHeldMetronNotifier(logger, metricsTicker, metronClient)
+
 	members := grouper.Members{
+		{"lock-held-metrics", lockHeldMetronNotifier},
 		{"lock", lock},
+		{"set-lock-held-metrics", lockheldmetrics.SetLockHeldRunner(logger, *lockHeldMetronNotifier)},
 		{"auction-runner", auctionRunner},
 		{"auction-server", auctionServer},
 		{"registration-runner", registrationRunner},

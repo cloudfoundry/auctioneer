@@ -34,6 +34,7 @@ type AuctioneerConfig struct {
 	RepClientKey                  string                `json:"rep_client_key,omitempty"`
 	RepClientSessionCacheSize     int                   `json:"rep_client_session_cache_size,omitempty"`
 	RepRequireTLS                 bool                  `json:"rep_require_tls,omitempty"`
+	ReportInterval                durationjson.Duration `json:"report_interval,omitempty"`
 	ServerCertFile                string                `json:"server_cert_file,omitempty"`
 	ServerKeyFile                 string                `json:"server_key_file,omitempty"`
 	SkipConsulLock                bool                  `json:"skip_consul_lock"`
@@ -47,14 +48,15 @@ type AuctioneerConfig struct {
 
 func DefaultAuctioneerConfig() AuctioneerConfig {
 	return AuctioneerConfig{
-		AuctionRunnerWorkers: 1000,
-		CellStateTimeout:     durationjson.Duration(1 * time.Second),
-		CommunicationTimeout: durationjson.Duration(10 * time.Second),
-		DropsondePort:        3457,
-		LagerConfig:          lagerflags.DefaultLagerConfig(),
-		ListenAddress:        "0.0.0.0:9016",
-		LockRetryInterval:    durationjson.Duration(locket.RetryInterval),
-		LockTTL:              durationjson.Duration(locket.DefaultSessionTTL),
+		AuctionRunnerWorkers:          1000,
+		CellStateTimeout:              durationjson.Duration(1 * time.Second),
+		CommunicationTimeout:          durationjson.Duration(10 * time.Second),
+		DropsondePort:                 3457,
+		LagerConfig:                   lagerflags.DefaultLagerConfig(),
+		ListenAddress:                 "0.0.0.0:9016",
+		LockRetryInterval:             durationjson.Duration(locket.RetryInterval),
+		LockTTL:                       durationjson.Duration(locket.DefaultSessionTTL),
+		ReportInterval:                durationjson.Duration(1 * time.Minute),
 		StartingContainerCountMaximum: 0,
 		StartingContainerWeight:       .25,
 	}
