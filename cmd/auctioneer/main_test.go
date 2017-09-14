@@ -154,31 +154,48 @@ var _ = Describe("Auctioneer", func() {
 	})
 
 	Context("when the auctioneer starts up", func() {
-		It("registers itself as a service and registers a TTL Healthcheck", func() {
-			auctioneerProcess = ginkgomon.Invoke(runner)
+		Context("when consul service registration is enabled", func() {
+			BeforeEach(func() {
+				auctioneerConfig.EnableConsulServiceRegistration = true
+			})
 
-			client := consulRunner.NewClient()
-			services, err := client.Agent().Services()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(services).To(HaveKeyWithValue("auctioneer", &api.AgentService{
-				ID:      "auctioneer",
-				Service: "auctioneer",
-				Port:    auctioneerServerPort,
-				Address: "",
-			}))
+			It("registers itself as a service and registers a TTL Healthcheck", func() {
+				auctioneerProcess = ginkgomon.Invoke(runner)
 
-			checks, err := client.Agent().Checks()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(checks).To(HaveKeyWithValue("service:auctioneer", &api.AgentCheck{
-				Node:        "0",
-				CheckID:     "service:auctioneer",
-				Name:        "Service 'auctioneer' check",
-				Status:      "passing",
-				Notes:       "",
-				Output:      "",
-				ServiceID:   "auctioneer",
-				ServiceName: "auctioneer",
-			}))
+				client := consulRunner.NewClient()
+				services, err := client.Agent().Services()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(services).To(HaveKeyWithValue("auctioneer", &api.AgentService{
+					ID:      "auctioneer",
+					Service: "auctioneer",
+					Port:    auctioneerServerPort,
+					Address: "",
+				}))
+
+				checks, err := client.Agent().Checks()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(checks).To(HaveKeyWithValue("service:auctioneer", &api.AgentCheck{
+					Node:        "0",
+					CheckID:     "service:auctioneer",
+					Name:        "Service 'auctioneer' check",
+					Status:      "passing",
+					Notes:       "",
+					Output:      "",
+					ServiceID:   "auctioneer",
+					ServiceName: "auctioneer",
+				}))
+			})
+		})
+
+		Context("when consul service registration is disabled", func() {
+			It("does not register itself with consul", func() {
+				auctioneerProcess = ginkgomon.Invoke(runner)
+
+				client := consulRunner.NewClient()
+				services, err := client.Agent().Services()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(services).NotTo(HaveKey("auctioneer"))
+			})
 		})
 
 		Context("when a debug address is specified", func() {

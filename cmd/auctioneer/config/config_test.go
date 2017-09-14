@@ -35,6 +35,7 @@ var _ = Describe("AuctioneerConfig", func() {
 			"consul_cluster": "1.1.1.1",
 			"debug_address": "127.0.0.1:17017",
 			"dropsonde_port": 1234,
+			"enable_consul_service_registration": true,
 			"listen_address": "0.0.0.0:9090",
 			"lock_retry_interval": "1m",
 			"lock_ttl": "20s",
@@ -111,7 +112,8 @@ var _ = Describe("AuctioneerConfig", func() {
 			DebugServerConfig: debugserver.DebugServerConfig{
 				DebugAddress: "127.0.0.1:17017",
 			},
-			DropsondePort: 1234,
+			DropsondePort:                   1234,
+			EnableConsulServiceRegistration: true,
 			LagerConfig: lagerflags.LagerConfig{
 				LogLevel: "debug",
 			},

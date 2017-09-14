@@ -139,8 +139,6 @@ func main() {
 		lock = jointlock.NewJointLock(clock, locket.DefaultSessionTTL, locks...)
 	}
 
-	registrationRunner := initializeRegistrationRunner(logger, consulClient, clock, port)
-
 	var auctionServer ifrit.Runner
 	if cfg.ServerCertFile != "" || cfg.ServerKeyFile != "" || cfg.CACertFile != "" {
 		tlsConfig, err := cfhttp.NewTLSConfig(cfg.ServerCertFile, cfg.ServerKeyFile, cfg.CACertFile)
@@ -161,7 +159,11 @@ func main() {
 		{"set-lock-held-metrics", lockheldmetrics.SetLockHeldRunner(logger, *lockHeldMetronNotifier)},
 		{"auction-runner", auctionRunner},
 		{"auction-server", auctionServer},
-		{"registration-runner", registrationRunner},
+	}
+
+	if cfg.EnableConsulServiceRegistration {
+		registrationRunner := initializeRegistrationRunner(logger, consulClient, clock, port)
+		members = append(members, grouper.Member{"registration-runner", registrationRunner})
 	}
 
 	if cfg.DebugAddress != "" {
