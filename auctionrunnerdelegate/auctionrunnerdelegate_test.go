@@ -165,7 +165,7 @@ var _ = Describe("Auction Runner Delegate", func() {
 			results = auctiontypes.AuctionResults{
 				SuccessfulLRPs: []auctiontypes.LRPAuction{
 					{
-						LRP: rep.NewLRP(models.NewActualLRPKey("successful-start", 0, "domain"), resource, pc),
+						LRP: rep.NewLRP("", models.NewActualLRPKey("successful-start", 0, "domain"), resource, pc),
 					},
 				},
 				SuccessfulTasks: []auctiontypes.TaskAuction{
@@ -175,11 +175,11 @@ var _ = Describe("Auction Runner Delegate", func() {
 				},
 				FailedLRPs: []auctiontypes.LRPAuction{
 					{
-						LRP:           rep.NewLRP(models.NewActualLRPKey("insufficient-capacity", 0, "domain"), resource, pc),
+						LRP:           rep.NewLRP("", models.NewActualLRPKey("insufficient-capacity", 0, "domain"), resource, pc),
 						AuctionRecord: auctiontypes.AuctionRecord{PlacementError: "insufficient resources"},
 					},
 					{
-						LRP:           rep.NewLRP(models.NewActualLRPKey("incompatible-stacks", 0, "domain"), resource, pc),
+						LRP:           rep.NewLRP("", models.NewActualLRPKey("incompatible-stacks", 0, "domain"), resource, pc),
 						AuctionRecord: auctiontypes.AuctionRecord{PlacementError: auctiontypes.ErrorCellMismatch.Error()},
 					},
 				},
