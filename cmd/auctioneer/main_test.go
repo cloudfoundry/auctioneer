@@ -18,6 +18,7 @@ import (
 	"code.cloudfoundry.org/bbs/models"
 	"code.cloudfoundry.org/bbs/models/test/model_helpers"
 	"code.cloudfoundry.org/clock"
+	mfakes "code.cloudfoundry.org/diego-logging-client/testhelpers"
 	"code.cloudfoundry.org/durationjson"
 	"code.cloudfoundry.org/localip"
 	"code.cloudfoundry.org/locket"
@@ -77,9 +78,12 @@ var _ = Describe("Auctioneer", func() {
 
 		testMetricsListener net.PacketConn
 		testMetricsChan     chan *events.Envelope
+		fakeMetronClient    *mfakes.FakeIngressClient
 	)
 
 	BeforeEach(func() {
+		fakeMetronClient = &mfakes.FakeIngressClient{}
+
 		testMetricsListener, _ = net.ListenPacket("udp", "127.0.0.1:0")
 		testMetricsChan = make(chan *events.Envelope, 1)
 		go func() {
@@ -364,7 +368,7 @@ var _ = Describe("Auctioneer", func() {
 				},
 			}
 
-			competingAuctioneerLock := locket.NewLock(logger, consulClient, locket.LockSchemaPath("auctioneer_lock"), []byte{}, clock.NewClock(), 500*time.Millisecond, 10*time.Second)
+			competingAuctioneerLock := locket.NewLock(logger, consulClient, locket.LockSchemaPath("auctioneer_lock"), []byte{}, clock.NewClock(), 500*time.Millisecond, 10*time.Second, locket.WithMetronClient(fakeMetronClient))
 			competingAuctioneerProcess = ifrit.Invoke(competingAuctioneerLock)
 
 			auctioneerProcess = ifrit.Background(runner)
@@ -498,7 +502,7 @@ var _ = Describe("Auctioneer", func() {
 			BeforeEach(func() {
 				auctioneerConfig.SkipConsulLock = true
 
-				competingAuctioneerLock := locket.NewLock(logger, consulClient, locket.LockSchemaPath("auctioneer_lock"), []byte{}, clock.NewClock(), 500*time.Millisecond, 10*time.Second)
+				competingAuctioneerLock := locket.NewLock(logger, consulClient, locket.LockSchemaPath("auctioneer_lock"), []byte{}, clock.NewClock(), 500*time.Millisecond, 10*time.Second, locket.WithMetronClient(fakeMetronClient))
 				competingAuctioneerProcess = ifrit.Invoke(competingAuctioneerLock)
 			})
 

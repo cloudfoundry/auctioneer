@@ -98,6 +98,7 @@ func main() {
 			port,
 			time.Duration(cfg.LockTTL),
 			time.Duration(cfg.LockRetryInterval),
+			metronClient,
 		)
 		locks = append(locks, grouper.Member{"lock-maintainer", lockMaintainer})
 	}
@@ -261,6 +262,7 @@ func initializeLockMaintainer(
 	port int,
 	lockTTL time.Duration,
 	lockRetryInterval time.Duration,
+	metronClient loggingclient.IngressClient,
 ) ifrit.Runner {
 	uuid, err := uuid.NewV4()
 	if err != nil {
@@ -275,7 +277,7 @@ func initializeLockMaintainer(
 	address := fmt.Sprintf("%s://%s:%d", serverProtocol, localIP, port)
 	auctioneerPresence := auctioneer.NewPresence(uuid.String(), address)
 
-	lockMaintainer, err := serviceClient.NewAuctioneerLockRunner(logger, auctioneerPresence, lockRetryInterval, lockTTL)
+	lockMaintainer, err := serviceClient.NewAuctioneerLockRunner(logger, auctioneerPresence, lockRetryInterval, lockTTL, metronClient)
 	if err != nil {
 		logger.Fatal("Couldn't create lock maintainer", err)
 	}

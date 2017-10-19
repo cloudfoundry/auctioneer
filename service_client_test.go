@@ -11,6 +11,7 @@ import (
 
 	"code.cloudfoundry.org/auctioneer"
 	"code.cloudfoundry.org/clock/fakeclock"
+	mfakes "code.cloudfoundry.org/diego-logging-client/testhelpers"
 )
 
 var _ = Describe("ServiceClient", func() {
@@ -31,11 +32,12 @@ var _ = Describe("ServiceClient", func() {
 		Context("when able to get an auctioneer presence", func() {
 			var heartbeater ifrit.Process
 			var presence auctioneer.Presence
+			var fakeMetronClient = &mfakes.FakeIngressClient{}
 
 			BeforeEach(func() {
 				presence = auctioneer.NewPresence("auctioneer-id", "auctioneer.example.com")
 
-				auctioneerLock, err := serviceClient.NewAuctioneerLockRunner(logger, presence, 100*time.Millisecond, 10*time.Second)
+				auctioneerLock, err := serviceClient.NewAuctioneerLockRunner(logger, presence, 100*time.Millisecond, 10*time.Second, fakeMetronClient)
 				Expect(err).NotTo(HaveOccurred())
 				heartbeater = ginkgomon.Invoke(auctioneerLock)
 			})

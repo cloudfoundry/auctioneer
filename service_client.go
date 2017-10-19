@@ -7,6 +7,7 @@ import (
 
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/consuladapter"
+	loggingclient "code.cloudfoundry.org/diego-logging-client"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/locket"
 	"github.com/tedsuo/ifrit"
@@ -43,7 +44,7 @@ func (a Presence) Validate() error {
 }
 
 type ServiceClient interface {
-	NewAuctioneerLockRunner(logger lager.Logger, presence Presence, retryInterval, lockTTL time.Duration) (ifrit.Runner, error)
+	NewAuctioneerLockRunner(logger lager.Logger, presence Presence, retryInterval, lockTTL time.Duration, metronClient loggingclient.IngressClient) (ifrit.Runner, error)
 	CurrentAuctioneer() (Presence, error)
 	CurrentAuctioneerAddress() (string, error)
 }
@@ -60,7 +61,7 @@ func NewServiceClient(consulClient consuladapter.Client, clock clock.Clock) Serv
 	}
 }
 
-func (c serviceClient) NewAuctioneerLockRunner(logger lager.Logger, presence Presence, retryInterval, lockTTL time.Duration) (ifrit.Runner, error) {
+func (c serviceClient) NewAuctioneerLockRunner(logger lager.Logger, presence Presence, retryInterval, lockTTL time.Duration, metronClient loggingclient.IngressClient) (ifrit.Runner, error) {
 	if err := presence.Validate(); err != nil {
 		return nil, err
 	}
@@ -69,7 +70,7 @@ func (c serviceClient) NewAuctioneerLockRunner(logger lager.Logger, presence Pre
 	if err != nil {
 		return nil, err
 	}
-	return locket.NewLock(logger, c.consulClient, LockSchemaPath(), payload, c.clock, retryInterval, lockTTL), nil
+	return locket.NewLock(logger, c.consulClient, LockSchemaPath(), payload, c.clock, retryInterval, lockTTL, locket.WithMetronClient(metronClient)), nil
 }
 
 func (c serviceClient) CurrentAuctioneer() (Presence, error) {
