@@ -23,13 +23,13 @@ func (d auctionMetricEmitterDelegate) FetchStatesCompleted(fetchStatesDuration t
 }
 
 func (d auctionMetricEmitterDelegate) FailedCellStateRequest() {
-	d.metronClient.IncrementCounter(auctioneer.FailedCellStateRequests)
+	d.metronClient.IncrementCounter(auctioneer.FailedCellStateRequestCounter)
 }
 
 func (d auctionMetricEmitterDelegate) AuctionCompleted(results auctiontypes.AuctionResults) {
-	d.metronClient.IncrementCounterWithDelta(auctioneer.LRPAuctionsStarted, uint64(len(results.SuccessfulLRPs)))
-	d.metronClient.IncrementCounterWithDelta(auctioneer.TaskAuctionsStarted, uint64(len(results.SuccessfulTasks)))
+	d.metronClient.IncrementCounterWithDelta(auctioneer.LRPAuctionsStartedCounter, uint64(len(results.SuccessfulLRPs)))
+	d.metronClient.IncrementCounterWithDelta(auctioneer.TaskAuctionStartedCounter, uint64(len(results.SuccessfulTasks)))
 
-	d.metronClient.IncrementCounterWithDelta(auctioneer.LRPAuctionsFailed, uint64(len(results.FailedLRPs)))
-	d.metronClient.IncrementCounterWithDelta(auctioneer.TaskAuctionsFailed, uint64(len(results.FailedTasks)))
+	d.metronClient.IncrementCounterWithDelta(auctioneer.LRPAuctionsFailedCounter, uint64(len(results.FailedLRPs)))
+	d.metronClient.IncrementCounterWithDelta(auctioneer.TaskAuctionsFailedCounter, uint64(len(results.FailedTasks)))
 }

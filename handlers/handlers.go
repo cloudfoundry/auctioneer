@@ -57,7 +57,7 @@ func (e *auctioneerEmitter) IncrementCounter(delta int) {
 }
 
 func (e *auctioneerEmitter) UpdateLatency(latency time.Duration) {
-	err := e.metronClient.SendDuration(middleware.RequestLatency, latency)
+	err := e.metronClient.SendDuration(middleware.RequestLatencyDuration, latency)
 	if err != nil {
 		e.logger.Error("failed-to-send-latency", err)
 	}

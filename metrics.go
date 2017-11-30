@@ -1,10 +1,10 @@
 package auctioneer
 
 const (
-	LRPAuctionsStarted      = "AuctioneerLRPAuctionsStarted"
-	LRPAuctionsFailed       = "AuctioneerLRPAuctionsFailed"
-	TaskAuctionsStarted     = "AuctioneerTaskAuctionsStarted"
-	TaskAuctionsFailed      = "AuctioneerTaskAuctionsFailed"
-	FetchStatesDuration     = "AuctioneerFetchStatesDuration"
-	FailedCellStateRequests = "AuctioneerFailedCellStateRequests"
+	LRPAuctionsStartedCounter     = "AuctioneerLRPAuctionsStarted"
+	LRPAuctionsFailedCounter      = "AuctioneerLRPAuctionsFailed"
+	TaskAuctionStartedCounter     = "AuctioneerTaskAuctionsStarted"
+	TaskAuctionsFailedCounter     = "AuctioneerTaskAuctionsFailed"
+	FetchStatesDuration           = "AuctioneerFetchStatesDuration"
+	FailedCellStateRequestCounter = "AuctioneerFailedCellStateRequests"
 )
