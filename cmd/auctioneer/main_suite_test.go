@@ -19,6 +19,7 @@ import (
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/consuladapter"
 	"code.cloudfoundry.org/consuladapter/consulrunner"
+	"code.cloudfoundry.org/inigo/helpers/portauthority"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"code.cloudfoundry.org/rep/maintain"
@@ -34,7 +35,7 @@ import (
 
 var (
 	auctioneerPath       string
-	auctioneerServerPort int
+	auctioneerServerPort uint16
 	auctioneerLocation   string
 
 	dotNetStack           = "dot-net"
@@ -58,7 +59,8 @@ var (
 	sqlProcess ifrit.Process
 	sqlRunner  sqlrunner.SQLRunner
 
-	logger lager.Logger
+	logger        lager.Logger
+	portAllocator portauthority.PortAllocator
 )
 
 func TestAuctioneer(t *testing.T) {
@@ -83,6 +85,14 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	return []byte(strings.Join([]string{compiledAuctioneerPath, bbsConfig, locketPath}, ","))
 }, func(pathsByte []byte) {
 	grpclog.SetLogger(log.New(ioutil.Discard, "", 0))
+	node := GinkgoParallelNode()
+	startPort := 1050 * node // make sure we don't conflict with etcd ports 4000+GinkgoParallelNode & 7000+GinkgoParallelNode (4000,7000,40001,70001...)
+	portRange := 1000
+	endPort := startPort + portRange*(node+1)
+
+	var err error
+	portAllocator, err = portauthority.New(startPort, endPort)
+	Expect(err).NotTo(HaveOccurred())
 
 	paths := string(pathsByte)
 	auctioneerPath = strings.Split(paths, ",")[0]
@@ -93,15 +103,18 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	sqlRunner = test_helpers.NewSQLRunner(dbName)
 	sqlProcess = ginkgomon.Invoke(sqlRunner)
 
+	consulStartingPort, err := portAllocator.ClaimPorts(consulrunner.PortOffsetLength)
+	Expect(err).NotTo(HaveOccurred())
 	consulRunner = consulrunner.NewClusterRunner(
 		consulrunner.ClusterRunnerConfig{
-			StartingPort: 9001 + GinkgoParallelNode()*consulrunner.PortOffsetLength,
+			StartingPort: int(consulStartingPort),
 			NumNodes:     1,
 			Scheme:       "http",
 		},
 	)
 
-	auctioneerServerPort = 1800 + GinkgoParallelNode()
+	auctioneerServerPort, err = portAllocator.ClaimPorts(1)
+	Expect(err).NotTo(HaveOccurred())
 	auctioneerLocation = fmt.Sprintf("127.0.0.1:%d", auctioneerServerPort)
 
 	logger = lagertest.NewTestLogger("test")
@@ -109,8 +122,10 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	consulRunner.Start()
 	consulRunner.WaitUntilReady()
 
-	bbsPort := 13000 + GinkgoParallelNode()*2
-	healthPort := bbsPort + 1
+	bbsPort, err := portAllocator.ClaimPorts(1)
+	Expect(err).NotTo(HaveOccurred())
+	healthPort, err := portAllocator.ClaimPorts(1)
+	Expect(err).NotTo(HaveOccurred())
 	bbsAddress := fmt.Sprintf("127.0.0.1:%d", bbsPort)
 	healthAddress := fmt.Sprintf("127.0.0.1:%d", healthPort)
 
