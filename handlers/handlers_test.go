@@ -72,7 +72,7 @@ var _ = Describe("Auction Handlers", func() {
 
 			It("sends the correct metrics", func() {
 				Expect(fakeMetronClient.SendDurationCallCount()).To(Equal(1))
-				name, value := fakeMetronClient.SendDurationArgsForCall(0)
+				name, value, _ := fakeMetronClient.SendDurationArgsForCall(0)
 				Expect(name).To(Equal("RequestLatency"))
 				Expect(value).To(BeNumerically(">", 0))
 
@@ -124,7 +124,7 @@ var _ = Describe("Auction Handlers", func() {
 
 			It("sends the correct metrics", func() {
 				Expect(fakeMetronClient.SendDurationCallCount()).To(Equal(1))
-				name, value := fakeMetronClient.SendDurationArgsForCall(0)
+				name, value, _ := fakeMetronClient.SendDurationArgsForCall(0)
 				Expect(name).To(Equal("RequestLatency"))
 				Expect(value).To(BeNumerically(">", 0))
 
