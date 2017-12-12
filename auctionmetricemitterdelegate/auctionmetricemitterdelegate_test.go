@@ -82,7 +82,7 @@ var _ = Describe("Auction Metric Emitter Delegate", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(fakeMetronClient.SendDurationCallCount()).To(Equal(1))
-			name, value := fakeMetronClient.SendDurationArgsForCall(0)
+			name, value, _ := fakeMetronClient.SendDurationArgsForCall(0)
 			Expect(name).To(Equal("AuctioneerFetchStatesDuration"))
 			Expect(value).To(Equal(1 * time.Second))
 		})
