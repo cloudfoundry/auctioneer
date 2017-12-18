@@ -4,8 +4,16 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/auction/auctiontypes"
-	"code.cloudfoundry.org/auctioneer"
 	loggingclient "code.cloudfoundry.org/diego-logging-client"
+)
+
+const (
+	LRPAuctionsStartedCounter     = "AuctioneerLRPAuctionsStarted"
+	LRPAuctionsFailedCounter      = "AuctioneerLRPAuctionsFailed"
+	TaskAuctionStartedCounter     = "AuctioneerTaskAuctionsStarted"
+	TaskAuctionsFailedCounter     = "AuctioneerTaskAuctionsFailed"
+	FetchStatesDuration           = "AuctioneerFetchStatesDuration"
+	FailedCellStateRequestCounter = "AuctioneerFailedCellStateRequests"
 )
 
 type auctionMetricEmitterDelegate struct {
@@ -19,17 +27,17 @@ func New(metronClient loggingclient.IngressClient) auctionMetricEmitterDelegate 
 }
 
 func (d auctionMetricEmitterDelegate) FetchStatesCompleted(fetchStatesDuration time.Duration) error {
-	return d.metronClient.SendDuration(auctioneer.FetchStatesDuration, fetchStatesDuration)
+	return d.metronClient.SendDuration(FetchStatesDuration, fetchStatesDuration)
 }
 
 func (d auctionMetricEmitterDelegate) FailedCellStateRequest() {
-	d.metronClient.IncrementCounter(auctioneer.FailedCellStateRequestCounter)
+	d.metronClient.IncrementCounter(FailedCellStateRequestCounter)
 }
 
 func (d auctionMetricEmitterDelegate) AuctionCompleted(results auctiontypes.AuctionResults) {
-	d.metronClient.IncrementCounterWithDelta(auctioneer.LRPAuctionsStartedCounter, uint64(len(results.SuccessfulLRPs)))
-	d.metronClient.IncrementCounterWithDelta(auctioneer.TaskAuctionStartedCounter, uint64(len(results.SuccessfulTasks)))
+	d.metronClient.IncrementCounterWithDelta(LRPAuctionsStartedCounter, uint64(len(results.SuccessfulLRPs)))
+	d.metronClient.IncrementCounterWithDelta(TaskAuctionStartedCounter, uint64(len(results.SuccessfulTasks)))
 
-	d.metronClient.IncrementCounterWithDelta(auctioneer.LRPAuctionsFailedCounter, uint64(len(results.FailedLRPs)))
-	d.metronClient.IncrementCounterWithDelta(auctioneer.TaskAuctionsFailedCounter, uint64(len(results.FailedTasks)))
+	d.metronClient.IncrementCounterWithDelta(LRPAuctionsFailedCounter, uint64(len(results.FailedLRPs)))
+	d.metronClient.IncrementCounterWithDelta(TaskAuctionsFailedCounter, uint64(len(results.FailedTasks)))
 }

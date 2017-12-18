@@ -12,6 +12,11 @@ import (
 	"github.com/tedsuo/rata"
 )
 
+const (
+	RequestLatencyDuration = "RequestLatency"
+	RequestCount           = "RequestCount"
+)
+
 func New(logger lager.Logger, runner auctiontypes.AuctionRunner, metronClient loggingclient.IngressClient) http.Handler {
 	taskAuctionHandler := logWrap(NewTaskAuctionHandler(runner).Create, logger)
 	lrpAuctionHandler := logWrap(NewLRPAuctionHandler(runner).Create, logger)
@@ -52,12 +57,12 @@ type auctioneerEmitter struct {
 	metronClient loggingclient.IngressClient
 }
 
-func (e *auctioneerEmitter) IncrementCounter(delta int) {
-	e.metronClient.IncrementCounter(middleware.RequestCount)
+func (e *auctioneerEmitter) IncrementRequestCounter(delta int) {
+	e.metronClient.IncrementCounter(RequestCount)
 }
 
 func (e *auctioneerEmitter) UpdateLatency(latency time.Duration) {
-	err := e.metronClient.SendDuration(middleware.RequestLatencyDuration, latency)
+	err := e.metronClient.SendDuration(RequestLatencyDuration, latency)
 	if err != nil {
 		e.logger.Error("failed-to-send-latency", err)
 	}
