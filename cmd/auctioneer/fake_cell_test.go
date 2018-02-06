@@ -71,7 +71,7 @@ func (f *FakeCell) Tasks() ([]rep.Task, error) {
 
 func (f *FakeCell) SpinUp(cellPresenceClient maintain.CellPresenceClient) {
 	//make a test-friendly AuctionRepDelegate using the auction package's SimulationRepDelegate
-	f.SimulationRep = simulationrep.New(f.stack, "Z0", rep.Resources{
+	f.SimulationRep = simulationrep.New(f.cellID, f.stack, "Z0", rep.Resources{
 		DiskMB:     100,
 		MemoryMB:   100,
 		Containers: 100,
