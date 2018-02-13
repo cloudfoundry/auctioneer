@@ -8,6 +8,7 @@ import (
 	"net"
 	"os"
 	"os/exec"
+	"path"
 	"strconv"
 	"strings"
 	"time"
@@ -105,8 +106,19 @@ var _ = Describe("Auctioneer", func() {
 		port, err := strconv.Atoi(strings.TrimPrefix(testMetricsListener.LocalAddr().String(), "127.0.0.1:"))
 		Expect(err).NotTo(HaveOccurred())
 
+		fixturesPath := path.Join(os.Getenv("GOPATH"), "src/code.cloudfoundry.org/auctioneer/cmd/auctioneer/fixtures")
+
+		caFile := path.Join(fixturesPath, "green-certs", "ca.crt")
+		clientCertFile := path.Join(fixturesPath, "green-certs", "client.crt")
+		clientKeyFile := path.Join(fixturesPath, "green-certs", "client.key")
+		bbsClient, err = bbs.NewClient(bbsURL.String(), caFile, clientCertFile, clientKeyFile, 0, 0)
+		Expect(err).NotTo(HaveOccurred())
+
 		auctioneerConfig = config.AuctioneerConfig{
 			BBSAddress:        bbsURL.String(),
+			BBSCACertFile:     caFile,
+			BBSClientCertFile: clientCertFile,
+			BBSClientKeyFile:  clientKeyFile,
 			ListenAddress:     auctioneerLocation,
 			LockRetryInterval: durationjson.Duration(time.Second),
 			ConsulCluster:     consulRunner.ConsulCluster(),
@@ -661,7 +673,7 @@ var _ = Describe("Auctioneer", func() {
 		Context("when invalid values for the certificates are supplied", func() {
 			BeforeEach(func() {
 				auctioneerConfig.CACertFile = caCertFile
-				auctioneerConfig.ServerCertFile = "invalid-certs/server.cr"
+				auctioneerConfig.ServerCertFile = "invalid-certs/server.crt"
 				auctioneerConfig.ServerKeyFile = serverKeyFile
 			})
 

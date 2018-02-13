@@ -5,6 +5,8 @@ import (
 	"io/ioutil"
 	"log"
 	"net/url"
+	"os"
+	"path"
 	"strings"
 
 	"google.golang.org/grpc/grpclog"
@@ -73,7 +75,7 @@ func TestAuctioneer(t *testing.T) {
 }
 
 var _ = SynchronizedBeforeSuite(func() []byte {
-	bbsConfig, err := gexec.Build("code.cloudfoundry.org/bbs/cmd/bbs", "-race")
+	compiledBBSPath, err := gexec.Build("code.cloudfoundry.org/bbs/cmd/bbs", "-race")
 	Expect(err).NotTo(HaveOccurred())
 
 	compiledAuctioneerPath, err := gexec.Build("code.cloudfoundry.org/auctioneer/cmd/auctioneer", "-race")
@@ -82,7 +84,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	locketPath, err := gexec.Build("code.cloudfoundry.org/locket/cmd/locket", "-race")
 	Expect(err).NotTo(HaveOccurred())
 
-	return []byte(strings.Join([]string{compiledAuctioneerPath, bbsConfig, locketPath}, ","))
+	return []byte(strings.Join([]string{compiledAuctioneerPath, compiledBBSPath, locketPath}, ","))
 }, func(pathsByte []byte) {
 	grpclog.SetLogger(log.New(ioutil.Discard, "", 0))
 	node := GinkgoParallelNode()
@@ -130,11 +132,11 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	healthAddress := fmt.Sprintf("127.0.0.1:%d", healthPort)
 
 	bbsURL = &url.URL{
-		Scheme: "http",
+		Scheme: "https",
 		Host:   bbsAddress,
 	}
 
-	bbsClient = bbs.NewClient(bbsURL.String())
+	fixturesPath := path.Join(os.Getenv("GOPATH"), "src/code.cloudfoundry.org/auctioneer/cmd/auctioneer/fixtures")
 
 	bbsConfig = bbsconfig.BBSConfig{
 		ListenAddress:     bbsAddress,
@@ -151,6 +153,10 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 		DatabaseDriver:                sqlRunner.DriverName(),
 		DatabaseConnectionString:      sqlRunner.ConnectionString(),
 		DetectConsulCellRegistrations: true,
+
+		CaFile:   path.Join(fixturesPath, "green-certs", "ca.crt"),
+		CertFile: path.Join(fixturesPath, "green-certs", "server.crt"),
+		KeyFile:  path.Join(fixturesPath, "green-certs", "server.key"),
 	}
 })
 

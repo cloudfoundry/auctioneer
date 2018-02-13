@@ -4,7 +4,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -293,16 +292,7 @@ func validateBBSAddress(bbsAddress string) error {
 }
 
 func initializeBBSClient(logger lager.Logger, cfg config.AuctioneerConfig) bbs.InternalClient {
-	bbsURL, err := url.Parse(cfg.BBSAddress)
-	if err != nil {
-		logger.Fatal("Invalid BBS URL", err)
-	}
-
-	if bbsURL.Scheme != "https" {
-		return bbs.NewClient(cfg.BBSAddress)
-	}
-
-	bbsClient, err := bbs.NewSecureClient(
+	bbsClient, err := bbs.NewClient(
 		cfg.BBSAddress,
 		cfg.BBSCACertFile,
 		cfg.BBSClientCertFile,
