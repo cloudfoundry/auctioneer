@@ -102,7 +102,7 @@ func main() {
 		locks = append(locks, grouper.Member{"lock-maintainer", lockMaintainer})
 	}
 
-	if cfg.LocketAddress != "" {
+	if cfg.LocksLocketEnabled {
 		if cfg.UUID == "" {
 			logger.Fatal("invalid-uuid", errors.New("invalid-uuid-from-config"))
 		}

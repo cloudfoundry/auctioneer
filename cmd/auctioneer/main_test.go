@@ -115,16 +115,17 @@ var _ = Describe("Auctioneer", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		auctioneerConfig = config.AuctioneerConfig{
-			BBSAddress:        bbsURL.String(),
-			BBSCACertFile:     caFile,
-			BBSClientCertFile: clientCertFile,
-			BBSClientKeyFile:  clientKeyFile,
-			ListenAddress:     auctioneerLocation,
-			LockRetryInterval: durationjson.Duration(time.Second),
-			ConsulCluster:     consulRunner.ConsulCluster(),
-			UUID:              "auctioneer-boshy-bosh",
-			DropsondePort:     port,
-			ReportInterval:    durationjson.Duration(10 * time.Millisecond),
+			BBSAddress:         bbsURL.String(),
+			BBSCACertFile:      caFile,
+			BBSClientCertFile:  clientCertFile,
+			BBSClientKeyFile:   clientKeyFile,
+			ListenAddress:      auctioneerLocation,
+			LocksLocketEnabled: false,
+			LockRetryInterval:  durationjson.Duration(time.Second),
+			ConsulCluster:      consulRunner.ConsulCluster(),
+			UUID:               "auctioneer-boshy-bosh",
+			DropsondePort:      port,
+			ReportInterval:     durationjson.Duration(10 * time.Millisecond),
 		}
 		auctioneerClient = auctioneer.NewClient("http://" + auctioneerLocation)
 	})
@@ -441,6 +442,7 @@ var _ = Describe("Auctioneer", func() {
 			})
 			locketProcess = ginkgomon.Invoke(locketRunner)
 
+			auctioneerConfig.LocksLocketEnabled = true
 			auctioneerConfig.ClientLocketConfig = locketrunner.ClientLocketConfig()
 			auctioneerConfig.LocketAddress = locketAddress
 		})
@@ -623,7 +625,17 @@ var _ = Describe("Auctioneer", func() {
 			})
 
 			It("exits with an error", func() {
-				Eventually(auctioneerProcess.Wait()).Should(Receive())
+				Eventually(auctioneerProcess.Wait()).Should(Receive(Not(BeNil())))
+			})
+		})
+
+		Context("when the locket addess isn't set", func() {
+			BeforeEach(func() {
+				auctioneerConfig.LocketAddress = ""
+			})
+
+			It("exits with an error", func() {
+				Eventually(auctioneerProcess.Wait()).Should(Receive(Not(BeNil())))
 			})
 		})
 
@@ -639,7 +651,7 @@ var _ = Describe("Auctioneer", func() {
 
 		Context("when neither lock is configured", func() {
 			BeforeEach(func() {
-				auctioneerConfig.LocketAddress = ""
+				auctioneerConfig.LocksLocketEnabled = false
 				auctioneerConfig.SkipConsulLock = true
 			})
 

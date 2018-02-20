@@ -139,12 +139,13 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	fixturesPath := path.Join(os.Getenv("GOPATH"), "src/code.cloudfoundry.org/auctioneer/cmd/auctioneer/fixtures")
 
 	bbsConfig = bbsconfig.BBSConfig{
-		ListenAddress:     bbsAddress,
-		AdvertiseURL:      bbsURL.String(),
-		AuctioneerAddress: "http://" + auctioneerLocation,
-		ConsulCluster:     consulRunner.ConsulCluster(),
-		HealthAddress:     healthAddress,
-
+		ListenAddress:                  bbsAddress,
+		AdvertiseURL:                   bbsURL.String(),
+		AuctioneerAddress:              "http://" + auctioneerLocation,
+		ConsulCluster:                  consulRunner.ConsulCluster(),
+		HealthAddress:                  healthAddress,
+		LocksLocketEnabled:             false,
+		CellRegistrationsLocketEnabled: false,
 		EncryptionConfig: encryption.EncryptionConfig{
 			EncryptionKeys: map[string]string{"label": "key"},
 			ActiveKeyLabel: "label",

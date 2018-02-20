@@ -42,6 +42,7 @@ type AuctioneerConfig struct {
 	StartingContainerCountMaximum   int                   `json:"starting_container_count_maximum,omitempty"`
 	StartingContainerWeight         float64               `json:"starting_container_weight,omitempty"`
 	UUID                            string                `json:"uuid,omitempty"`
+	LocksLocketEnabled              bool                  `json:"locket_enabled"`
 	debugserver.DebugServerConfig
 	lagerflags.LagerConfig
 	locket.ClientLocketConfig

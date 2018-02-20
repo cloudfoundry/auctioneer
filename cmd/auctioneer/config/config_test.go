@@ -39,6 +39,7 @@ var _ = Describe("AuctioneerConfig", func() {
 			"listen_address": "0.0.0.0:9090",
 			"lock_retry_interval": "1m",
 			"lock_ttl": "20s",
+			"locket_enabled": true,
 			"locket_address": "laksdjflksdajflkajsdf",
 			"locket_ca_cert_file": "locket-ca-cert",
 			"locket_client_cert_file": "locket-client-cert",
@@ -101,6 +102,7 @@ var _ = Describe("AuctioneerConfig", func() {
 			BBSMaxIdleConnsPerHost:    10,
 			CACertFile:                "/path-to-cert",
 			CellStateTimeout:          durationjson.Duration(2 * time.Second),
+			LocksLocketEnabled:        true,
 			ClientLocketConfig: locket.ClientLocketConfig{
 				LocketAddress:        "laksdjflksdajflkajsdf",
 				LocketCACertFile:     "locket-ca-cert",
