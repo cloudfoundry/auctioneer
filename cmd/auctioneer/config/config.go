@@ -24,7 +24,6 @@ type AuctioneerConfig struct {
 	CellStateTimeout                durationjson.Duration `json:"cell_state_timeout,omitempty"`
 	CommunicationTimeout            durationjson.Duration `json:"communication_timeout,omitempty"`
 	ConsulCluster                   string                `json:"consul_cluster,omitempty"`
-	DropsondePort                   int                   `json:"dropsonde_port,omitempty"`
 	EnableConsulServiceRegistration bool                  `json:"enable_consul_service_registration,omitempty"`
 	ListenAddress                   string                `json:"listen_address,omitempty"`
 	LockRetryInterval               durationjson.Duration `json:"lock_retry_interval,omitempty"`
@@ -53,7 +52,6 @@ func DefaultAuctioneerConfig() AuctioneerConfig {
 		AuctionRunnerWorkers:          1000,
 		CellStateTimeout:              durationjson.Duration(1 * time.Second),
 		CommunicationTimeout:          durationjson.Duration(10 * time.Second),
-		DropsondePort:                 3457,
 		LagerConfig:                   lagerflags.DefaultLagerConfig(),
 		ListenAddress:                 "0.0.0.0:9016",
 		LockRetryInterval:             durationjson.Duration(locket.RetryInterval),

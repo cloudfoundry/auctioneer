@@ -37,7 +37,6 @@ import (
 	"code.cloudfoundry.org/auction/auctiontypes"
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/workpool"
-	"github.com/cloudfoundry/dropsonde"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/http_server"
@@ -51,7 +50,6 @@ var configFilePath = flag.String(
 )
 
 const (
-	dropsondeOrigin   = "auctioneer"
 	serverProtocol    = "http"
 	auctioneerLockKey = "auctioneer"
 )
@@ -69,6 +67,9 @@ func main() {
 
 	logger, reconfigurableSink := lagerflags.NewFromConfig("auctioneer", cfg.LagerConfig)
 	metronClient, err := initializeMetron(logger, cfg)
+	if err != nil {
+		logger.Fatal("failed-to-initialize-metron", err)
+	}
 
 	if err := validateBBSAddress(cfg.BBSAddress); err != nil {
 		logger.Fatal("invalid-bbs-address", err)
@@ -229,19 +230,9 @@ func initializeMetron(logger lager.Logger, cfg config.AuctioneerConfig) (logging
 	if cfg.LoggregatorConfig.UseV2API {
 		emitter := runtimeemitter.NewV1(client)
 		go emitter.Run()
-	} else {
-		initializeDropsonde(logger, cfg.DropsondePort)
 	}
 
 	return client, nil
-}
-
-func initializeDropsonde(logger lager.Logger, dropsondePort int) {
-	dropsondeDestination := fmt.Sprint("localhost:", dropsondePort)
-	err := dropsonde.Initialize(dropsondeDestination, dropsondeOrigin)
-	if err != nil {
-		logger.Error("failed to initialize dropsonde: %v", err)
-	}
 }
 
 func initializeRegistrationRunner(logger lager.Logger, consulClient consuladapter.Client, clock clock.Clock, port int) ifrit.Runner {

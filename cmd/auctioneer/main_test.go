@@ -19,16 +19,16 @@ import (
 	"code.cloudfoundry.org/bbs/models"
 	"code.cloudfoundry.org/bbs/models/test/model_helpers"
 	"code.cloudfoundry.org/clock"
-	mfakes "code.cloudfoundry.org/diego-logging-client/testhelpers"
+	"code.cloudfoundry.org/diego-logging-client"
+	"code.cloudfoundry.org/diego-logging-client/testhelpers"
 	"code.cloudfoundry.org/durationjson"
+	"code.cloudfoundry.org/go-loggregator/rpc/loggregator_v2"
 	"code.cloudfoundry.org/locket"
 	locketconfig "code.cloudfoundry.org/locket/cmd/locket/config"
 	locketrunner "code.cloudfoundry.org/locket/cmd/locket/testrunner"
 	"code.cloudfoundry.org/locket/lock"
 	locketmodels "code.cloudfoundry.org/locket/models"
 	"code.cloudfoundry.org/rep"
-	"github.com/cloudfoundry/sonde-go/events"
-	"github.com/gogo/protobuf/proto"
 	"github.com/hashicorp/consul/api"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -76,41 +76,37 @@ var _ = Describe("Auctioneer", func() {
 		locketProcess ifrit.Process
 		locketAddress string
 
-		testMetricsListener net.PacketConn
-		testMetricsChan     chan *events.Envelope
-		fakeMetronClient    *mfakes.FakeIngressClient
+		testIngressServer *testhelpers.TestIngressServer
+		testMetricsChan   chan *loggregator_v2.Envelope
+		fakeMetronClient  *testhelpers.FakeIngressClient
+		signalMetricsChan chan struct{}
 	)
 
 	BeforeEach(func() {
-		fakeMetronClient = &mfakes.FakeIngressClient{}
-
-		testMetricsListener, _ = net.ListenPacket("udp", "127.0.0.1:0")
-		testMetricsChan = make(chan *events.Envelope, 1)
-		go func() {
-			defer GinkgoRecover()
-			for {
-				buffer := make([]byte, 1024)
-				n, _, err := testMetricsListener.ReadFrom(buffer)
-				if err != nil {
-					close(testMetricsChan)
-					return
-				}
-
-				var envelope events.Envelope
-				err = proto.Unmarshal(buffer[:n], &envelope)
-				Expect(err).NotTo(HaveOccurred())
-				testMetricsChan <- &envelope
-			}
-		}()
-
-		port, err := strconv.Atoi(strings.TrimPrefix(testMetricsListener.LocalAddr().String(), "127.0.0.1:"))
-		Expect(err).NotTo(HaveOccurred())
-
 		fixturesPath := path.Join(os.Getenv("GOPATH"), "src/code.cloudfoundry.org/auctioneer/cmd/auctioneer/fixtures")
 
 		caFile := path.Join(fixturesPath, "green-certs", "ca.crt")
 		clientCertFile := path.Join(fixturesPath, "green-certs", "client.crt")
 		clientKeyFile := path.Join(fixturesPath, "green-certs", "client.key")
+
+		metronCAFile := path.Join(fixturesPath, "metron", "CA.crt")
+		metronClientCertFile := path.Join(fixturesPath, "metron", "client.crt")
+		metronClientKeyFile := path.Join(fixturesPath, "metron", "client.key")
+		metronServerCertFile := path.Join(fixturesPath, "metron", "metron.crt")
+		metronServerKeyFile := path.Join(fixturesPath, "metron", "metron.key")
+
+		var err error
+		testIngressServer, err = testhelpers.NewTestIngressServer(metronServerCertFile, metronServerKeyFile, metronCAFile)
+		Expect(err).NotTo(HaveOccurred())
+		receiversChan := testIngressServer.Receivers()
+		testIngressServer.Start()
+		metricsPort, err := strconv.Atoi(strings.TrimPrefix(testIngressServer.Addr(), "127.0.0.1:"))
+		Expect(err).NotTo(HaveOccurred())
+
+		testMetricsChan, signalMetricsChan = testhelpers.TestMetricChan(receiversChan)
+
+		fakeMetronClient = &testhelpers.FakeIngressClient{}
+
 		bbsClient, err = bbs.NewClient(bbsURL.String(), caFile, clientCertFile, clientKeyFile, 0, 0)
 		Expect(err).NotTo(HaveOccurred())
 
@@ -124,8 +120,16 @@ var _ = Describe("Auctioneer", func() {
 			LockRetryInterval:  durationjson.Duration(time.Second),
 			ConsulCluster:      consulRunner.ConsulCluster(),
 			UUID:               "auctioneer-boshy-bosh",
-			DropsondePort:      port,
 			ReportInterval:     durationjson.Duration(10 * time.Millisecond),
+			LoggregatorConfig: diego_logging_client.Config{
+				BatchFlushInterval: 10 * time.Millisecond,
+				BatchMaxSize:       1,
+				UseV2API:           true,
+				APIPort:            metricsPort,
+				CACertPath:         metronCAFile,
+				KeyPath:            metronClientKeyFile,
+				CertPath:           metronClientCertFile,
+			},
 		}
 		auctioneerClient = auctioneer.NewClient("http://" + auctioneerLocation)
 	})
@@ -154,8 +158,8 @@ var _ = Describe("Auctioneer", func() {
 	AfterEach(func() {
 		ginkgomon.Interrupt(locketProcess)
 		ginkgomon.Interrupt(auctioneerProcess)
-		testMetricsListener.Close()
-		Eventually(testMetricsChan).Should(BeClosed())
+		testIngressServer.Stop()
+		close(signalMetricsChan)
 	})
 
 	Context("when the bbs is down", func() {
@@ -485,25 +489,10 @@ var _ = Describe("Auctioneer", func() {
 				})
 			}).ShouldNot(HaveOccurred())
 
-			var sawHeldMetric bool
-			timeout := time.After(50 * time.Millisecond)
-		OUTER_LOOP:
-			for {
-				select {
-				case envelope := <-testMetricsChan:
-					if envelope.GetEventType() == events.Envelope_ValueMetric {
-						if *envelope.ValueMetric.Name == "LockHeld" {
-							if *envelope.ValueMetric.Value == float64(1) {
-								sawHeldMetric = true
-								break
-							}
-						}
-					}
-				case <-timeout:
-					break OUTER_LOOP
-				}
-			}
-			Expect(sawHeldMetric).To(BeTrue())
+			Eventually(testMetricsChan).Should(Receive(testhelpers.MatchV2MetricAndValue(testhelpers.MetricAndValue{
+				Name:  "LockHeld",
+				Value: 1,
+			})))
 		})
 
 		Context("and the locking server becomes unreachable after grabbing the lock", func() {
@@ -575,25 +564,10 @@ var _ = Describe("Auctioneer", func() {
 			It("emits metric about not holding lock", func() {
 				Eventually(runner.Buffer()).Should(gbytes.Say("failed-to-acquire-lock"))
 
-				var sawHeldMetric bool
-				timeout := time.After(50 * time.Millisecond)
-			OUTER_LOOP:
-				for {
-					select {
-					case envelope := <-testMetricsChan:
-						if envelope.GetEventType() == events.Envelope_ValueMetric {
-							if *envelope.ValueMetric.Name == "LockHeld" {
-								if *envelope.ValueMetric.Value == float64(0) {
-									sawHeldMetric = true
-									break
-								}
-							}
-						}
-					case <-timeout:
-						break OUTER_LOOP
-					}
-				}
-				Expect(sawHeldMetric).To(BeTrue())
+				Eventually(testMetricsChan).Should(Receive(testhelpers.MatchV2MetricAndValue(testhelpers.MetricAndValue{
+					Name:  "LockHeld",
+					Value: 0,
+				})))
 			})
 
 			Context("and continues to be unavailable", func() {
