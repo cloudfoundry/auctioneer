@@ -9,8 +9,6 @@ import (
 	"os"
 	"os/exec"
 	"path"
-	"strconv"
-	"strings"
 	"time"
 
 	"code.cloudfoundry.org/auctioneer"
@@ -100,7 +98,7 @@ var _ = Describe("Auctioneer", func() {
 		Expect(err).NotTo(HaveOccurred())
 		receiversChan := testIngressServer.Receivers()
 		testIngressServer.Start()
-		metricsPort, err := strconv.Atoi(strings.TrimPrefix(testIngressServer.Addr(), "127.0.0.1:"))
+		metricsPort, err := testIngressServer.Port()
 		Expect(err).NotTo(HaveOccurred())
 
 		testMetricsChan, signalMetricsChan = testhelpers.TestMetricChan(receiversChan)
