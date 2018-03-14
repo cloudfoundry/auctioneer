@@ -119,7 +119,7 @@ var _ = Describe("Auctioneer", func() {
 			ConsulCluster:      consulRunner.ConsulCluster(),
 			UUID:               "auctioneer-boshy-bosh",
 			ReportInterval:     durationjson.Duration(10 * time.Millisecond),
-			LoggregatorConfig: diego_logging_client.Config{
+			LoggregatorConfig: &diego_logging_client.Config{
 				BatchFlushInterval: 10 * time.Millisecond,
 				BatchMaxSize:       1,
 				UseV2API:           true,
