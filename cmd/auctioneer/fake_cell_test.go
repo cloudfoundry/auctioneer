@@ -19,6 +19,7 @@ import (
 	"code.cloudfoundry.org/rep/auctioncellrep/auctioncellrepfakes"
 	"code.cloudfoundry.org/rep/evacuation/evacuation_context/fake_evacuation_context"
 	rephandlers "code.cloudfoundry.org/rep/handlers"
+	"code.cloudfoundry.org/rep/handlers/handlersfakes"
 	"code.cloudfoundry.org/rep/maintain"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/rata"
@@ -85,6 +86,7 @@ func (f *FakeCell) SpinUp(cellPresenceClient maintain.CellPresenceClient) {
 	fakeEvacuatable := new(fake_evacuation_context.FakeEvacuatable)
 
 	fakeAuctionCellClient := new(auctioncellrepfakes.FakeAuctionCellClient)
+	fakeMetricCollector := new(handlersfakes.FakeMetricCollector)
 	fakeAuctionCellClient.StateStub = func(logger lager.Logger) (rep.CellState, bool, error) {
 		state, err := f.SimulationRep.State(logger)
 		if err != nil {
@@ -94,7 +96,7 @@ func (f *FakeCell) SpinUp(cellPresenceClient maintain.CellPresenceClient) {
 	}
 	fakeAuctionCellClient.PerformStub = f.SimulationRep.Perform
 
-	handlers := rephandlers.NewLegacy(fakeAuctionCellClient, fakeExecutorClient, fakeEvacuatable, logger)
+	handlers := rephandlers.NewLegacy(fakeAuctionCellClient, fakeMetricCollector, fakeExecutorClient, fakeEvacuatable, logger)
 	router, err := rata.NewRouter(rep.Routes, handlers)
 	Expect(err).NotTo(HaveOccurred())
 	f.server = httptest.NewServer(router)
