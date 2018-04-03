@@ -194,9 +194,9 @@ var _ = Describe("Auction Runner Delegate", func() {
 			delegate.AuctionCompleted(results)
 		})
 
-		It("should mark all failed tasks as COMPLETE with the appropriate failure reason", func() {
-			Expect(bbsClient.FailTaskCallCount()).To(Equal(1))
-			_, taskGuid, failureReason := bbsClient.FailTaskArgsForCall(0)
+		It("should reject all tasks with the appropriate failure reason", func() {
+			Expect(bbsClient.RejectTaskCallCount()).To(Equal(1))
+			_, taskGuid, failureReason := bbsClient.RejectTaskArgsForCall(0)
 			Expect(taskGuid).To(Equal("failed-task"))
 			Expect(failureReason).To(Equal("insufficient resources"))
 		})
