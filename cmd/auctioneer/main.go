@@ -222,7 +222,7 @@ func initializeAuctionRunner(logger lager.Logger, cfg config.AuctioneerConfig, b
 }
 
 func initializeMetron(logger lager.Logger, cfg config.AuctioneerConfig) (loggingclient.IngressClient, error) {
-	client, err := loggingclient.NewIngressClient(*cfg.LoggregatorConfig)
+	client, err := loggingclient.NewIngressClient(cfg.LoggregatorConfig)
 	if err != nil {
 		return nil, err
 	}

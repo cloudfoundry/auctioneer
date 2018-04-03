@@ -28,7 +28,7 @@ type AuctioneerConfig struct {
 	ListenAddress                   string                `json:"listen_address,omitempty"`
 	LockRetryInterval               durationjson.Duration `json:"lock_retry_interval,omitempty"`
 	LockTTL                         durationjson.Duration `json:"lock_ttl,omitempty"`
-	LoggregatorConfig               *loggingclient.Config `json:"loggregator,omitempty"`
+	LoggregatorConfig               loggingclient.Config  `json:"loggregator"`
 	RepCACert                       string                `json:"rep_ca_cert,omitempty"`
 	RepClientCert                   string                `json:"rep_client_cert,omitempty"`
 	RepClientKey                    string                `json:"rep_client_key,omitempty"`
@@ -59,9 +59,6 @@ func DefaultAuctioneerConfig() AuctioneerConfig {
 		ReportInterval:                durationjson.Duration(1 * time.Minute),
 		StartingContainerCountMaximum: 0,
 		StartingContainerWeight:       .25,
-		LoggregatorConfig: &loggingclient.Config{
-			SourceID: "auctioneer",
-		},
 	}
 }
 
