@@ -160,6 +160,17 @@ var _ = Describe("Auctioneer", func() {
 		close(signalMetricsChan)
 	})
 
+	Context("when the metron agent isn't up", func() {
+		BeforeEach(func() {
+			testIngressServer.Stop()
+		})
+
+		It("exits with non-zero status code", func() {
+			auctioneerProcess = ifrit.Background(runner)
+			Eventually(auctioneerProcess.Wait()).Should(Receive(HaveOccurred()))
+		})
+	})
+
 	Context("when the bbs is down", func() {
 		BeforeEach(func() {
 			ginkgomon.Interrupt(bbsProcess)
