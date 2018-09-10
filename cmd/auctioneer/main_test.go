@@ -21,6 +21,7 @@ import (
 	"code.cloudfoundry.org/diego-logging-client/testhelpers"
 	"code.cloudfoundry.org/durationjson"
 	"code.cloudfoundry.org/go-loggregator/rpc/loggregator_v2"
+	"code.cloudfoundry.org/lager/lagerflags"
 	"code.cloudfoundry.org/locket"
 	locketconfig "code.cloudfoundry.org/locket/cmd/locket/config"
 	locketrunner "code.cloudfoundry.org/locket/cmd/locket/testrunner"
@@ -109,6 +110,14 @@ var _ = Describe("Auctioneer", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		auctioneerConfig = config.AuctioneerConfig{
+			AuctionRunnerWorkers: 1000,
+			CellStateTimeout:     durationjson.Duration(1 * time.Second),
+			CommunicationTimeout: durationjson.Duration(10 * time.Second),
+			LagerConfig:          lagerflags.DefaultLagerConfig(),
+			LockTTL:              durationjson.Duration(locket.DefaultSessionTTL),
+			StartingContainerCountMaximum: 0,
+			StartingContainerWeight:       .25,
+
 			BBSAddress:         bbsURL.String(),
 			BBSCACertFile:      caFile,
 			BBSClientCertFile:  clientCertFile,

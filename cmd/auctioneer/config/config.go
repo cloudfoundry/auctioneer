@@ -3,7 +3,6 @@ package config
 import (
 	"encoding/json"
 	"os"
-	"time"
 
 	"code.cloudfoundry.org/debugserver"
 	loggingclient "code.cloudfoundry.org/diego-logging-client"
@@ -47,23 +46,8 @@ type AuctioneerConfig struct {
 	locket.ClientLocketConfig
 }
 
-func DefaultAuctioneerConfig() AuctioneerConfig {
-	return AuctioneerConfig{
-		AuctionRunnerWorkers:          1000,
-		CellStateTimeout:              durationjson.Duration(1 * time.Second),
-		CommunicationTimeout:          durationjson.Duration(10 * time.Second),
-		LagerConfig:                   lagerflags.DefaultLagerConfig(),
-		ListenAddress:                 "0.0.0.0:9016",
-		LockRetryInterval:             durationjson.Duration(locket.RetryInterval),
-		LockTTL:                       durationjson.Duration(locket.DefaultSessionTTL),
-		ReportInterval:                durationjson.Duration(1 * time.Minute),
-		StartingContainerCountMaximum: 0,
-		StartingContainerWeight:       .25,
-	}
-}
-
 func NewAuctioneerConfig(configPath string) (AuctioneerConfig, error) {
-	cfg := DefaultAuctioneerConfig()
+	cfg := AuctioneerConfig{}
 
 	configFile, err := os.Open(configPath)
 	if err != nil {

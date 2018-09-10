@@ -1,7 +1,6 @@
 package config_test
 
 import (
-	"encoding/json"
 	"io/ioutil"
 	"os"
 	"time"
@@ -164,35 +163,6 @@ var _ = Describe("AuctioneerConfig", func() {
 		It("returns an error", func() {
 			_, err := config.NewAuctioneerConfig(configFilePath)
 			Expect(err).To(HaveOccurred())
-		})
-	})
-
-	Context("default values", func() {
-		BeforeEach(func() {
-			configData = `{}`
-		})
-
-		It("uses default values when they are not specified", func() {
-			auctioneerConfig, err := config.NewAuctioneerConfig(configFilePath)
-			Expect(err).NotTo(HaveOccurred())
-
-			Expect(auctioneerConfig).To(Equal(config.DefaultAuctioneerConfig()))
-		})
-
-		Context("when serialized from AuctioneerConfig", func() {
-			BeforeEach(func() {
-				auctioneerConfig := config.AuctioneerConfig{}
-				bytes, err := json.Marshal(auctioneerConfig)
-				Expect(err).NotTo(HaveOccurred())
-				configData = string(bytes)
-			})
-
-			It("uses default values when they are not specified", func() {
-				auctioneerConfig, err := config.NewAuctioneerConfig(configFilePath)
-				Expect(err).NotTo(HaveOccurred())
-
-				Expect(auctioneerConfig).To(Equal(config.DefaultAuctioneerConfig()))
-			})
 		})
 	})
 })
