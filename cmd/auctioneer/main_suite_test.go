@@ -18,7 +18,6 @@ import (
 	"code.cloudfoundry.org/bbs/models"
 	"code.cloudfoundry.org/bbs/test_helpers"
 	"code.cloudfoundry.org/bbs/test_helpers/sqlrunner"
-	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/consuladapter"
 	"code.cloudfoundry.org/consuladapter/consulrunner"
 	"code.cloudfoundry.org/durationjson"
@@ -27,7 +26,6 @@ import (
 	"code.cloudfoundry.org/lager/lagerflags"
 	"code.cloudfoundry.org/lager/lagertest"
 	"code.cloudfoundry.org/locket"
-	"code.cloudfoundry.org/rep/maintain"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
@@ -43,11 +41,10 @@ var (
 	auctioneerServerPort uint16
 	auctioneerLocation   string
 
-	dotNetStack           = "dot-net"
-	dotNetRootFSURL       = models.PreloadedRootFS(dotNetStack)
-	linuxStack            = "linux"
-	linuxRootFSURL        = models.PreloadedRootFS(linuxStack)
-	dotNetCell, linuxCell *FakeCell
+	dotNetStack     = "dot-net"
+	dotNetRootFSURL = models.PreloadedRootFS(dotNetStack)
+	linuxStack      = "linux"
+	linuxRootFSURL  = models.PreloadedRootFS(linuxStack)
 
 	consulRunner *consulrunner.ClusterRunner
 	consulClient consuladapter.Client
@@ -194,17 +191,10 @@ var _ = BeforeEach(func() {
 	bbsProcess = ginkgomon.Invoke(bbsRunner)
 
 	consulClient = consulRunner.NewClient()
-
-	cellPresenceClient := maintain.NewCellPresenceClient(consulClient, clock.NewClock())
-
-	dotNetCell = SpinUpFakeCell(cellPresenceClient, "dot-net-cell", "", dotNetStack)
-	linuxCell = SpinUpFakeCell(cellPresenceClient, "linux-cell", "", linuxStack)
 })
 
 var _ = AfterEach(func() {
 	ginkgomon.Kill(bbsProcess)
-	dotNetCell.Stop()
-	linuxCell.Stop()
 
 	sqlRunner.Reset()
 })

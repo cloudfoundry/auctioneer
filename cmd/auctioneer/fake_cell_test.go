@@ -33,24 +33,21 @@ type FakeCell struct {
 	heartbeater ifrit.Process
 	logger      lager.Logger
 
+	availableMemory         int
+	proxyMemoryAllocationMb int
+
 	SimulationRep rep.SimClient
 }
 
-func SpinUpFakeCell(cellPresenceClient maintain.CellPresenceClient, cellID string, repUrl string, stack string) *FakeCell {
+func NewFakeCell(cellPresenceClient maintain.CellPresenceClient, cellID string, repUrl string, stack string, availableMemory int, proxyMemoryAllocationMb int) *FakeCell {
 	fakeRep := &FakeCell{
-		cellID: cellID,
-		repUrl: repUrl,
-		stack:  stack,
-		logger: lager.NewLogger("fake-cell"),
+		cellID:                  cellID,
+		repUrl:                  repUrl,
+		stack:                   stack,
+		logger:                  lager.NewLogger("fake-cell"),
+		availableMemory:         availableMemory,
+		proxyMemoryAllocationMb: proxyMemoryAllocationMb,
 	}
-
-	fakeRep.SpinUp(cellPresenceClient)
-	Eventually(func() bool {
-		cells, err := cellPresenceClient.Cells(logger)
-		Expect(err).NotTo(HaveOccurred())
-		return cells.HasCellID(cellID)
-	}).Should(BeTrue())
-
 	return fakeRep
 }
 
@@ -74,7 +71,7 @@ func (f *FakeCell) SpinUp(cellPresenceClient maintain.CellPresenceClient) {
 	//make a test-friendly AuctionRepDelegate using the auction package's SimulationRepDelegate
 	f.SimulationRep = simulationrep.New(f.cellID, f.stack, "Z0", rep.Resources{
 		DiskMB:     100,
-		MemoryMB:   100,
+		MemoryMB:   int32(f.availableMemory),
 		Containers: 100,
 	}, []string{"my-driver"})
 
@@ -92,6 +89,8 @@ func (f *FakeCell) SpinUp(cellPresenceClient maintain.CellPresenceClient) {
 		if err != nil {
 			return rep.CellState{}, false, err
 		}
+
+		state.ProxyMemoryAllocationMB = f.proxyMemoryAllocationMb
 		return state, true, nil
 	}
 	fakeAuctionCellClient.PerformStub = f.SimulationRep.Perform
@@ -114,6 +113,11 @@ func (f *FakeCell) SpinUp(cellPresenceClient maintain.CellPresenceClient) {
 	)
 
 	f.heartbeater = ifrit.Invoke(cellPresenceClient.NewCellPresenceRunner(logger, &presence, time.Second, locket.DefaultSessionTTL))
+	Eventually(func() bool {
+		cells, err := cellPresenceClient.Cells(logger)
+		Expect(err).NotTo(HaveOccurred())
+		return cells.HasCellID(f.cellID)
+	}).Should(BeTrue())
 }
 
 func (f *FakeCell) Stop() {

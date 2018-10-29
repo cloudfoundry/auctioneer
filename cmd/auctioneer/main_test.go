@@ -28,6 +28,7 @@ import (
 	"code.cloudfoundry.org/locket/lock"
 	locketmodels "code.cloudfoundry.org/locket/models"
 	"code.cloudfoundry.org/rep"
+	"code.cloudfoundry.org/rep/maintain"
 	"github.com/hashicorp/consul/api"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -252,125 +253,197 @@ var _ = Describe("Auctioneer", func() {
 		})
 	})
 
-	Context("when a start auction message arrives", func() {
-		It("should start the process running on reps of the appropriate stack", func() {
-			auctioneerProcess = ginkgomon.Invoke(runner)
+	Context("with cells of different stacks", func() {
+		var (
+			dotNetCell, linuxCell *FakeCell
+		)
 
-			err := auctioneerClient.RequestLRPAuctions(logger, []*auctioneer.LRPStartRequest{{
-				ProcessGuid: exampleDesiredLRP.ProcessGuid,
-				Domain:      exampleDesiredLRP.Domain,
-				Indices:     []int{0},
-				Resource: rep.Resource{
-					MemoryMB: 5,
-					DiskMB:   5,
-				},
-				PlacementConstraint: rep.PlacementConstraint{
-					RootFs: exampleDesiredLRP.RootFs,
-				},
-			}})
-			Expect(err).NotTo(HaveOccurred())
-
-			err = auctioneerClient.RequestLRPAuctions(logger, []*auctioneer.LRPStartRequest{{
-				ProcessGuid: exampleDesiredLRP.ProcessGuid,
-				Domain:      exampleDesiredLRP.Domain,
-				Indices:     []int{1},
-				Resource: rep.Resource{
-					MemoryMB: 5,
-					DiskMB:   5,
-				},
-				PlacementConstraint: rep.PlacementConstraint{
-					RootFs: exampleDesiredLRP.RootFs,
-				},
-			}})
-			Expect(err).NotTo(HaveOccurred())
-			Eventually(linuxCell.LRPs).Should(HaveLen(2))
-			Expect(dotNetCell.LRPs()).To(BeEmpty())
-		})
-	})
-
-	Context("when exceeding max inflight container counts", func() {
 		BeforeEach(func() {
-			auctioneerConfig.StartingContainerCountMaximum = 1
+			cellPresenceClient := maintain.NewCellPresenceClient(consulClient, clock.NewClock())
+			dotNetCell = NewFakeCell(cellPresenceClient, "dot-net-cell", "", dotNetStack, 100, 0)
+			linuxCell = NewFakeCell(cellPresenceClient, "linux-cell", "", linuxStack, 100, 0)
+
+			dotNetCell.SpinUp(cellPresenceClient)
+			linuxCell.SpinUp(cellPresenceClient)
 		})
 
-		It("should only start up to the max inflight processes", func() {
-			auctioneerProcess = ginkgomon.Invoke(runner)
+		AfterEach(func() {
+			dotNetCell.Stop()
+			linuxCell.Stop()
+		})
 
-			err := auctioneerClient.RequestLRPAuctions(logger, []*auctioneer.LRPStartRequest{{
-				ProcessGuid: exampleDesiredLRP.ProcessGuid,
-				Domain:      exampleDesiredLRP.Domain,
-				Indices:     []int{0},
-				Resource: rep.Resource{
-					MemoryMB: 5,
-					DiskMB:   5,
-				},
-				PlacementConstraint: rep.PlacementConstraint{
-					RootFs: exampleDesiredLRP.RootFs,
-				},
-			}})
+		Context("when a start auction message arrives", func() {
+			It("should start the process running on reps of the appropriate stack", func() {
+				auctioneerProcess = ginkgomon.Invoke(runner)
 
-			Expect(err).NotTo(HaveOccurred())
+				err := auctioneerClient.RequestLRPAuctions(logger, []*auctioneer.LRPStartRequest{{
+					ProcessGuid: exampleDesiredLRP.ProcessGuid,
+					Domain:      exampleDesiredLRP.Domain,
+					Indices:     []int{0},
+					Resource: rep.Resource{
+						MemoryMB: 5,
+						DiskMB:   5,
+					},
+					PlacementConstraint: rep.PlacementConstraint{
+						RootFs: exampleDesiredLRP.RootFs,
+					},
+				}})
+				Expect(err).NotTo(HaveOccurred())
 
-			err = auctioneerClient.RequestLRPAuctions(logger, []*auctioneer.LRPStartRequest{{
-				ProcessGuid: exampleDesiredLRP.ProcessGuid,
-				Domain:      exampleDesiredLRP.Domain,
-				Indices:     []int{1},
-				Resource: rep.Resource{
-					MemoryMB: 5,
-					DiskMB:   5,
-				},
-			}})
-			Expect(err).NotTo(HaveOccurred())
+				err = auctioneerClient.RequestLRPAuctions(logger, []*auctioneer.LRPStartRequest{{
+					ProcessGuid: exampleDesiredLRP.ProcessGuid,
+					Domain:      exampleDesiredLRP.Domain,
+					Indices:     []int{1},
+					Resource: rep.Resource{
+						MemoryMB: 5,
+						DiskMB:   5,
+					},
+					PlacementConstraint: rep.PlacementConstraint{
+						RootFs: exampleDesiredLRP.RootFs,
+					},
+				}})
+				Expect(err).NotTo(HaveOccurred())
+				Eventually(linuxCell.LRPs).Should(HaveLen(2))
+				Expect(dotNetCell.LRPs()).To(BeEmpty())
+			})
+		})
 
-			Eventually(linuxCell.LRPs).Should(HaveLen(1))
+		Context("when exceeding max inflight container counts", func() {
+			BeforeEach(func() {
+				auctioneerConfig.StartingContainerCountMaximum = 1
+			})
+
+			It("should only start up to the max inflight processes", func() {
+				auctioneerProcess = ginkgomon.Invoke(runner)
+
+				err := auctioneerClient.RequestLRPAuctions(logger, []*auctioneer.LRPStartRequest{{
+					ProcessGuid: exampleDesiredLRP.ProcessGuid,
+					Domain:      exampleDesiredLRP.Domain,
+					Indices:     []int{0},
+					Resource: rep.Resource{
+						MemoryMB: 5,
+						DiskMB:   5,
+					},
+					PlacementConstraint: rep.PlacementConstraint{
+						RootFs: exampleDesiredLRP.RootFs,
+					},
+				}})
+
+				Expect(err).NotTo(HaveOccurred())
+
+				err = auctioneerClient.RequestLRPAuctions(logger, []*auctioneer.LRPStartRequest{{
+					ProcessGuid: exampleDesiredLRP.ProcessGuid,
+					Domain:      exampleDesiredLRP.Domain,
+					Indices:     []int{1},
+					Resource: rep.Resource{
+						MemoryMB: 5,
+						DiskMB:   5,
+					},
+				}})
+				Expect(err).NotTo(HaveOccurred())
+
+				Eventually(linuxCell.LRPs).Should(HaveLen(1))
+			})
+		})
+
+		Context("when a task message arrives", func() {
+			Context("when there are sufficient resources to start the task", func() {
+				It("should start the task running on reps of the appropriate stack", func() {
+					auctioneerProcess = ginkgomon.Invoke(runner)
+
+					taskDef := exampleTaskDefinition()
+					taskDef.DiskMb = 1
+					taskDef.MemoryMb = 1
+					taskDef.MaxPids = 1
+					err := bbsClient.DesireTask(logger, "guid", "domain", taskDef)
+					Expect(err).NotTo(HaveOccurred())
+
+					Eventually(linuxCell.Tasks).Should(HaveLen(1))
+					Expect(dotNetCell.Tasks()).To(BeEmpty())
+				})
+			})
+
+			Context("when there are insufficient resources to start the task", func() {
+				var taskDef *models.TaskDefinition
+
+				BeforeEach(func() {
+					taskDef = exampleTaskDefinition()
+					taskDef.DiskMb = 1000
+					taskDef.MemoryMb = 1000
+					taskDef.MaxPids = 1000
+				})
+
+				It("should not place the tasks and mark the task as failed in the BBS", func() {
+					auctioneerProcess = ginkgomon.Invoke(runner)
+
+					err := bbsClient.DesireTask(logger, "task-guid", "domain", taskDef)
+					Expect(err).NotTo(HaveOccurred())
+
+					Consistently(linuxCell.Tasks).Should(BeEmpty())
+					Consistently(dotNetCell.Tasks).Should(BeEmpty())
+
+					Eventually(func() []*models.Task {
+						return getTasksByState(bbsClient, models.Task_Completed)
+					}).Should(HaveLen(1))
+
+					completedTasks := getTasksByState(bbsClient, models.Task_Completed)
+					completedTask := completedTasks[0]
+					Expect(completedTask.TaskGuid).To(Equal("task-guid"))
+					Expect(completedTask.Failed).To(BeTrue())
+					Expect(completedTask.FailureReason).To(Equal("insufficient resources: disk, memory"))
+				})
+			})
 		})
 	})
 
-	Context("when a task message arrives", func() {
-		Context("when there are sufficient resources to start the task", func() {
-			It("should start the task running on reps of the appropriate stack", func() {
-				auctioneerProcess = ginkgomon.Invoke(runner)
+	Context("with a proxy-enabled cell and a proxy-disabled cell", func() {
+		const (
+			proxiedCellAvailableMemory   = 268
+			unproxiedCellAvailableMemory = 256
+			proxyMemoryFootprint         = 32
+			lrpRequiredMemory            = 256
+		)
 
-				taskDef := exampleTaskDefinition()
-				taskDef.DiskMb = 1
-				taskDef.MemoryMb = 1
-				taskDef.MaxPids = 1
-				err := bbsClient.DesireTask(logger, "guid", "domain", taskDef)
-				Expect(err).NotTo(HaveOccurred())
+		var (
+			proxiedCell   *FakeCell
+			unproxiedCell *FakeCell
+		)
 
-				Eventually(linuxCell.Tasks).Should(HaveLen(1))
-				Expect(dotNetCell.Tasks()).To(BeEmpty())
-			})
+		BeforeEach(func() {
+			cellPresenceClient := maintain.NewCellPresenceClient(consulClient, clock.NewClock())
+			proxiedCell = NewFakeCell(cellPresenceClient, "proxy-enabled-cell", "", linuxStack, proxiedCellAvailableMemory, proxyMemoryFootprint)
+			unproxiedCell = NewFakeCell(cellPresenceClient, "proxy-disabled-cell", "", linuxStack, unproxiedCellAvailableMemory, 0)
+
+			proxiedCell.SpinUp(cellPresenceClient)
+			unproxiedCell.SpinUp(cellPresenceClient)
 		})
 
-		Context("when there are insufficient resources to start the task", func() {
-			var taskDef *models.TaskDefinition
+		AfterEach(func() {
+			proxiedCell.Stop()
+			unproxiedCell.Stop()
+		})
 
-			BeforeEach(func() {
-				taskDef = exampleTaskDefinition()
-				taskDef.DiskMb = 1000
-				taskDef.MemoryMb = 1000
-				taskDef.MaxPids = 1000
-			})
-
-			It("should not place the tasks and mark the task as failed in the BBS", func() {
+		Context("when auctioning the lrp on the proxy-enabled cell puts lrp's memory requirements above proxied cell's memory limits", func() {
+			It("auctions the cell on the proxy-disabled cell", func() {
 				auctioneerProcess = ginkgomon.Invoke(runner)
 
-				err := bbsClient.DesireTask(logger, "task-guid", "domain", taskDef)
+				err := auctioneerClient.RequestLRPAuctions(logger, []*auctioneer.LRPStartRequest{
+					{
+						ProcessGuid: exampleDesiredLRP.ProcessGuid,
+						Domain:      exampleDesiredLRP.Domain,
+						Indices:     []int{0},
+						Resource: rep.Resource{
+							MemoryMB: lrpRequiredMemory,
+							DiskMB:   5,
+						},
+						PlacementConstraint: rep.PlacementConstraint{
+							RootFs: exampleDesiredLRP.RootFs,
+						},
+					},
+				})
 				Expect(err).NotTo(HaveOccurred())
-
-				Consistently(linuxCell.Tasks).Should(BeEmpty())
-				Consistently(dotNetCell.Tasks).Should(BeEmpty())
-
-				Eventually(func() []*models.Task {
-					return getTasksByState(bbsClient, models.Task_Completed)
-				}).Should(HaveLen(1))
-
-				completedTasks := getTasksByState(bbsClient, models.Task_Completed)
-				completedTask := completedTasks[0]
-				Expect(completedTask.TaskGuid).To(Equal("task-guid"))
-				Expect(completedTask.Failed).To(BeTrue())
-				Expect(completedTask.FailureReason).To(Equal("insufficient resources: disk, memory"))
+				Consistently(proxiedCell.LRPs).Should(HaveLen(0))
+				Eventually(unproxiedCell.LRPs).Should(HaveLen(1))
 			})
 		})
 	})
