@@ -160,7 +160,6 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 		RepClientSessionCacheSize:       0,
 		RepRequireTLS:                   false,
 		LagerConfig:                     lagerflags.DefaultLagerConfig(),
-		GenerateSuspectActualLRPs:       false,
 
 		ListenAddress:                  bbsAddress,
 		AdvertiseURL:                   bbsURL.String(),
