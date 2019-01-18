@@ -8,8 +8,8 @@ import (
 	"os"
 	"path"
 	"strings"
-
-	"google.golang.org/grpc/grpclog"
+	"testing"
+	"time"
 
 	"code.cloudfoundry.org/bbs"
 	bbsconfig "code.cloudfoundry.org/bbs/cmd/bbs/config"
@@ -31,9 +31,7 @@ import (
 	"github.com/onsi/gomega/gexec"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/ginkgomon"
-
-	"testing"
-	"time"
+	"google.golang.org/grpc/grpclog"
 )
 
 var (
@@ -41,10 +39,9 @@ var (
 	auctioneerServerPort uint16
 	auctioneerLocation   string
 
-	dotNetStack     = "dot-net"
-	dotNetRootFSURL = models.PreloadedRootFS(dotNetStack)
-	linuxStack      = "linux"
-	linuxRootFSURL  = models.PreloadedRootFS(linuxStack)
+	dotNetStack    = "dot-net"
+	linuxStack     = "linux"
+	linuxRootFSURL = models.PreloadedRootFS(linuxStack)
 
 	consulRunner *consulrunner.ClusterRunner
 	consulClient consuladapter.Client

@@ -18,10 +18,6 @@ func writeInternalErrorJSONResponse(w http.ResponseWriter, err error) {
 	})
 }
 
-func writeStatusCreatedResponse(w http.ResponseWriter) {
-	writeJSONResponse(w, http.StatusCreated, struct{}{})
-}
-
 func writeStatusAcceptedResponse(w http.ResponseWriter) {
 	writeJSONResponse(w, http.StatusAccepted, struct{}{})
 }
