@@ -9,6 +9,7 @@ import (
 
 	"code.cloudfoundry.org/cfhttp"
 	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/tlsconfig"
 	"github.com/tedsuo/rata"
 )
 
@@ -36,7 +37,10 @@ func NewSecureClient(auctioneerURL, caFile, certFile, keyFile string, requireTLS
 	insecureHTTPClient := cfhttp.NewClient()
 	httpClient := cfhttp.NewClient()
 
-	tlsConfig, err := cfhttp.NewTLSConfig(certFile, keyFile, caFile)
+	tlsConfig, err := tlsconfig.Build(
+		tlsconfig.WithInternalServiceDefaults(),
+		tlsconfig.WithIdentityFromFile(certFile, keyFile),
+	).Client(tlsconfig.WithAuthorityFromFile(caFile))
 	if err != nil {
 		return nil, err
 	}

@@ -32,6 +32,7 @@ import (
 	"code.cloudfoundry.org/locket/lockheldmetrics"
 	locketmodels "code.cloudfoundry.org/locket/models"
 	"code.cloudfoundry.org/rep"
+	"code.cloudfoundry.org/tlsconfig"
 
 	"code.cloudfoundry.org/auction/auctionrunner"
 	"code.cloudfoundry.org/auction/auctiontypes"
@@ -142,7 +143,10 @@ func main() {
 
 	var auctionServer ifrit.Runner
 	if cfg.ServerCertFile != "" || cfg.ServerKeyFile != "" || cfg.CACertFile != "" {
-		tlsConfig, err := cfhttp.NewTLSConfig(cfg.ServerCertFile, cfg.ServerKeyFile, cfg.CACertFile)
+		tlsConfig, err := tlsconfig.Build(
+			tlsconfig.WithInternalServiceDefaults(),
+			tlsconfig.WithIdentityFromFile(cfg.ServerCertFile, cfg.ServerKeyFile),
+		).Server(tlsconfig.WithClientAuthenticationFromFile(cfg.CACertFile))
 		if err != nil {
 			logger.Fatal("invalid-tls-config", err)
 		}
