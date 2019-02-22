@@ -1,36 +1,116 @@
 package auctioneer_test
 
 import (
-	. "code.cloudfoundry.org/auctioneer"
+	"net/http"
+	"os"
+	"path"
+	"time"
 
+	"code.cloudfoundry.org/auctioneer"
+	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagertest"
+	"code.cloudfoundry.org/tlsconfig"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/ghttp"
 )
 
 var _ = Describe("Auctioneer Client", func() {
-	Describe("NewSecureClient", func() {
-		var caFile, certFile, keyFile, auctioneerURL string
+	Describe("NewClient", func() {
+		var (
+			fakeAuctioneerServer *ghttp.Server
+			dummyLogger          lager.Logger
+		)
 
 		BeforeEach(func() {
-			auctioneerURL = "http://jim.jim.jim"
-			caFile = "cmd/auctioneer/fixtures/blue-certs/ca.crt"
-			certFile = "cmd/auctioneer/fixtures/blue-certs/client.crt"
-			keyFile = "cmd/auctioneer/fixtures/blue-certs/client.key"
+			fakeAuctioneerServer = ghttp.NewServer()
+
+			fakeAuctioneerServer.AppendHandlers(ghttp.CombineHandlers(
+				func(rw http.ResponseWriter, r *http.Request) {
+					time.Sleep(2 * time.Second)
+				},
+				ghttp.RespondWith(http.StatusAccepted, nil),
+			))
+
+			dummyLogger = lagertest.NewTestLogger("client_test")
 		})
 
 		It("works", func() {
-			_, err := NewSecureClient(auctioneerURL, caFile, certFile, keyFile, false)
+			c := auctioneer.NewClient(fakeAuctioneerServer.URL(), 5*time.Second)
+
+			err := c.RequestLRPAuctions(dummyLogger, []*auctioneer.LRPStartRequest{})
 			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("times out if the request takes too long", func() {
+			c := auctioneer.NewClient(fakeAuctioneerServer.URL(), 1*time.Second)
+
+			err := c.RequestLRPAuctions(dummyLogger, []*auctioneer.LRPStartRequest{})
+			Expect(err.Error()).To(ContainSubstring("request canceled"))
+		})
+	})
+
+	Describe("NewSecureClient", func() {
+		var (
+			caFile, certFile, keyFile string
+			fakeAuctioneerServer      *ghttp.Server
+			dummyLogger               lager.Logger
+		)
+
+		BeforeEach(func() {
+			basePath := path.Join(os.Getenv("GOPATH"), "src/code.cloudfoundry.org/auctioneer/cmd/auctioneer/fixtures")
+			caFile = path.Join(basePath, "green-certs", "ca.crt")
+
+			certFile = path.Join(basePath, "green-certs", "client.crt")
+			keyFile = path.Join(basePath, "green-certs", "client.key")
+
+			fakeAuctioneerServer = ghttp.NewUnstartedServer()
+
+			tlsConfig, err := tlsconfig.Build(
+				tlsconfig.WithInternalServiceDefaults(),
+				tlsconfig.WithIdentityFromFile(
+					path.Join(basePath, "green-certs", "server.crt"),
+					path.Join(basePath, "green-certs", "server.key"),
+				),
+			).Server(tlsconfig.WithClientAuthenticationFromFile(caFile))
+			Expect(err).NotTo(HaveOccurred())
+
+			fakeAuctioneerServer.HTTPTestServer.TLS = tlsConfig
+			fakeAuctioneerServer.HTTPTestServer.StartTLS()
+
+			fakeAuctioneerServer.AppendHandlers(ghttp.CombineHandlers(
+				func(rw http.ResponseWriter, r *http.Request) {
+					time.Sleep(2 * time.Second)
+				},
+				ghttp.RespondWith(http.StatusAccepted, nil),
+			))
+
+			dummyLogger = lagertest.NewTestLogger("client_test")
+		})
+
+		It("works", func() {
+			c, err := auctioneer.NewSecureClient(fakeAuctioneerServer.URL(), caFile, certFile, keyFile, true, 5*time.Second)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = c.RequestLRPAuctions(dummyLogger, []*auctioneer.LRPStartRequest{})
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("times out if the request takes too long", func() {
+			c, err := auctioneer.NewSecureClient(fakeAuctioneerServer.URL(), caFile, certFile, keyFile, true, 1*time.Second)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = c.RequestLRPAuctions(dummyLogger, []*auctioneer.LRPStartRequest{})
+			Expect(err.Error()).To(ContainSubstring("request canceled"))
 		})
 
 		Context("when the tls config is invalid", func() {
 			BeforeEach(func() {
-				certFile = "cmd/auctioneer/fixtures/green-certs/client.crt"
+				certFile = "cmd/auctioneer/fixtures/blue-certs/client.crt"
 			})
 
 			It("returns an error", func() {
-				_, err := NewSecureClient(auctioneerURL, caFile, certFile, keyFile, false)
-				Expect(err).To(HaveOccurred())
+				_, err := auctioneer.NewSecureClient(fakeAuctioneerServer.URL(), caFile, certFile, keyFile, true, time.Second)
 				Expect(err.Error()).To(MatchRegexp("failed to load keypair.*"))
 			})
 		})

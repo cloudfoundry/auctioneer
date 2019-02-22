@@ -18,7 +18,7 @@ import (
 	"code.cloudfoundry.org/auctioneer/cmd/auctioneer/config"
 	"code.cloudfoundry.org/auctioneer/handlers"
 	"code.cloudfoundry.org/bbs"
-	"code.cloudfoundry.org/cfhttp"
+	cfhttp "code.cloudfoundry.org/cfhttp/v2"
 	"code.cloudfoundry.org/consuladapter"
 	"code.cloudfoundry.org/debugserver"
 	loggingclient "code.cloudfoundry.org/diego-logging-client"
@@ -63,8 +63,6 @@ func main() {
 		// TODO: Test me?
 		panic(err)
 	}
-
-	cfhttp.Initialize(time.Duration(cfg.CommunicationTimeout))
 
 	logger, reconfigurableSink := lagerflags.NewFromConfig("auctioneer", cfg.LagerConfig)
 	metronClient, err := initializeMetron(logger, cfg)
@@ -193,8 +191,12 @@ func main() {
 }
 
 func initializeAuctionRunner(logger lager.Logger, cfg config.AuctioneerConfig, bbsClient bbs.InternalClient, metronClient loggingclient.IngressClient) auctiontypes.AuctionRunner {
-	httpClient := cfhttp.NewClient()
-	stateClient := cfhttp.NewCustomTimeoutClient(time.Duration(cfg.CellStateTimeout))
+	httpClient := cfhttp.NewClient(
+		cfhttp.WithRequestTimeout(time.Duration(cfg.CommunicationTimeout)),
+	)
+	stateClient := cfhttp.NewClient(
+		cfhttp.WithRequestTimeout(time.Duration(cfg.CellStateTimeout)),
+	)
 	repTLSConfig := &rep.TLSConfig{
 		RequireTLS:      cfg.RepRequireTLS,
 		CaCertFile:      cfg.RepCACert,
@@ -287,14 +289,16 @@ func validateBBSAddress(bbsAddress string) error {
 }
 
 func initializeBBSClient(logger lager.Logger, cfg config.AuctioneerConfig) bbs.InternalClient {
-	bbsClient, err := bbs.NewClient(
-		cfg.BBSAddress,
-		cfg.BBSCACertFile,
-		cfg.BBSClientCertFile,
-		cfg.BBSClientKeyFile,
-		cfg.BBSClientSessionCacheSize,
-		cfg.BBSMaxIdleConnsPerHost,
-	)
+	bbsClient, err := bbs.NewClientWithConfig(bbs.ClientConfig{
+		URL:                    cfg.BBSAddress,
+		IsTLS:                  true,
+		CAFile:                 cfg.BBSCACertFile,
+		CertFile:               cfg.BBSClientCertFile,
+		KeyFile:                cfg.BBSClientKeyFile,
+		ClientSessionCacheSize: cfg.BBSClientSessionCacheSize,
+		MaxIdleConnsPerHost:    cfg.BBSMaxIdleConnsPerHost,
+		RequestTimeout:         time.Duration(cfg.CommunicationTimeout),
+	})
 	if err != nil {
 		logger.Fatal("Failed to configure secure BBS client", err)
 	}

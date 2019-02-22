@@ -38,6 +38,10 @@ import (
 	"github.com/tedsuo/ifrit/ginkgomon"
 )
 
+const (
+	defaultAuctioneerClientRequestTimeout = 5 * time.Second
+)
+
 var dummyAction = &models.RunAction{
 	User: "me",
 	Path: "cat",
@@ -111,11 +115,11 @@ var _ = Describe("Auctioneer", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		auctioneerConfig = config.AuctioneerConfig{
-			AuctionRunnerWorkers: 1000,
-			CellStateTimeout:     durationjson.Duration(1 * time.Second),
-			CommunicationTimeout: durationjson.Duration(10 * time.Second),
-			LagerConfig:          lagerflags.DefaultLagerConfig(),
-			LockTTL:              durationjson.Duration(locket.DefaultSessionTTL),
+			AuctionRunnerWorkers:          1000,
+			CellStateTimeout:              durationjson.Duration(1 * time.Second),
+			CommunicationTimeout:          durationjson.Duration(10 * time.Second),
+			LagerConfig:                   lagerflags.DefaultLagerConfig(),
+			LockTTL:                       durationjson.Duration(locket.DefaultSessionTTL),
 			StartingContainerCountMaximum: 0,
 			StartingContainerWeight:       .25,
 
@@ -139,7 +143,7 @@ var _ = Describe("Auctioneer", func() {
 				CertPath:           metronClientCertFile,
 			},
 		}
-		auctioneerClient = auctioneer.NewClient("http://" + auctioneerLocation)
+		auctioneerClient = auctioneer.NewClient("http://"+auctioneerLocation, defaultAuctioneerClientRequestTimeout)
 	})
 
 	JustBeforeEach(func() {
@@ -828,7 +832,7 @@ var _ = Describe("Auctioneer", func() {
 			It("responds successfully to a TLS client", func() {
 				Eventually(auctioneerProcess.Ready()).Should(BeClosed())
 
-				secureAuctioneerClient, err := auctioneer.NewSecureClient("https://"+auctioneerLocation, caCertFile, serverCertFile, serverKeyFile, false)
+				secureAuctioneerClient, err := auctioneer.NewSecureClient("https://"+auctioneerLocation, caCertFile, serverCertFile, serverKeyFile, false, defaultAuctioneerClientRequestTimeout)
 				Expect(err).NotTo(HaveOccurred())
 
 				err = secureAuctioneerClient.RequestLRPAuctions(logger, nil)
@@ -853,7 +857,7 @@ var _ = Describe("Auctioneer", func() {
 
 			Context("and the auctioneer client is not configured with TLS", func() {
 				BeforeEach(func() {
-					client = auctioneer.NewClient("http://" + auctioneerLocation)
+					client = auctioneer.NewClient("http://"+auctioneerLocation, defaultAuctioneerClientRequestTimeout)
 				})
 
 				It("does not work", func() {
@@ -874,6 +878,7 @@ var _ = Describe("Auctioneer", func() {
 						"fixtures/green-certs/client.crt",
 						"fixtures/green-certs/client.key",
 						true,
+						defaultAuctioneerClientRequestTimeout,
 					)
 					Expect(err).NotTo(HaveOccurred())
 				})
@@ -891,7 +896,7 @@ var _ = Describe("Auctioneer", func() {
 		Context("when the auctioneer is not configured with TLS", func() {
 			Context("and the auctioneer client is not configured with TLS", func() {
 				BeforeEach(func() {
-					client = auctioneer.NewClient("http://" + auctioneerLocation)
+					client = auctioneer.NewClient("http://"+auctioneerLocation, defaultAuctioneerClientRequestTimeout)
 				})
 
 				It("works", func() {
@@ -913,6 +918,7 @@ var _ = Describe("Auctioneer", func() {
 							"fixtures/green-certs/client.crt",
 							"fixtures/green-certs/client.key",
 							true,
+							defaultAuctioneerClientRequestTimeout,
 						)
 						Expect(err).NotTo(HaveOccurred())
 					})
@@ -935,6 +941,7 @@ var _ = Describe("Auctioneer", func() {
 							"fixtures/green-certs/client.crt",
 							"fixtures/green-certs/client.key",
 							false,
+							defaultAuctioneerClientRequestTimeout,
 						)
 						Expect(err).NotTo(HaveOccurred())
 					})
