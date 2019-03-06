@@ -8,6 +8,7 @@ import (
 	"code.cloudfoundry.org/auction/simulation/simulationrep"
 	"code.cloudfoundry.org/bbs/models"
 	"code.cloudfoundry.org/locket"
+	"code.cloudfoundry.org/locket/metrics/helpers/helpersfakes"
 	"code.cloudfoundry.org/rep"
 
 	"code.cloudfoundry.org/lager"
@@ -94,8 +95,9 @@ func (f *FakeCell) SpinUp(cellPresenceClient maintain.CellPresenceClient) {
 		return state, true, nil
 	}
 	fakeAuctionCellClient.PerformStub = f.SimulationRep.Perform
+	fakeRequestMetrics := new(helpersfakes.FakeRequestMetrics)
 
-	handlers := rephandlers.NewLegacy(fakeAuctionCellClient, fakeMetricCollector, fakeExecutorClient, fakeEvacuatable, logger)
+	handlers := rephandlers.NewLegacy(fakeAuctionCellClient, fakeMetricCollector, fakeExecutorClient, fakeEvacuatable, fakeRequestMetrics, logger)
 	router, err := rata.NewRouter(rep.Routes, handlers)
 	Expect(err).NotTo(HaveOccurred())
 	f.server = httptest.NewServer(router)
