@@ -29,6 +29,7 @@ var _ = Describe("AuctioneerConfig", func() {
 			"bbs_client_session_cache_size": 100,
 			"bbs_max_idle_conns_per_host": 10,
 			"ca_cert_file": "/path-to-cert",
+			"bin_pack_first_fit_weight": 0.0,
 			"cell_state_timeout": "2s",
 			"communication_timeout": "15s",
 			"consul_cluster": "1.1.1.1",
@@ -99,6 +100,7 @@ var _ = Describe("AuctioneerConfig", func() {
 			BBSClientSessionCacheSize: 100,
 			BBSMaxIdleConnsPerHost:    10,
 			CACertFile:                "/path-to-cert",
+			BinPackFirstFitWeight:     0.0,
 			CellStateTimeout:          durationjson.Duration(2 * time.Second),
 			LocksLocketEnabled:        true,
 			ClientLocketConfig: locket.ClientLocketConfig{
