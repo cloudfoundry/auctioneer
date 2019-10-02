@@ -116,6 +116,7 @@ var _ = Describe("Auctioneer", func() {
 
 		auctioneerConfig = config.AuctioneerConfig{
 			AuctionRunnerWorkers:          1000,
+			BinPackFirstFitWeight:         0.0,
 			CellStateTimeout:              durationjson.Duration(1 * time.Second),
 			CommunicationTimeout:          durationjson.Duration(10 * time.Second),
 			LagerConfig:                   lagerflags.DefaultLagerConfig(),
