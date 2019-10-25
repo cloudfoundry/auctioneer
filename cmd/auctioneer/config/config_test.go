@@ -142,7 +142,7 @@ var _ = Describe("AuctioneerConfig", func() {
 			SkipConsulLock:                true,
 			StartingContainerCountMaximum: 10,
 			StartingContainerWeight:       .5,
-			UUID: "bosh-boshy-bosh-bosh",
+			UUID:                          "bosh-boshy-bosh-bosh",
 		}
 
 		Expect(auctioneerConfig).To(Equal(expectedConfig))
