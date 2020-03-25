@@ -28,6 +28,7 @@ import (
 
 type FakeCell struct {
 	cellID      string
+	cellIndex   int
 	repUrl      string
 	stack       string
 	server      *httptest.Server
@@ -40,9 +41,10 @@ type FakeCell struct {
 	SimulationRep rep.SimClient
 }
 
-func NewFakeCell(cellPresenceClient maintain.CellPresenceClient, cellID string, repUrl string, stack string, availableMemory int, proxyMemoryAllocationMb int) *FakeCell {
+func NewFakeCell(cellPresenceClient maintain.CellPresenceClient, cellID string, cellIndex int, repUrl string, stack string, availableMemory int, proxyMemoryAllocationMb int) *FakeCell {
 	fakeRep := &FakeCell{
 		cellID:                  cellID,
+		cellIndex:               cellIndex,
 		repUrl:                  repUrl,
 		stack:                   stack,
 		logger:                  lager.NewLogger("fake-cell"),
@@ -70,7 +72,7 @@ func (f *FakeCell) Tasks() ([]rep.Task, error) {
 
 func (f *FakeCell) SpinUp(cellPresenceClient maintain.CellPresenceClient) {
 	//make a test-friendly AuctionRepDelegate using the auction package's SimulationRepDelegate
-	f.SimulationRep = simulationrep.New(f.cellID, f.stack, "Z0", rep.Resources{
+	f.SimulationRep = simulationrep.New(f.cellID, f.cellIndex, f.stack, "Z0", rep.Resources{
 		DiskMB:     100,
 		MemoryMB:   int32(f.availableMemory),
 		Containers: 100,

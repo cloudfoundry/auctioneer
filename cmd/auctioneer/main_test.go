@@ -17,7 +17,7 @@ import (
 	"code.cloudfoundry.org/bbs/models"
 	"code.cloudfoundry.org/bbs/models/test/model_helpers"
 	"code.cloudfoundry.org/clock"
-	"code.cloudfoundry.org/diego-logging-client"
+	diego_logging_client "code.cloudfoundry.org/diego-logging-client"
 	"code.cloudfoundry.org/diego-logging-client/testhelpers"
 	"code.cloudfoundry.org/durationjson"
 	"code.cloudfoundry.org/go-loggregator/rpc/loggregator_v2"
@@ -265,8 +265,8 @@ var _ = Describe("Auctioneer", func() {
 
 		BeforeEach(func() {
 			cellPresenceClient := maintain.NewCellPresenceClient(consulClient, clock.NewClock())
-			dotNetCell = NewFakeCell(cellPresenceClient, "dot-net-cell", "", dotNetStack, 100, 0)
-			linuxCell = NewFakeCell(cellPresenceClient, "linux-cell", "", linuxStack, 100, 0)
+			dotNetCell = NewFakeCell(cellPresenceClient, "dot-net-cell", 0, "", dotNetStack, 100, 0)
+			linuxCell = NewFakeCell(cellPresenceClient, "linux-cell", 0, "", linuxStack, 100, 0)
 
 			dotNetCell.SpinUp(cellPresenceClient)
 			linuxCell.SpinUp(cellPresenceClient)
@@ -416,8 +416,8 @@ var _ = Describe("Auctioneer", func() {
 
 		BeforeEach(func() {
 			cellPresenceClient := maintain.NewCellPresenceClient(consulClient, clock.NewClock())
-			proxiedCell = NewFakeCell(cellPresenceClient, "proxy-enabled-cell", "", linuxStack, proxiedCellAvailableMemory, proxyMemoryFootprint)
-			unproxiedCell = NewFakeCell(cellPresenceClient, "proxy-disabled-cell", "", linuxStack, unproxiedCellAvailableMemory, 0)
+			proxiedCell = NewFakeCell(cellPresenceClient, "proxy-enabled-cell", 0, "", linuxStack, proxiedCellAvailableMemory, proxyMemoryFootprint)
+			unproxiedCell = NewFakeCell(cellPresenceClient, "proxy-disabled-cell", 0, "", linuxStack, unproxiedCellAvailableMemory, 0)
 
 			proxiedCell.SpinUp(cellPresenceClient)
 			unproxiedCell.SpinUp(cellPresenceClient)
