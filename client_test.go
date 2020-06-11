@@ -48,6 +48,7 @@ var _ = Describe("Auctioneer Client", func() {
 			err := c.RequestLRPAuctions(dummyLogger, []*auctioneer.LRPStartRequest{})
 			Expect(err.Error()).To(ContainSubstring("request canceled"))
 		})
+
 	})
 
 	Describe("NewSecureClient", func() {
@@ -65,7 +66,6 @@ var _ = Describe("Auctioneer Client", func() {
 			keyFile = path.Join(basePath, "green-certs", "client.key")
 
 			fakeAuctioneerServer = ghttp.NewUnstartedServer()
-
 			tlsConfig, err := tlsconfig.Build(
 				tlsconfig.WithInternalServiceDefaults(),
 				tlsconfig.WithIdentityFromFile(
@@ -97,7 +97,7 @@ var _ = Describe("Auctioneer Client", func() {
 		})
 
 		It("times out if the request takes too long", func() {
-			c, err := auctioneer.NewSecureClient(fakeAuctioneerServer.URL(), caFile, certFile, keyFile, true, 1*time.Second)
+			c, err := auctioneer.NewSecureClient(fakeAuctioneerServer.URL(), caFile, certFile, keyFile, true, time.Second)
 			Expect(err).NotTo(HaveOccurred())
 
 			err = c.RequestLRPAuctions(dummyLogger, []*auctioneer.LRPStartRequest{})
@@ -113,6 +113,49 @@ var _ = Describe("Auctioneer Client", func() {
 				_, err := auctioneer.NewSecureClient(fakeAuctioneerServer.URL(), caFile, certFile, keyFile, true, time.Second)
 				Expect(err.Error()).To(MatchRegexp("failed to load keypair.*"))
 			})
+		})
+	})
+
+	Describe("Falls back to non-TLS when TLS is not required", func() {
+		var (
+			caFile, certFile, keyFile string
+			fakeAuctioneerServer      *ghttp.Server
+			dummyLogger               lager.Logger
+		)
+
+		AfterEach(func() {
+			fakeAuctioneerServer.Close()
+		})
+
+		BeforeEach(func() {
+			basePath := path.Join(os.Getenv("GOPATH"), "src/code.cloudfoundry.org/auctioneer/cmd/auctioneer/fixtures")
+			caFile = path.Join(basePath, "green-certs", "ca.crt")
+
+			certFile = path.Join(basePath, "green-certs", "client.crt")
+			keyFile = path.Join(basePath, "green-certs", "client.key")
+
+			fakeAuctioneerServer = ghttp.NewServer()
+
+			fakeAuctioneerServer.AppendHandlers(ghttp.CombineHandlers(
+				func(rw http.ResponseWriter, r *http.Request) {
+					time.Sleep(2 * time.Second)
+				},
+				ghttp.RespondWith(http.StatusAccepted, nil),
+			),
+				ghttp.CombineHandlers(
+					func(rw http.ResponseWriter, r *http.Request) {
+					},
+					ghttp.RespondWith(http.StatusAccepted, nil),
+				))
+			dummyLogger = lagertest.NewTestLogger("client_test")
+		})
+
+		It("retries the insecure client", func() {
+			c, err := auctioneer.NewSecureClient(fakeAuctioneerServer.URL(), caFile, certFile, keyFile, false, 1*time.Second)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = c.RequestLRPAuctions(dummyLogger, []*auctioneer.LRPStartRequest{})
+			Expect(err).NotTo(HaveOccurred())
 		})
 	})
 })
