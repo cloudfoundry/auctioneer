@@ -1,6 +1,7 @@
 package auctioneer_test
 
 import (
+	"context"
 	"net/http"
 	"os"
 	"path"
@@ -46,7 +47,7 @@ var _ = Describe("Auctioneer Client", func() {
 			c := auctioneer.NewClient(fakeAuctioneerServer.URL(), 1*time.Second)
 
 			err := c.RequestLRPAuctions(dummyLogger, []*auctioneer.LRPStartRequest{})
-			Expect(err.Error()).To(ContainSubstring("request canceled"))
+			Expect(err.Error()).To(ContainSubstring(context.DeadlineExceeded.Error()))
 		})
 	})
 
@@ -101,7 +102,7 @@ var _ = Describe("Auctioneer Client", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			err = c.RequestLRPAuctions(dummyLogger, []*auctioneer.LRPStartRequest{})
-			Expect(err.Error()).To(ContainSubstring("request canceled"))
+			Expect(err.Error()).To(ContainSubstring(context.DeadlineExceeded.Error()))
 		})
 
 		Context("when the tls config is invalid", func() {
