@@ -21,6 +21,7 @@ type AuctioneerConfig struct {
 	BBSMaxIdleConnsPerHost          int                   `json:"bbs_max_idle_conns_per_host,omitempty"`
 	CACertFile                      string                `json:"ca_cert_file,omitempty"`
 	BinPackFirstFitWeight           float64               `json:"bin_pack_first_fit_weight,omitempty"`
+	UseCellIndexNormalisation       bool                  `json:"use_cell_index_normalisation,omitempty"`
 	CellStateTimeout                durationjson.Duration `json:"cell_state_timeout,omitempty"`
 	CommunicationTimeout            durationjson.Duration `json:"communication_timeout,omitempty"`
 	ConsulCluster                   string                `json:"consul_cluster,omitempty"`
