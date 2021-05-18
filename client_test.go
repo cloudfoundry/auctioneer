@@ -60,7 +60,7 @@ var _ = Describe("Auctioneer Client", func() {
 		)
 
 		BeforeEach(func() {
-			basePath := path.Join(os.Getenv("GOPATH"), "src/code.cloudfoundry.org/auctioneer/cmd/auctioneer/fixtures")
+			basePath := path.Join(os.Getenv("DIEGO_RELEASE_DIR"), "src/code.cloudfoundry.org/auctioneer/cmd/auctioneer/fixtures")
 			caFile = path.Join(basePath, "green-certs", "ca.crt")
 
 			certFile = path.Join(basePath, "green-certs", "client.crt")
@@ -129,7 +129,7 @@ var _ = Describe("Auctioneer Client", func() {
 		})
 
 		BeforeEach(func() {
-			basePath := path.Join(os.Getenv("GOPATH"), "src/code.cloudfoundry.org/auctioneer/cmd/auctioneer/fixtures")
+			basePath := path.Join(os.Getenv("DIEGO_RELEASE_DIR"), "src/code.cloudfoundry.org/auctioneer/cmd/auctioneer/fixtures")
 			caFile = path.Join(basePath, "green-certs", "ca.crt")
 
 			certFile = path.Join(basePath, "green-certs", "client.crt")
