@@ -133,7 +133,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 		Host:   bbsAddress,
 	}
 
-	fixturesPath := path.Join(os.Getenv("GOPATH"), "src/code.cloudfoundry.org/auctioneer/cmd/auctioneer/fixtures")
+	fixturesPath := path.Join(os.Getenv("DIEGO_RELEASE_DIR"), "src/code.cloudfoundry.org/auctioneer/cmd/auctioneer/fixtures")
 
 	bbsConfig = bbsconfig.BBSConfig{
 		SessionName:                     "bbs",
