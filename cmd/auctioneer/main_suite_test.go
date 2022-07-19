@@ -84,7 +84,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	return []byte(strings.Join([]string{compiledAuctioneerPath, compiledBBSPath, locketPath}, ","))
 }, func(pathsByte []byte) {
 	grpclog.SetLogger(log.New(ioutil.Discard, "", 0))
-	node := GinkgoParallelNode()
+	node := GinkgoParallelProcess()
 	startPort := 1050 * node
 	portRange := 1000
 	endPort := startPort + portRange
@@ -98,7 +98,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	bbsBinPath = strings.Split(paths, ",")[1]
 	locketBinPath = strings.Split(paths, ",")[2]
 
-	dbName := fmt.Sprintf("diego_%d", GinkgoParallelNode())
+	dbName := fmt.Sprintf("diego_%d", GinkgoParallelProcess())
 	sqlRunner = test_helpers.NewSQLRunner(dbName)
 	sqlProcess = ginkgomon.Invoke(sqlRunner)
 
