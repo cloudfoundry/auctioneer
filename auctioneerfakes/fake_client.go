@@ -49,16 +49,16 @@ func (fake *FakeClient) RequestLRPAuctions(arg1 lager.Logger, arg2 []*auctioneer
 		arg1 lager.Logger
 		arg2 []*auctioneer.LRPStartRequest
 	}{arg1, arg2Copy})
+	stub := fake.RequestLRPAuctionsStub
+	fakeReturns := fake.requestLRPAuctionsReturns
 	fake.recordInvocation("RequestLRPAuctions", []interface{}{arg1, arg2Copy})
-	requestLRPAuctionsStubCopy := fake.RequestLRPAuctionsStub
 	fake.requestLRPAuctionsMutex.Unlock()
-	if requestLRPAuctionsStubCopy != nil {
-		return requestLRPAuctionsStubCopy(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.requestLRPAuctionsReturns
 	return fakeReturns.result1
 }
 
@@ -116,16 +116,16 @@ func (fake *FakeClient) RequestTaskAuctions(arg1 lager.Logger, arg2 []*auctionee
 		arg1 lager.Logger
 		arg2 []*auctioneer.TaskStartRequest
 	}{arg1, arg2Copy})
+	stub := fake.RequestTaskAuctionsStub
+	fakeReturns := fake.requestTaskAuctionsReturns
 	fake.recordInvocation("RequestTaskAuctions", []interface{}{arg1, arg2Copy})
-	requestTaskAuctionsStubCopy := fake.RequestTaskAuctionsStub
 	fake.requestTaskAuctionsMutex.Unlock()
-	if requestTaskAuctionsStubCopy != nil {
-		return requestTaskAuctionsStubCopy(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.requestTaskAuctionsReturns
 	return fakeReturns.result1
 }
 

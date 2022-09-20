@@ -32,9 +32,7 @@ var _ = Describe("AuctioneerConfig", func() {
 			"bin_pack_first_fit_weight": 0.1,
 			"cell_state_timeout": "2s",
 			"communication_timeout": "15s",
-			"consul_cluster": "1.1.1.1",
 			"debug_address": "127.0.0.1:17017",
-			"enable_consul_service_registration": true,
 			"listen_address": "0.0.0.0:9090",
 			"lock_retry_interval": "1m",
 			"lock_ttl": "20s",
@@ -64,7 +62,6 @@ var _ = Describe("AuctioneerConfig", func() {
 			"report_interval": "1m",
 			"server_cert_file": "/path-to-server-cert",
 			"server_key_file": "/path-to-server-key",
-			"skip_consul_lock": true,
 			"starting_container_count_maximum": 10,
 			"starting_container_weight": 0.5,
 			"uuid": "bosh-boshy-bosh-bosh"
@@ -102,7 +99,6 @@ var _ = Describe("AuctioneerConfig", func() {
 			CACertFile:                "/path-to-cert",
 			BinPackFirstFitWeight:     0.1,
 			CellStateTimeout:          durationjson.Duration(2 * time.Second),
-			LocksLocketEnabled:        true,
 			ClientLocketConfig: locket.ClientLocketConfig{
 				LocketAddress:        "laksdjflksdajflkajsdf",
 				LocketCACertFile:     "locket-ca-cert",
@@ -110,11 +106,9 @@ var _ = Describe("AuctioneerConfig", func() {
 				LocketClientKeyFile:  "locket-client-key",
 			},
 			CommunicationTimeout: durationjson.Duration(15 * time.Second),
-			ConsulCluster:        "1.1.1.1",
 			DebugServerConfig: debugserver.DebugServerConfig{
 				DebugAddress: "127.0.0.1:17017",
 			},
-			EnableConsulServiceRegistration: true,
 			LagerConfig: lagerflags.LagerConfig{
 				LogLevel: "debug",
 			},
@@ -141,7 +135,6 @@ var _ = Describe("AuctioneerConfig", func() {
 			ReportInterval:                durationjson.Duration(1 * time.Minute),
 			ServerCertFile:                "/path-to-server-cert",
 			ServerKeyFile:                 "/path-to-server-key",
-			SkipConsulLock:                true,
 			StartingContainerCountMaximum: 10,
 			StartingContainerWeight:       .5,
 			UUID:                          "bosh-boshy-bosh-bosh",
