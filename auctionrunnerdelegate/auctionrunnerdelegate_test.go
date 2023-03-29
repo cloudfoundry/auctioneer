@@ -7,8 +7,8 @@ import (
 	"code.cloudfoundry.org/rep"
 	"code.cloudfoundry.org/rep/repfakes"
 
-	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/lager/lagertest"
+	"code.cloudfoundry.org/lager/v3"
+	"code.cloudfoundry.org/lager/v3/lagertest"
 
 	"code.cloudfoundry.org/auctioneer/auctionrunnerdelegate"
 

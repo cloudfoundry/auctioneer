@@ -7,7 +7,7 @@ import (
 
 	"code.cloudfoundry.org/auction/auctiontypes"
 	"code.cloudfoundry.org/auctioneer"
-	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/v3"
 )
 
 type LRPAuctionHandler struct {

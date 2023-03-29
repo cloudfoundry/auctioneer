@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/auctioneer"
-	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/lager/lagertest"
+	"code.cloudfoundry.org/lager/v3"
+	"code.cloudfoundry.org/lager/v3/lagertest"
 	"code.cloudfoundry.org/tlsconfig"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"

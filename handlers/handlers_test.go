@@ -10,8 +10,8 @@ import (
 	"code.cloudfoundry.org/auctioneer"
 	"code.cloudfoundry.org/auctioneer/handlers"
 	mfakes "code.cloudfoundry.org/diego-logging-client/testhelpers"
-	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/lager/lagertest"
+	"code.cloudfoundry.org/lager/v3"
+	"code.cloudfoundry.org/lager/v3/lagertest"
 	"code.cloudfoundry.org/rep"
 	"github.com/tedsuo/rata"
 
