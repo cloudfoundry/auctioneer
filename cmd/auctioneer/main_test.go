@@ -234,7 +234,7 @@ var _ = Describe("Auctioneer", func() {
 		It("acquires the lock and becomes active", func() {
 			Eventually(func() error {
 				return auctioneerClient.RequestTaskAuctions(logger, []*auctioneer.TaskStartRequest{
-					&auctioneer.TaskStartRequest{*task},
+					&auctioneer.TaskStartRequest{Task: *task},
 				})
 			}).ShouldNot(HaveOccurred())
 		})
@@ -257,7 +257,7 @@ var _ = Describe("Auctioneer", func() {
 		It("emits metric about holding lock", func() {
 			Eventually(func() error {
 				return auctioneerClient.RequestTaskAuctions(logger, []*auctioneer.TaskStartRequest{
-					&auctioneer.TaskStartRequest{*task},
+					&auctioneer.TaskStartRequest{Task: *task},
 				})
 			}).ShouldNot(HaveOccurred())
 
@@ -307,7 +307,7 @@ var _ = Describe("Auctioneer", func() {
 			It("starts but does not accept auctions", func() {
 				Consistently(func() error {
 					return auctioneerClient.RequestTaskAuctions(logger, []*auctioneer.TaskStartRequest{
-						&auctioneer.TaskStartRequest{*task},
+						&auctioneer.TaskStartRequest{Task: *task},
 					})
 				}).Should(HaveOccurred())
 			})
@@ -337,7 +337,7 @@ var _ = Describe("Auctioneer", func() {
 				It("acquires the lock and becomes active", func() {
 					Eventually(func() error {
 						return auctioneerClient.RequestTaskAuctions(logger, []*auctioneer.TaskStartRequest{
-							&auctioneer.TaskStartRequest{*task},
+							&auctioneer.TaskStartRequest{Task: *task},
 						})
 					}, 2*time.Second).ShouldNot(HaveOccurred())
 				})

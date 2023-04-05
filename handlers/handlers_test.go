@@ -46,7 +46,7 @@ var _ = Describe("Auction Handlers", func() {
 				pc := rep.NewPlacementConstraint("rootfs", []string{}, []string{})
 				task := rep.NewTask("the-task-guid", "test", resource, pc)
 
-				tasks := []auctioneer.TaskStartRequest{auctioneer.TaskStartRequest{task}}
+				tasks := []auctioneer.TaskStartRequest{auctioneer.TaskStartRequest{Task: task}}
 				reqGen := rata.NewRequestGenerator("http://localhost", auctioneer.Routes)
 
 				payload, err := json.Marshal(tasks)
