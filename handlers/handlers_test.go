@@ -10,12 +10,12 @@ import (
 	"code.cloudfoundry.org/auctioneer"
 	"code.cloudfoundry.org/auctioneer/handlers"
 	mfakes "code.cloudfoundry.org/diego-logging-client/testhelpers"
-	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/lager/lagertest"
+	"code.cloudfoundry.org/lager/v3"
+	"code.cloudfoundry.org/lager/v3/lagertest"
 	"code.cloudfoundry.org/rep"
 	"github.com/tedsuo/rata"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
@@ -46,7 +46,7 @@ var _ = Describe("Auction Handlers", func() {
 				pc := rep.NewPlacementConstraint("rootfs", []string{}, []string{})
 				task := rep.NewTask("the-task-guid", "test", resource, pc)
 
-				tasks := []auctioneer.TaskStartRequest{auctioneer.TaskStartRequest{task}}
+				tasks := []auctioneer.TaskStartRequest{auctioneer.TaskStartRequest{Task: task}}
 				reqGen := rata.NewRequestGenerator("http://localhost", auctioneer.Routes)
 
 				payload, err := json.Marshal(tasks)

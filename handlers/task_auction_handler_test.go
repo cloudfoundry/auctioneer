@@ -8,11 +8,11 @@ import (
 	fake_auction_runner "code.cloudfoundry.org/auction/auctiontypes/fakes"
 	"code.cloudfoundry.org/auctioneer"
 	"code.cloudfoundry.org/auctioneer/handlers"
-	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/lager/lagertest"
+	"code.cloudfoundry.org/lager/v3"
+	"code.cloudfoundry.org/lager/v3/lagertest"
 	"code.cloudfoundry.org/rep"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gbytes"
 )
@@ -41,7 +41,7 @@ var _ = Describe("TaskAuctionHandler", func() {
 				resource := rep.NewResource(1, 2, 3)
 				pc := rep.NewPlacementConstraint("rootfs", []string{}, []string{})
 				task := rep.NewTask("the-task-guid", "test", resource, pc)
-				tasks = []auctioneer.TaskStartRequest{auctioneer.TaskStartRequest{task}}
+				tasks = []auctioneer.TaskStartRequest{auctioneer.TaskStartRequest{Task: task}}
 				handler.Create(responseRecorder, newTestRequest(tasks), logger)
 			})
 
@@ -66,7 +66,7 @@ var _ = Describe("TaskAuctionHandler", func() {
 
 			BeforeEach(func() {
 				task := rep.Task{}
-				tasks = []auctioneer.TaskStartRequest{auctioneer.TaskStartRequest{task}}
+				tasks = []auctioneer.TaskStartRequest{auctioneer.TaskStartRequest{Task: task}}
 
 				handler.Create(responseRecorder, newTestRequest(tasks), logger)
 			})

@@ -5,7 +5,7 @@ import (
 	"code.cloudfoundry.org/rep"
 
 	"code.cloudfoundry.org/auction/auctiontypes"
-	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/v3"
 )
 
 type AuctionRunnerDelegate struct {

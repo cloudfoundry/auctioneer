@@ -21,18 +21,18 @@ import (
 	"code.cloudfoundry.org/diego-logging-client/testhelpers"
 	"code.cloudfoundry.org/durationjson"
 	"code.cloudfoundry.org/go-loggregator/v8/rpc/loggregator_v2"
-	"code.cloudfoundry.org/lager/lagerflags"
+	"code.cloudfoundry.org/lager/v3/lagerflags"
 	"code.cloudfoundry.org/locket"
 	locketrunner "code.cloudfoundry.org/locket/cmd/locket/testrunner"
 	"code.cloudfoundry.org/locket/lock"
 	locketmodels "code.cloudfoundry.org/locket/models"
 	"code.cloudfoundry.org/rep"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	. "github.com/onsi/gomega/gexec"
 	"github.com/tedsuo/ifrit"
-	"github.com/tedsuo/ifrit/ginkgomon"
+	ginkgomon "github.com/tedsuo/ifrit/ginkgomon_v2"
 )
 
 const (
@@ -234,7 +234,7 @@ var _ = Describe("Auctioneer", func() {
 		It("acquires the lock and becomes active", func() {
 			Eventually(func() error {
 				return auctioneerClient.RequestTaskAuctions(logger, []*auctioneer.TaskStartRequest{
-					&auctioneer.TaskStartRequest{*task},
+					&auctioneer.TaskStartRequest{Task: *task},
 				})
 			}).ShouldNot(HaveOccurred())
 		})
@@ -257,7 +257,7 @@ var _ = Describe("Auctioneer", func() {
 		It("emits metric about holding lock", func() {
 			Eventually(func() error {
 				return auctioneerClient.RequestTaskAuctions(logger, []*auctioneer.TaskStartRequest{
-					&auctioneer.TaskStartRequest{*task},
+					&auctioneer.TaskStartRequest{Task: *task},
 				})
 			}).ShouldNot(HaveOccurred())
 
@@ -307,7 +307,7 @@ var _ = Describe("Auctioneer", func() {
 			It("starts but does not accept auctions", func() {
 				Consistently(func() error {
 					return auctioneerClient.RequestTaskAuctions(logger, []*auctioneer.TaskStartRequest{
-						&auctioneer.TaskStartRequest{*task},
+						&auctioneer.TaskStartRequest{Task: *task},
 					})
 				}).Should(HaveOccurred())
 			})
@@ -337,7 +337,7 @@ var _ = Describe("Auctioneer", func() {
 				It("acquires the lock and becomes active", func() {
 					Eventually(func() error {
 						return auctioneerClient.RequestTaskAuctions(logger, []*auctioneer.TaskStartRequest{
-							&auctioneer.TaskStartRequest{*task},
+							&auctioneer.TaskStartRequest{Task: *task},
 						})
 					}, 2*time.Second).ShouldNot(HaveOccurred())
 				})

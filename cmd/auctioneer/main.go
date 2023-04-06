@@ -15,8 +15,8 @@ import (
 	"code.cloudfoundry.org/debugserver"
 	loggingclient "code.cloudfoundry.org/diego-logging-client"
 	"code.cloudfoundry.org/go-loggregator/v8/runtimeemitter"
-	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/lager/lagerflags"
+	"code.cloudfoundry.org/lager/v3"
+	"code.cloudfoundry.org/lager/v3/lagerflags"
 	"code.cloudfoundry.org/locket"
 	"code.cloudfoundry.org/locket/jointlock"
 	"code.cloudfoundry.org/locket/lock"
@@ -83,7 +83,7 @@ func main() {
 	}
 
 	clock := clock.NewClock()
-	locks = append(locks, grouper.Member{"sql-lock", lock.NewLockRunner(
+	locks = append(locks, grouper.Member{Name: "sql-lock", Runner: lock.NewLockRunner(
 		logger,
 		locketClient,
 		lockIdentifier,
@@ -122,16 +122,16 @@ func main() {
 	lockHeldMetronNotifier := lockheldmetrics.NewLockHeldMetronNotifier(logger, metricsTicker, metronClient)
 
 	members := grouper.Members{
-		{"lock-held-metrics", lockHeldMetronNotifier},
-		{"lock", lock},
-		{"set-lock-held-metrics", lockheldmetrics.SetLockHeldRunner(logger, *lockHeldMetronNotifier)},
-		{"auction-runner", auctionRunner},
-		{"auction-server", auctionServer},
+		{Name: "lock-held-metrics", Runner: lockHeldMetronNotifier},
+		{Name: "lock", Runner: lock},
+		{Name: "set-lock-held-metrics", Runner: lockheldmetrics.SetLockHeldRunner(logger, *lockHeldMetronNotifier)},
+		{Name: "auction-runner", Runner: auctionRunner},
+		{Name: "auction-server", Runner: auctionServer},
 	}
 
 	if cfg.DebugAddress != "" {
 		members = append(grouper.Members{
-			{"debug-server", debugserver.Runner(cfg.DebugAddress, reconfigurableSink)},
+			{Name: "debug-server", Runner: debugserver.Runner(cfg.DebugAddress, reconfigurableSink)},
 		}, members...)
 	}
 
