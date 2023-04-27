@@ -15,8 +15,8 @@ import (
 
 //go:generate counterfeiter -o auctioneerfakes/fake_client.go . Client
 type Client interface {
-	RequestLRPAuctions(logger lager.Logger, lrpStart []*LRPStartRequest) error
-	RequestTaskAuctions(logger lager.Logger, tasks []*TaskStartRequest) error
+	RequestLRPAuctions(logger lager.Logger, traceID string, lrpStart []*LRPStartRequest) error
+	RequestTaskAuctions(logger lager.Logger, traceID string, tasks []*TaskStartRequest) error
 }
 
 type auctioneerClient struct {
@@ -64,7 +64,7 @@ func NewSecureClient(auctioneerURL, caFile, certFile, keyFile string, requireTLS
 	}, nil
 }
 
-func (c *auctioneerClient) RequestLRPAuctions(logger lager.Logger, lrpStarts []*LRPStartRequest) error {
+func (c *auctioneerClient) RequestLRPAuctions(logger lager.Logger, traceID string, lrpStarts []*LRPStartRequest) error {
 	logger = logger.Session("request-lrp-auctions")
 
 	payload, err := json.Marshal(lrpStarts)
@@ -72,7 +72,7 @@ func (c *auctioneerClient) RequestLRPAuctions(logger lager.Logger, lrpStarts []*
 		return err
 	}
 
-	resp, err := c.createRequest(logger, CreateLRPAuctionsRoute, rata.Params{}, payload)
+	resp, err := c.createRequest(logger, traceID, CreateLRPAuctionsRoute, rata.Params{}, payload)
 	if err != nil {
 		return err
 	}
@@ -85,7 +85,7 @@ func (c *auctioneerClient) RequestLRPAuctions(logger lager.Logger, lrpStarts []*
 	return nil
 }
 
-func (c *auctioneerClient) RequestTaskAuctions(logger lager.Logger, tasks []*TaskStartRequest) error {
+func (c *auctioneerClient) RequestTaskAuctions(logger lager.Logger, traceID string, tasks []*TaskStartRequest) error {
 	logger = logger.Session("request-task-auctions")
 
 	payload, err := json.Marshal(tasks)
@@ -93,7 +93,7 @@ func (c *auctioneerClient) RequestTaskAuctions(logger lager.Logger, tasks []*Tas
 		return err
 	}
 
-	resp, err := c.createRequest(logger, CreateTaskAuctionsRoute, rata.Params{}, payload)
+	resp, err := c.createRequest(logger, traceID, CreateTaskAuctionsRoute, rata.Params{}, payload)
 	if err != nil {
 		return err
 	}
@@ -106,24 +106,26 @@ func (c *auctioneerClient) RequestTaskAuctions(logger lager.Logger, tasks []*Tas
 	return nil
 }
 
-func (c *auctioneerClient) createRequest(logger lager.Logger, route string, params rata.Params, payload []byte) (*http.Response, error) {
-	resp, err := c.doRequest(c.httpClient, false, route, params, payload)
+func (c *auctioneerClient) createRequest(logger lager.Logger, traceID string, route string, params rata.Params, payload []byte) (*http.Response, error) {
+	resp, err := c.doRequest(c.httpClient, traceID, false, route, params, payload)
 	if err != nil {
 		// Fall back to HTTP and try again if we do not require TLS
 		if !c.requireTLS && c.insecureHTTPClient != nil {
 			logger.Error("retrying-on-http", err)
-			return c.doRequest(c.insecureHTTPClient, true, route, params, payload)
+			return c.doRequest(c.insecureHTTPClient, traceID, true, route, params, payload)
 		}
 	}
 	return resp, err
 }
 
-func (c *auctioneerClient) doRequest(client *http.Client, useHttp bool, route string, params rata.Params, payload []byte) (*http.Response, error) {
+func (c *auctioneerClient) doRequest(client *http.Client, traceID string, useHttp bool, route string, params rata.Params, payload []byte) (*http.Response, error) {
 	req, err := c.reqGen.CreateRequest(route, params, bytes.NewBuffer(payload))
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Vcap-Request-Id", traceID)
+
 	if useHttp {
 		req.URL.Scheme = "http"
 	}

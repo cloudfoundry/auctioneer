@@ -17,6 +17,9 @@ import (
 )
 
 var _ = Describe("Auctioneer Client", func() {
+	const (
+		traceID = "dd6f938-9e14-4abd-974f-63c6138f1cca"
+	)
 	Describe("NewClient", func() {
 		var (
 			fakeAuctioneerServer *ghttp.Server
@@ -36,20 +39,38 @@ var _ = Describe("Auctioneer Client", func() {
 			dummyLogger = lagertest.NewTestLogger("client_test")
 		})
 
-		It("works", func() {
+		It("requests task auctions", func() {
 			c := auctioneer.NewClient(fakeAuctioneerServer.URL(), 5*time.Second)
 
-			err := c.RequestLRPAuctions(dummyLogger, []*auctioneer.LRPStartRequest{})
+			err := c.RequestTaskAuctions(dummyLogger, traceID, []*auctioneer.TaskStartRequest{})
 			Expect(err).NotTo(HaveOccurred())
+
+			var firstRequest *http.Request
+			firstRequest = fakeAuctioneerServer.ReceivedRequests()[0]
+			vCapRequestIdHeader := firstRequest.Header["X-Vcap-Request-Id"]
+			Expect(len(vCapRequestIdHeader)).To(Equal(1))
+			Expect(vCapRequestIdHeader[0]).To(Equal(traceID))
+		})
+
+		It("requests auctions", func() {
+			c := auctioneer.NewClient(fakeAuctioneerServer.URL(), 5*time.Second)
+
+			err := c.RequestLRPAuctions(dummyLogger, traceID, []*auctioneer.LRPStartRequest{})
+			Expect(err).NotTo(HaveOccurred())
+
+			var firstRequest *http.Request
+			firstRequest = fakeAuctioneerServer.ReceivedRequests()[0]
+			vCapRequestIdHeader := firstRequest.Header["X-Vcap-Request-Id"]
+			Expect(len(vCapRequestIdHeader)).To(Equal(1))
+			Expect(vCapRequestIdHeader[0]).To(Equal(traceID))
 		})
 
 		It("times out if the request takes too long", func() {
 			c := auctioneer.NewClient(fakeAuctioneerServer.URL(), 1*time.Second)
 
-			err := c.RequestLRPAuctions(dummyLogger, []*auctioneer.LRPStartRequest{})
+			err := c.RequestLRPAuctions(dummyLogger, traceID, []*auctioneer.LRPStartRequest{})
 			Expect(err.Error()).To(ContainSubstring(context.DeadlineExceeded.Error()))
 		})
-
 	})
 
 	Describe("NewSecureClient", func() {
@@ -89,19 +110,39 @@ var _ = Describe("Auctioneer Client", func() {
 			dummyLogger = lagertest.NewTestLogger("client_test")
 		})
 
-		It("works", func() {
+		It("requests task auctions", func() {
 			c, err := auctioneer.NewSecureClient(fakeAuctioneerServer.URL(), caFile, certFile, keyFile, true, 5*time.Second)
 			Expect(err).NotTo(HaveOccurred())
 
-			err = c.RequestLRPAuctions(dummyLogger, []*auctioneer.LRPStartRequest{})
+			err = c.RequestTaskAuctions(dummyLogger, traceID, []*auctioneer.TaskStartRequest{})
 			Expect(err).NotTo(HaveOccurred())
+
+			var firstRequest *http.Request
+			firstRequest = fakeAuctioneerServer.ReceivedRequests()[0]
+			vCapRequestIdHeader := firstRequest.Header["X-Vcap-Request-Id"]
+			Expect(len(vCapRequestIdHeader)).To(Equal(1))
+			Expect(vCapRequestIdHeader[0]).To(Equal(traceID))
+		})
+
+		It("requests auctions", func() {
+			c, err := auctioneer.NewSecureClient(fakeAuctioneerServer.URL(), caFile, certFile, keyFile, true, 5*time.Second)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = c.RequestLRPAuctions(dummyLogger, traceID, []*auctioneer.LRPStartRequest{})
+			Expect(err).NotTo(HaveOccurred())
+
+			var firstRequest *http.Request
+			firstRequest = fakeAuctioneerServer.ReceivedRequests()[0]
+			vCapRequestIdHeader := firstRequest.Header["X-Vcap-Request-Id"]
+			Expect(len(vCapRequestIdHeader)).To(Equal(1))
+			Expect(vCapRequestIdHeader[0]).To(Equal(traceID))
 		})
 
 		It("times out if the request takes too long", func() {
 			c, err := auctioneer.NewSecureClient(fakeAuctioneerServer.URL(), caFile, certFile, keyFile, true, time.Second)
 			Expect(err).NotTo(HaveOccurred())
 
-			err = c.RequestLRPAuctions(dummyLogger, []*auctioneer.LRPStartRequest{})
+			err = c.RequestLRPAuctions(dummyLogger, traceID, []*auctioneer.LRPStartRequest{})
 			Expect(err.Error()).To(ContainSubstring(context.DeadlineExceeded.Error()))
 		})
 
@@ -122,6 +163,7 @@ var _ = Describe("Auctioneer Client", func() {
 			caFile, certFile, keyFile string
 			fakeAuctioneerServer      *ghttp.Server
 			dummyLogger               lager.Logger
+			traceID                   string
 		)
 
 		AfterEach(func() {
@@ -151,12 +193,34 @@ var _ = Describe("Auctioneer Client", func() {
 			dummyLogger = lagertest.NewTestLogger("client_test")
 		})
 
-		It("retries the insecure client", func() {
-			c, err := auctioneer.NewSecureClient(fakeAuctioneerServer.URL(), caFile, certFile, keyFile, false, 1*time.Second)
-			Expect(err).NotTo(HaveOccurred())
+		When("retrying with an insecure client", func() {
+			It("retries requests for auctions", func() {
+				c, err := auctioneer.NewSecureClient(fakeAuctioneerServer.URL(), caFile, certFile, keyFile, false, 1*time.Second)
+				Expect(err).NotTo(HaveOccurred())
 
-			err = c.RequestLRPAuctions(dummyLogger, []*auctioneer.LRPStartRequest{})
-			Expect(err).NotTo(HaveOccurred())
+				err = c.RequestLRPAuctions(dummyLogger, traceID, []*auctioneer.LRPStartRequest{})
+				Expect(err).NotTo(HaveOccurred())
+
+				var firstRequest *http.Request
+				firstRequest = fakeAuctioneerServer.ReceivedRequests()[0]
+				vCapRequestIdHeader := firstRequest.Header["X-Vcap-Request-Id"]
+				Expect(len(vCapRequestIdHeader)).To(Equal(1))
+				Expect(vCapRequestIdHeader[0]).To(Equal(traceID))
+			})
+
+			It("retries requests for task auctions", func() {
+				c, err := auctioneer.NewSecureClient(fakeAuctioneerServer.URL(), caFile, certFile, keyFile, false, 1*time.Second)
+				Expect(err).NotTo(HaveOccurred())
+
+				err = c.RequestTaskAuctions(dummyLogger, traceID, []*auctioneer.TaskStartRequest{})
+				Expect(err).NotTo(HaveOccurred())
+
+				var firstRequest *http.Request
+				firstRequest = fakeAuctioneerServer.ReceivedRequests()[0]
+				vCapRequestIdHeader := firstRequest.Header["X-Vcap-Request-Id"]
+				Expect(len(vCapRequestIdHeader)).To(Equal(1))
+				Expect(vCapRequestIdHeader[0]).To(Equal(traceID))
+			})
 		})
 	})
 })
