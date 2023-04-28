@@ -233,7 +233,7 @@ var _ = Describe("Auctioneer", func() {
 
 		It("acquires the lock and becomes active", func() {
 			Eventually(func() error {
-				return auctioneerClient.RequestTaskAuctions(logger, []*auctioneer.TaskStartRequest{
+				return auctioneerClient.RequestTaskAuctions(logger, "some-request-id", []*auctioneer.TaskStartRequest{
 					&auctioneer.TaskStartRequest{Task: *task},
 				})
 			}).ShouldNot(HaveOccurred())
@@ -256,7 +256,7 @@ var _ = Describe("Auctioneer", func() {
 
 		It("emits metric about holding lock", func() {
 			Eventually(func() error {
-				return auctioneerClient.RequestTaskAuctions(logger, []*auctioneer.TaskStartRequest{
+				return auctioneerClient.RequestTaskAuctions(logger, "some-request-id", []*auctioneer.TaskStartRequest{
 					&auctioneer.TaskStartRequest{Task: *task},
 				})
 			}).ShouldNot(HaveOccurred())
@@ -306,7 +306,7 @@ var _ = Describe("Auctioneer", func() {
 
 			It("starts but does not accept auctions", func() {
 				Consistently(func() error {
-					return auctioneerClient.RequestTaskAuctions(logger, []*auctioneer.TaskStartRequest{
+					return auctioneerClient.RequestTaskAuctions(logger, "some-request-id", []*auctioneer.TaskStartRequest{
 						&auctioneer.TaskStartRequest{Task: *task},
 					})
 				}).Should(HaveOccurred())
@@ -336,7 +336,7 @@ var _ = Describe("Auctioneer", func() {
 
 				It("acquires the lock and becomes active", func() {
 					Eventually(func() error {
-						return auctioneerClient.RequestTaskAuctions(logger, []*auctioneer.TaskStartRequest{
+						return auctioneerClient.RequestTaskAuctions(logger, "some-request-id", []*auctioneer.TaskStartRequest{
 							&auctioneer.TaskStartRequest{Task: *task},
 						})
 					}, 2*time.Second).ShouldNot(HaveOccurred())
@@ -481,7 +481,7 @@ var _ = Describe("Auctioneer", func() {
 				secureAuctioneerClient, err := auctioneer.NewSecureClient("https://"+auctioneerLocation, caCertFile, serverCertFile, serverKeyFile, false, defaultAuctioneerClientRequestTimeout)
 				Expect(err).NotTo(HaveOccurred())
 
-				err = secureAuctioneerClient.RequestLRPAuctions(logger, nil)
+				err = secureAuctioneerClient.RequestLRPAuctions(logger, "", nil)
 				Expect(err).NotTo(HaveOccurred())
 			})
 		})
@@ -507,10 +507,10 @@ var _ = Describe("Auctioneer", func() {
 				})
 
 				It("does not work", func() {
-					err := client.RequestLRPAuctions(logger, []*auctioneer.LRPStartRequest{})
+					err := client.RequestLRPAuctions(logger, "", []*auctioneer.LRPStartRequest{})
 					Expect(err).To(HaveOccurred())
 
-					err = client.RequestTaskAuctions(logger, []*auctioneer.TaskStartRequest{})
+					err = client.RequestTaskAuctions(logger, "", []*auctioneer.TaskStartRequest{})
 					Expect(err).To(HaveOccurred())
 				})
 			})
@@ -530,10 +530,10 @@ var _ = Describe("Auctioneer", func() {
 				})
 
 				It("works", func() {
-					err := client.RequestLRPAuctions(logger, []*auctioneer.LRPStartRequest{})
+					err := client.RequestLRPAuctions(logger, "", []*auctioneer.LRPStartRequest{})
 					Expect(err).NotTo(HaveOccurred())
 
-					err = client.RequestTaskAuctions(logger, []*auctioneer.TaskStartRequest{})
+					err = client.RequestTaskAuctions(logger, "", []*auctioneer.TaskStartRequest{})
 					Expect(err).NotTo(HaveOccurred())
 				})
 			})
@@ -546,10 +546,10 @@ var _ = Describe("Auctioneer", func() {
 				})
 
 				It("works", func() {
-					err := client.RequestLRPAuctions(logger, []*auctioneer.LRPStartRequest{})
+					err := client.RequestLRPAuctions(logger, "", []*auctioneer.LRPStartRequest{})
 					Expect(err).NotTo(HaveOccurred())
 
-					err = client.RequestTaskAuctions(logger, []*auctioneer.TaskStartRequest{})
+					err = client.RequestTaskAuctions(logger, "", []*auctioneer.TaskStartRequest{})
 					Expect(err).NotTo(HaveOccurred())
 				})
 			})
@@ -570,10 +570,10 @@ var _ = Describe("Auctioneer", func() {
 					})
 
 					It("does not work", func() {
-						err := client.RequestLRPAuctions(logger, []*auctioneer.LRPStartRequest{})
+						err := client.RequestLRPAuctions(logger, "", []*auctioneer.LRPStartRequest{})
 						Expect(err).To(HaveOccurred())
 
-						err = client.RequestTaskAuctions(logger, []*auctioneer.TaskStartRequest{})
+						err = client.RequestTaskAuctions(logger, "", []*auctioneer.TaskStartRequest{})
 						Expect(err).To(HaveOccurred())
 					})
 				})
@@ -593,10 +593,10 @@ var _ = Describe("Auctioneer", func() {
 					})
 
 					It("falls back to http and does work", func() {
-						err := client.RequestLRPAuctions(logger, []*auctioneer.LRPStartRequest{})
+						err := client.RequestLRPAuctions(logger, "", []*auctioneer.LRPStartRequest{})
 						Expect(err).NotTo(HaveOccurred())
 
-						err = client.RequestTaskAuctions(logger, []*auctioneer.TaskStartRequest{})
+						err = client.RequestTaskAuctions(logger, "", []*auctioneer.TaskStartRequest{})
 						Expect(err).NotTo(HaveOccurred())
 					})
 				})

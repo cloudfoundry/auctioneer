@@ -2,8 +2,10 @@ package handlers_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 
 	fake_auction_runner "code.cloudfoundry.org/auction/auctiontypes/fakes"
 	"code.cloudfoundry.org/auctioneer"
@@ -14,15 +16,18 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
 	. "github.com/onsi/gomega/gbytes"
 )
 
 var _ = Describe("TaskAuctionHandler", func() {
 	var (
-		logger           *lagertest.TestLogger
-		runner           *fake_auction_runner.FakeAuctionRunner
-		responseRecorder *httptest.ResponseRecorder
-		handler          *handlers.TaskAuctionHandler
+		logger            *lagertest.TestLogger
+		runner            *fake_auction_runner.FakeAuctionRunner
+		responseRecorder  *httptest.ResponseRecorder
+		handler           *handlers.TaskAuctionHandler
+		requestIdHeader   string
+		b3RequestIdHeader string
 	)
 
 	BeforeEach(func() {
@@ -31,6 +36,8 @@ var _ = Describe("TaskAuctionHandler", func() {
 		runner = new(fake_auction_runner.FakeAuctionRunner)
 		responseRecorder = httptest.NewRecorder()
 		handler = handlers.NewTaskAuctionHandler(runner)
+		requestIdHeader = "25f23d6a-f46d-460e-7135-7ddc0759a198"
+		b3RequestIdHeader = fmt.Sprintf(`"trace-id":"%s"`, strings.Replace(requestIdHeader, "-", "", -1))
 	})
 
 	Describe("Create", func() {
@@ -42,7 +49,9 @@ var _ = Describe("TaskAuctionHandler", func() {
 				pc := rep.NewPlacementConstraint("rootfs", []string{}, []string{})
 				task := rep.NewTask("the-task-guid", "test", resource, pc)
 				tasks = []auctioneer.TaskStartRequest{auctioneer.TaskStartRequest{Task: task}}
-				handler.Create(responseRecorder, newTestRequest(tasks), logger)
+				req := newTestRequest(tasks)
+				req.Header.Add(lager.RequestIdHeader, requestIdHeader)
+				handler.Create(responseRecorder, req, logger)
 			})
 
 			It("responds with 202", func() {
@@ -58,6 +67,10 @@ var _ = Describe("TaskAuctionHandler", func() {
 
 				submittedTasks := runner.ScheduleTasksForAuctionsArgsForCall(0)
 				Expect(submittedTasks).To(Equal(tasks))
+			})
+
+			It("logs trace ID", func() {
+				Expect(logger.Buffer()).To(gbytes.Say(b3RequestIdHeader))
 			})
 		})
 

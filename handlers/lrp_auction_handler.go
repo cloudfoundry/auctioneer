@@ -25,7 +25,7 @@ func (*LRPAuctionHandler) logSession(logger lager.Logger) lager.Logger {
 }
 
 func (h *LRPAuctionHandler) Create(w http.ResponseWriter, r *http.Request, logger lager.Logger) {
-	logger = h.logSession(logger).Session("create")
+	logger = h.logSession(logger).Session("create").WithTraceInfo(r)
 
 	payload, err := ioutil.ReadAll(r.Body)
 	if err != nil {

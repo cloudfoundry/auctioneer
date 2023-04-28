@@ -2,8 +2,10 @@ package handlers_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 
 	fake_auction_runner "code.cloudfoundry.org/auction/auctiontypes/fakes"
 	"code.cloudfoundry.org/auctioneer"
@@ -19,10 +21,12 @@ import (
 
 var _ = Describe("LRPAuctionHandler", func() {
 	var (
-		logger           *lagertest.TestLogger
-		runner           *fake_auction_runner.FakeAuctionRunner
-		responseRecorder *httptest.ResponseRecorder
-		handler          *handlers.LRPAuctionHandler
+		logger            *lagertest.TestLogger
+		runner            *fake_auction_runner.FakeAuctionRunner
+		responseRecorder  *httptest.ResponseRecorder
+		handler           *handlers.LRPAuctionHandler
+		requestIdHeader   string
+		b3RequestIdHeader string
 	)
 
 	BeforeEach(func() {
@@ -31,6 +35,8 @@ var _ = Describe("LRPAuctionHandler", func() {
 		runner = new(fake_auction_runner.FakeAuctionRunner)
 		responseRecorder = httptest.NewRecorder()
 		handler = handlers.NewLRPAuctionHandler(runner)
+		requestIdHeader = "25f23d6a-f46d-460e-7135-7ddc0759a198"
+		b3RequestIdHeader = fmt.Sprintf(`"trace-id":"%s"`, strings.Replace(requestIdHeader, "-", "", -1))
 	})
 
 	Describe("Create", func() {
@@ -51,7 +57,9 @@ var _ = Describe("LRPAuctionHandler", func() {
 					},
 				}}
 
-				handler.Create(responseRecorder, newTestRequest(starts), logger)
+				req := newTestRequest(starts)
+				req.Header.Add(lager.RequestIdHeader, requestIdHeader)
+				handler.Create(responseRecorder, req, logger)
 			})
 
 			It("responds with 202", func() {
@@ -71,6 +79,10 @@ var _ = Describe("LRPAuctionHandler", func() {
 
 			It("should log the list of lrps as a json object with guid and indices keys", func() {
 				Expect(logger.Buffer()).To(gbytes.Say(`"guid":"some-guid","indices":\[2,3\]`))
+			})
+
+			It("logs trace ID", func() {
+				Expect(logger.Buffer()).To(gbytes.Say(b3RequestIdHeader))
 			})
 		})
 
