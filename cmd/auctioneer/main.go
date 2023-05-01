@@ -169,7 +169,7 @@ func initializeAuctionRunner(logger lager.Logger, cfg config.AuctioneerConfig, b
 		logger.Fatal("new-rep-client-factory-failed", err)
 	}
 
-	delegate := auctionrunnerdelegate.New(repClientFactory, bbsClient, logger)
+	delegate := auctionrunnerdelegate.New(repClientFactory, bbsClient)
 	metricEmitter := auctionmetricemitterdelegate.New(metronClient)
 	workPool, err := workpool.NewWorkPool(cfg.AuctionRunnerWorkers)
 	if err != nil {

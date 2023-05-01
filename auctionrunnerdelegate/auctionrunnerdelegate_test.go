@@ -32,7 +32,7 @@ var _ = Describe("Auction Runner Delegate", func() {
 		repClientFactory.CreateClientReturns(repClient, nil)
 		logger = lagertest.NewTestLogger("delegate")
 
-		delegate = auctionrunnerdelegate.New(repClientFactory, bbsClient, logger)
+		delegate = auctionrunnerdelegate.New(repClientFactory, bbsClient)
 	})
 
 	// Describe("fetching cell reps", func() {
@@ -188,7 +188,7 @@ var _ = Describe("Auction Runner Delegate", func() {
 				},
 			}
 
-			delegate.AuctionCompleted(results)
+			delegate.AuctionCompleted(logger, results)
 		})
 
 		It("should reject all tasks with the appropriate failure reason", func() {

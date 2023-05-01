@@ -7,6 +7,7 @@ import (
 
 	"code.cloudfoundry.org/auction/auctiontypes"
 	"code.cloudfoundry.org/auctioneer"
+	"code.cloudfoundry.org/bbs/trace"
 	"code.cloudfoundry.org/lager/v3"
 )
 
@@ -56,7 +57,7 @@ func (h *LRPAuctionHandler) Create(w http.ResponseWriter, r *http.Request, logge
 		}
 	}
 
-	h.runner.ScheduleLRPsForAuctions(validStarts)
+	h.runner.ScheduleLRPsForAuctions(validStarts, trace.RequestIdFromRequest(r))
 
 	logLRPGuids(lrpGuids, logger)
 

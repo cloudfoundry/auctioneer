@@ -73,8 +73,9 @@ var _ = Describe("LRPAuctionHandler", func() {
 			It("should submit the start auction to the auction runner", func() {
 				Expect(runner.ScheduleLRPsForAuctionsCallCount()).To(Equal(1))
 
-				submittedStart := runner.ScheduleLRPsForAuctionsArgsForCall(0)
+				submittedStart, traceID := runner.ScheduleLRPsForAuctionsArgsForCall(0)
 				Expect(submittedStart).To(Equal(starts))
+				Expect(traceID).To(Equal(requestIdHeader))
 			})
 
 			It("should log the list of lrps as a json object with guid and indices keys", func() {

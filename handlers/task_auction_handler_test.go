@@ -65,8 +65,9 @@ var _ = Describe("TaskAuctionHandler", func() {
 			It("should submit the task to the auction runner", func() {
 				Expect(runner.ScheduleTasksForAuctionsCallCount()).To(Equal(1))
 
-				submittedTasks := runner.ScheduleTasksForAuctionsArgsForCall(0)
+				submittedTasks, traceID := runner.ScheduleTasksForAuctionsArgsForCall(0)
 				Expect(submittedTasks).To(Equal(tasks))
+				Expect(traceID).To(Equal(requestIdHeader))
 			})
 
 			It("logs trace ID", func() {
@@ -81,7 +82,9 @@ var _ = Describe("TaskAuctionHandler", func() {
 				task := rep.Task{}
 				tasks = []auctioneer.TaskStartRequest{auctioneer.TaskStartRequest{Task: task}}
 
-				handler.Create(responseRecorder, newTestRequest(tasks), logger)
+				req := newTestRequest(tasks)
+				req.Header.Add(lager.RequestIdHeader, requestIdHeader)
+				handler.Create(responseRecorder, req, logger)
 			})
 
 			It("responds with 202", func() {
@@ -95,8 +98,9 @@ var _ = Describe("TaskAuctionHandler", func() {
 			It("should submit the task to the auction runner", func() {
 				Expect(runner.ScheduleTasksForAuctionsCallCount()).To(Equal(1))
 
-				submittedTasks := runner.ScheduleTasksForAuctionsArgsForCall(0)
+				submittedTasks, traceID := runner.ScheduleTasksForAuctionsArgsForCall(0)
 				Expect(submittedTasks).To(BeEmpty())
+				Expect(traceID).To(Equal(requestIdHeader))
 			})
 		})
 
