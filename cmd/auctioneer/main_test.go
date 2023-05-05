@@ -604,17 +604,3 @@ var _ = Describe("Auctioneer", func() {
 		})
 	})
 })
-
-func getTasksByState(client bbs.InternalClient, state models.Task_State) []*models.Task {
-	tasks, err := client.Tasks(logger)
-	Expect(err).NotTo(HaveOccurred())
-
-	filteredTasks := make([]*models.Task, 0)
-	for _, task := range tasks {
-		if task.State == state {
-			filteredTasks = append(filteredTasks, task)
-		}
-	}
-
-	return filteredTasks
-}
