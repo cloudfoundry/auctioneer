@@ -7,6 +7,7 @@ import (
 
 	"code.cloudfoundry.org/auction/auctiontypes"
 	"code.cloudfoundry.org/auctioneer"
+	"code.cloudfoundry.org/bbs/trace"
 	"code.cloudfoundry.org/lager/v3"
 )
 
@@ -25,7 +26,7 @@ func (*TaskAuctionHandler) logSession(logger lager.Logger) lager.Logger {
 }
 
 func (h *TaskAuctionHandler) Create(w http.ResponseWriter, r *http.Request, logger lager.Logger) {
-	logger = h.logSession(logger).Session("create")
+	logger = h.logSession(logger).Session("create").WithTraceInfo(r)
 
 	payload, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -54,7 +55,7 @@ func (h *TaskAuctionHandler) Create(w http.ResponseWriter, r *http.Request, logg
 		}
 	}
 
-	h.runner.ScheduleTasksForAuctions(validTasks)
+	h.runner.ScheduleTasksForAuctions(validTasks, trace.RequestIdFromRequest(r))
 
 	logger.Info("submitted", lager.Data{"tasks": taskGuids})
 	writeStatusAcceptedResponse(w)

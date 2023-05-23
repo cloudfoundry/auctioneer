@@ -32,7 +32,7 @@ var _ = Describe("Auction Runner Delegate", func() {
 		repClientFactory.CreateClientReturns(repClient, nil)
 		logger = lagertest.NewTestLogger("delegate")
 
-		delegate = auctionrunnerdelegate.New(repClientFactory, bbsClient, logger)
+		delegate = auctionrunnerdelegate.New(repClientFactory, bbsClient)
 	})
 
 	// Describe("fetching cell reps", func() {
@@ -188,23 +188,26 @@ var _ = Describe("Auction Runner Delegate", func() {
 				},
 			}
 
-			delegate.AuctionCompleted(results)
+			delegate.AuctionCompleted(logger, "some-trace-id", results)
 		})
 
 		It("should reject all tasks with the appropriate failure reason", func() {
 			Expect(bbsClient.RejectTaskCallCount()).To(Equal(1))
-			_, taskGuid, failureReason := bbsClient.RejectTaskArgsForCall(0)
+			_, traceId, taskGuid, failureReason := bbsClient.RejectTaskArgsForCall(0)
+			Expect(traceId).To(Equal("some-trace-id"))
 			Expect(taskGuid).To(Equal("failed-task"))
 			Expect(failureReason).To(Equal("insufficient resources"))
 		})
 
 		It("should mark all failed LRPs as UNCLAIMED with the appropriate placement error", func() {
 			Expect(bbsClient.FailActualLRPCallCount()).To(Equal(2))
-			_, lrpKey, errorMessage := bbsClient.FailActualLRPArgsForCall(0)
+			_, traceId, lrpKey, errorMessage := bbsClient.FailActualLRPArgsForCall(0)
+			Expect(traceId).To(Equal("some-trace-id"))
 			Expect(*lrpKey).To(Equal(models.NewActualLRPKey("insufficient-capacity", 0, "domain")))
 			Expect(errorMessage).To(Equal("insufficient resources"))
 
-			_, lrpKey1, errorMessage1 := bbsClient.FailActualLRPArgsForCall(1)
+			_, traceId, lrpKey1, errorMessage1 := bbsClient.FailActualLRPArgsForCall(1)
+			Expect(traceId).To(Equal("some-trace-id"))
 			Expect(*lrpKey1).To(Equal(models.NewActualLRPKey("incompatible-stacks", 0, "domain")))
 			Expect(errorMessage1).To(Equal(auctiontypes.ErrorCellMismatch.Error()))
 		})

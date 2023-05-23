@@ -7,6 +7,7 @@ import (
 
 	"code.cloudfoundry.org/auction/auctiontypes"
 	"code.cloudfoundry.org/auctioneer"
+	"code.cloudfoundry.org/bbs/trace"
 	"code.cloudfoundry.org/lager/v3"
 )
 
@@ -25,7 +26,7 @@ func (*LRPAuctionHandler) logSession(logger lager.Logger) lager.Logger {
 }
 
 func (h *LRPAuctionHandler) Create(w http.ResponseWriter, r *http.Request, logger lager.Logger) {
-	logger = h.logSession(logger).Session("create")
+	logger = h.logSession(logger).Session("create").WithTraceInfo(r)
 
 	payload, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -56,7 +57,7 @@ func (h *LRPAuctionHandler) Create(w http.ResponseWriter, r *http.Request, logge
 		}
 	}
 
-	h.runner.ScheduleLRPsForAuctions(validStarts)
+	h.runner.ScheduleLRPsForAuctions(validStarts, trace.RequestIdFromRequest(r))
 
 	logLRPGuids(lrpGuids, logger)
 

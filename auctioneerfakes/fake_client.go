@@ -5,15 +5,16 @@ import (
 	"sync"
 
 	"code.cloudfoundry.org/auctioneer"
-	"code.cloudfoundry.org/lager/v3"
+	lager "code.cloudfoundry.org/lager/v3"
 )
 
 type FakeClient struct {
-	RequestLRPAuctionsStub        func(lager.Logger, []*auctioneer.LRPStartRequest) error
+	RequestLRPAuctionsStub        func(lager.Logger, string, []*auctioneer.LRPStartRequest) error
 	requestLRPAuctionsMutex       sync.RWMutex
 	requestLRPAuctionsArgsForCall []struct {
 		arg1 lager.Logger
-		arg2 []*auctioneer.LRPStartRequest
+		arg2 string
+		arg3 []*auctioneer.LRPStartRequest
 	}
 	requestLRPAuctionsReturns struct {
 		result1 error
@@ -21,11 +22,12 @@ type FakeClient struct {
 	requestLRPAuctionsReturnsOnCall map[int]struct {
 		result1 error
 	}
-	RequestTaskAuctionsStub        func(lager.Logger, []*auctioneer.TaskStartRequest) error
+	RequestTaskAuctionsStub        func(lager.Logger, string, []*auctioneer.TaskStartRequest) error
 	requestTaskAuctionsMutex       sync.RWMutex
 	requestTaskAuctionsArgsForCall []struct {
 		arg1 lager.Logger
-		arg2 []*auctioneer.TaskStartRequest
+		arg2 string
+		arg3 []*auctioneer.TaskStartRequest
 	}
 	requestTaskAuctionsReturns struct {
 		result1 error
@@ -37,24 +39,25 @@ type FakeClient struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeClient) RequestLRPAuctions(arg1 lager.Logger, arg2 []*auctioneer.LRPStartRequest) error {
-	var arg2Copy []*auctioneer.LRPStartRequest
-	if arg2 != nil {
-		arg2Copy = make([]*auctioneer.LRPStartRequest, len(arg2))
-		copy(arg2Copy, arg2)
+func (fake *FakeClient) RequestLRPAuctions(arg1 lager.Logger, arg2 string, arg3 []*auctioneer.LRPStartRequest) error {
+	var arg3Copy []*auctioneer.LRPStartRequest
+	if arg3 != nil {
+		arg3Copy = make([]*auctioneer.LRPStartRequest, len(arg3))
+		copy(arg3Copy, arg3)
 	}
 	fake.requestLRPAuctionsMutex.Lock()
 	ret, specificReturn := fake.requestLRPAuctionsReturnsOnCall[len(fake.requestLRPAuctionsArgsForCall)]
 	fake.requestLRPAuctionsArgsForCall = append(fake.requestLRPAuctionsArgsForCall, struct {
 		arg1 lager.Logger
-		arg2 []*auctioneer.LRPStartRequest
-	}{arg1, arg2Copy})
+		arg2 string
+		arg3 []*auctioneer.LRPStartRequest
+	}{arg1, arg2, arg3Copy})
 	stub := fake.RequestLRPAuctionsStub
 	fakeReturns := fake.requestLRPAuctionsReturns
-	fake.recordInvocation("RequestLRPAuctions", []interface{}{arg1, arg2Copy})
+	fake.recordInvocation("RequestLRPAuctions", []interface{}{arg1, arg2, arg3Copy})
 	fake.requestLRPAuctionsMutex.Unlock()
 	if stub != nil {
-		return stub(arg1, arg2)
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1
@@ -68,17 +71,17 @@ func (fake *FakeClient) RequestLRPAuctionsCallCount() int {
 	return len(fake.requestLRPAuctionsArgsForCall)
 }
 
-func (fake *FakeClient) RequestLRPAuctionsCalls(stub func(lager.Logger, []*auctioneer.LRPStartRequest) error) {
+func (fake *FakeClient) RequestLRPAuctionsCalls(stub func(lager.Logger, string, []*auctioneer.LRPStartRequest) error) {
 	fake.requestLRPAuctionsMutex.Lock()
 	defer fake.requestLRPAuctionsMutex.Unlock()
 	fake.RequestLRPAuctionsStub = stub
 }
 
-func (fake *FakeClient) RequestLRPAuctionsArgsForCall(i int) (lager.Logger, []*auctioneer.LRPStartRequest) {
+func (fake *FakeClient) RequestLRPAuctionsArgsForCall(i int) (lager.Logger, string, []*auctioneer.LRPStartRequest) {
 	fake.requestLRPAuctionsMutex.RLock()
 	defer fake.requestLRPAuctionsMutex.RUnlock()
 	argsForCall := fake.requestLRPAuctionsArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
 func (fake *FakeClient) RequestLRPAuctionsReturns(result1 error) {
@@ -104,24 +107,25 @@ func (fake *FakeClient) RequestLRPAuctionsReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeClient) RequestTaskAuctions(arg1 lager.Logger, arg2 []*auctioneer.TaskStartRequest) error {
-	var arg2Copy []*auctioneer.TaskStartRequest
-	if arg2 != nil {
-		arg2Copy = make([]*auctioneer.TaskStartRequest, len(arg2))
-		copy(arg2Copy, arg2)
+func (fake *FakeClient) RequestTaskAuctions(arg1 lager.Logger, arg2 string, arg3 []*auctioneer.TaskStartRequest) error {
+	var arg3Copy []*auctioneer.TaskStartRequest
+	if arg3 != nil {
+		arg3Copy = make([]*auctioneer.TaskStartRequest, len(arg3))
+		copy(arg3Copy, arg3)
 	}
 	fake.requestTaskAuctionsMutex.Lock()
 	ret, specificReturn := fake.requestTaskAuctionsReturnsOnCall[len(fake.requestTaskAuctionsArgsForCall)]
 	fake.requestTaskAuctionsArgsForCall = append(fake.requestTaskAuctionsArgsForCall, struct {
 		arg1 lager.Logger
-		arg2 []*auctioneer.TaskStartRequest
-	}{arg1, arg2Copy})
+		arg2 string
+		arg3 []*auctioneer.TaskStartRequest
+	}{arg1, arg2, arg3Copy})
 	stub := fake.RequestTaskAuctionsStub
 	fakeReturns := fake.requestTaskAuctionsReturns
-	fake.recordInvocation("RequestTaskAuctions", []interface{}{arg1, arg2Copy})
+	fake.recordInvocation("RequestTaskAuctions", []interface{}{arg1, arg2, arg3Copy})
 	fake.requestTaskAuctionsMutex.Unlock()
 	if stub != nil {
-		return stub(arg1, arg2)
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1
@@ -135,17 +139,17 @@ func (fake *FakeClient) RequestTaskAuctionsCallCount() int {
 	return len(fake.requestTaskAuctionsArgsForCall)
 }
 
-func (fake *FakeClient) RequestTaskAuctionsCalls(stub func(lager.Logger, []*auctioneer.TaskStartRequest) error) {
+func (fake *FakeClient) RequestTaskAuctionsCalls(stub func(lager.Logger, string, []*auctioneer.TaskStartRequest) error) {
 	fake.requestTaskAuctionsMutex.Lock()
 	defer fake.requestTaskAuctionsMutex.Unlock()
 	fake.RequestTaskAuctionsStub = stub
 }
 
-func (fake *FakeClient) RequestTaskAuctionsArgsForCall(i int) (lager.Logger, []*auctioneer.TaskStartRequest) {
+func (fake *FakeClient) RequestTaskAuctionsArgsForCall(i int) (lager.Logger, string, []*auctioneer.TaskStartRequest) {
 	fake.requestTaskAuctionsMutex.RLock()
 	defer fake.requestTaskAuctionsMutex.RUnlock()
 	argsForCall := fake.requestTaskAuctionsArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
 func (fake *FakeClient) RequestTaskAuctionsReturns(result1 error) {

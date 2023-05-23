@@ -11,32 +11,29 @@ import (
 type AuctionRunnerDelegate struct {
 	repClientFactory rep.ClientFactory
 	bbsClient        bbs.InternalClient
-	logger           lager.Logger
 }
 
 func New(
 	repClientFactory rep.ClientFactory,
 	bbsClient bbs.InternalClient,
-	logger lager.Logger,
 ) *AuctionRunnerDelegate {
 	return &AuctionRunnerDelegate{
 		repClientFactory: repClientFactory,
 		bbsClient:        bbsClient,
-		logger:           logger,
 	}
 }
 
-func (a *AuctionRunnerDelegate) FetchCellReps() (map[string]rep.Client, error) {
-	cells, err := a.bbsClient.Cells(a.logger)
+func (a *AuctionRunnerDelegate) FetchCellReps(logger lager.Logger, traceID string) (map[string]rep.Client, error) {
+	cells, err := a.bbsClient.Cells(logger, traceID)
 	cellReps := map[string]rep.Client{}
 	if err != nil {
 		return cellReps, err
 	}
 
 	for _, cell := range cells {
-		client, err := a.repClientFactory.CreateClient(cell.RepAddress, cell.RepUrl)
+		client, err := a.repClientFactory.CreateClient(cell.RepAddress, cell.RepUrl, traceID)
 		if err != nil {
-			a.logger.Error("create-rep-client-failed", err)
+			logger.Error("create-rep-client-failed", err)
 			continue
 		}
 		cellReps[cell.CellId] = client
@@ -45,12 +42,12 @@ func (a *AuctionRunnerDelegate) FetchCellReps() (map[string]rep.Client, error) {
 	return cellReps, nil
 }
 
-func (a *AuctionRunnerDelegate) AuctionCompleted(results auctiontypes.AuctionResults) {
+func (a *AuctionRunnerDelegate) AuctionCompleted(logger lager.Logger, traceID string, results auctiontypes.AuctionResults) {
 	for i := range results.FailedTasks {
 		task := &results.FailedTasks[i]
-		err := a.bbsClient.RejectTask(a.logger, task.TaskGuid, task.PlacementError)
+		err := a.bbsClient.RejectTask(logger, traceID, task.TaskGuid, task.PlacementError)
 		if err != nil {
-			a.logger.Error("failed-to-reject-task", err, lager.Data{
+			logger.Error("failed-to-reject-task", err, lager.Data{
 				"task":           task,
 				"auction-result": "failed",
 			})
@@ -59,9 +56,9 @@ func (a *AuctionRunnerDelegate) AuctionCompleted(results auctiontypes.AuctionRes
 
 	for i := range results.FailedLRPs {
 		lrp := &results.FailedLRPs[i]
-		err := a.bbsClient.FailActualLRP(a.logger, &lrp.ActualLRPKey, lrp.PlacementError)
+		err := a.bbsClient.FailActualLRP(logger, traceID, &lrp.ActualLRPKey, lrp.PlacementError)
 		if err != nil {
-			a.logger.Error("failed-to-fail-LRP", err, lager.Data{
+			logger.Error("failed-to-fail-LRP", err, lager.Data{
 				"lrp":            lrp,
 				"auction-result": "failed",
 			})
