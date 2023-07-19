@@ -1,6 +1,8 @@
 package auctionrunnerdelegate_test
 
 import (
+	"errors"
+
 	"code.cloudfoundry.org/auction/auctiontypes"
 	"code.cloudfoundry.org/bbs/fake_bbs"
 	"code.cloudfoundry.org/bbs/models"
@@ -14,6 +16,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
 )
 
 var _ = Describe("Auction Runner Delegate", func() {
@@ -35,122 +38,122 @@ var _ = Describe("Auction Runner Delegate", func() {
 		delegate = auctionrunnerdelegate.New(repClientFactory, bbsClient)
 	})
 
-	// Describe("fetching cell reps", func() {
-	// 	Context("when the BSS succeeds", func() {
-	// 		BeforeEach(func() {
-	// 			cellPresence1 := models.NewCellPresence("cell-A", "cell-a.url", "", "zone-1", models.NewCellCapacity(123, 456, 789), []string{}, []string{}, []string{}, []string{})
-	// 			cellPresence2 := models.NewCellPresence("cell-B", "cell-b.url", "", "zone-1", models.NewCellCapacity(123, 456, 789), []string{}, []string{}, []string{}, []string{})
-	// 			cells := []*models.CellPresence{&cellPresence1, &cellPresence2}
+	Describe("fetching cell reps", func() {
+		Context("when the BSS succeeds", func() {
+			BeforeEach(func() {
+				cellPresence1 := models.NewCellPresence("cell-A", "cell-a.url", "", "zone-1", models.NewCellCapacity(123, 456, 789), []string{}, []string{}, []string{}, []string{})
+				cellPresence2 := models.NewCellPresence("cell-B", "cell-b.url", "", "zone-1", models.NewCellCapacity(123, 456, 789), []string{}, []string{}, []string{}, []string{})
+				cells := []*models.CellPresence{&cellPresence1, &cellPresence2}
 
-	// 			bbsClient.CellsReturns(cells, nil)
-	// 		})
+				bbsClient.CellsReturns(cells, nil)
+			})
 
-	// 		It("creates rep clients with the correct addresses", func() {
-	// 			_, err := delegate.FetchCellReps()
-	// 			Expect(err).NotTo(HaveOccurred())
-	// 			Expect(repClientFactory.CreateClientCallCount()).To(Equal(2))
-	// 			repAddr1, _ := repClientFactory.CreateClientArgsForCall(0)
-	// 			repAddr2, _ := repClientFactory.CreateClientArgsForCall(1)
+			It("creates rep clients with the correct addresses", func() {
+				_, err := delegate.FetchCellReps(logger, "teststring")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(repClientFactory.CreateClientCallCount()).To(Equal(2))
+				repAddr1, _, _ := repClientFactory.CreateClientArgsForCall(0)
+				repAddr2, _, _ := repClientFactory.CreateClientArgsForCall(1)
 
-	// 			urls := []string{
-	// 				repAddr1,
-	// 				repAddr2,
-	// 			}
-	// 			Expect(urls).To(ConsistOf("cell-a.url", "cell-b.url"))
-	// 		})
+				urls := []string{
+					repAddr1,
+					repAddr2,
+				}
+				Expect(urls).To(ConsistOf("cell-a.url", "cell-b.url"))
+			})
 
-	// 		Context("when the rep has a url", func() {
-	// 			BeforeEach(func() {
-	// 				cellPresence := models.NewCellPresence("cell-A",
-	// 					"cell-a.url",
-	// 					"http://cell-a.url",
-	// 					"zone-1",
-	// 					models.NewCellCapacity(123,
-	// 						456,
-	// 						789),
-	// 					[]string{},
-	// 					[]string{},
-	// 					[]string{},
-	// 					[]string{},
-	// 				)
-	// 				cells := []*models.CellPresence{&cellPresence}
-	// 				bbsClient.CellsReturns(cells, nil)
-	// 			})
+			Context("when the rep has a url", func() {
+				BeforeEach(func() {
+					cellPresence := models.NewCellPresence("cell-A",
+						"cell-a.url",
+						"http://cell-a.url",
+						"zone-1",
+						models.NewCellCapacity(123,
+							456,
+							789),
+						[]string{},
+						[]string{},
+						[]string{},
+						[]string{},
+					)
+					cells := []*models.CellPresence{&cellPresence}
+					bbsClient.CellsReturns(cells, nil)
+				})
 
-	// 			It("creates rep clients with the correct addresses", func() {
-	// 				_, err := delegate.FetchCellReps()
-	// 				Expect(err).NotTo(HaveOccurred())
-	// 				Expect(repClientFactory.CreateClientCallCount()).To(Equal(1))
-	// 				repAddr, repURL := repClientFactory.CreateClientArgsForCall(0)
+				It("creates rep clients with the correct addresses", func() {
+					_, err := delegate.FetchCellReps(logger, "abcd")
+					Expect(err).NotTo(HaveOccurred())
+					Expect(repClientFactory.CreateClientCallCount()).To(Equal(1))
+					repAddr, repURL, _ := repClientFactory.CreateClientArgsForCall(0)
 
-	// 				urls := []string{
-	// 					repAddr,
-	// 					repURL,
-	// 				}
-	// 				Expect(urls).To(ConsistOf("cell-a.url", "http://cell-a.url"))
-	// 			})
-	// 		})
+					urls := []string{
+						repAddr,
+						repURL,
+					}
+					Expect(urls).To(ConsistOf("cell-a.url", "http://cell-a.url"))
+				})
+			})
 
-	// 		It("returns correctly configured auction_http_clients", func() {
-	// 			reps, err := delegate.FetchCellReps()
-	// 			Expect(err).NotTo(HaveOccurred())
-	// 			Expect(reps).To(HaveLen(2))
-	// 			Expect(reps).To(HaveKey("cell-A"))
-	// 			Expect(reps).To(HaveKey("cell-B"))
+			It("returns correctly configured auction_http_clients", func() {
+				reps, err := delegate.FetchCellReps(logger, "abcd")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(reps).To(HaveLen(2))
+				Expect(reps).To(HaveKey("cell-A"))
+				Expect(reps).To(HaveKey("cell-B"))
 
-	// 			Expect(reps["cell-A"]).To(Equal(repClient))
-	// 			Expect(reps["cell-B"]).To(Equal(repClient))
-	// 		})
+				Expect(reps["cell-A"]).To(Equal(repClient))
+				Expect(reps["cell-B"]).To(Equal(repClient))
+			})
 
-	// 		Context("when creating a rep client fails", func() {
-	// 			var (
-	// 				reps map[string]rep.Client
-	// 				err  error
-	// 			)
+			Context("when creating a rep client fails", func() {
+				var (
+					reps map[string]rep.Client
+					err  error
+				)
 
-	// 			BeforeEach(func() {
-	// 				err = errors.New("BOOM!!!")
-	// 				cellPresence := models.NewCellPresence("cell-B",
-	// 					"cell-b.url",
-	// 					"",
-	// 					"zone-1",
-	// 					models.NewCellCapacity(123,
-	// 						456,
-	// 						789),
-	// 					[]string{},
-	// 					[]string{},
-	// 					[]string{},
-	// 					[]string{},
-	// 				)
-	// 				cells := []*models.CellPresence{&cellPresence}
-	// 				bbsClient.CellsReturns(cells, nil)
-	// 				repClientFactory.CreateClientReturns(nil, err)
-	// 				reps, err = delegate.FetchCellReps()
-	// 			})
+				BeforeEach(func() {
+					err = errors.New("BOOM!!!")
+					cellPresence := models.NewCellPresence("cell-B",
+						"cell-b.url",
+						"",
+						"zone-1",
+						models.NewCellCapacity(123,
+							456,
+							789),
+						[]string{},
+						[]string{},
+						[]string{},
+						[]string{},
+					)
+					cells := []*models.CellPresence{&cellPresence}
+					bbsClient.CellsReturns(cells, nil)
+					repClientFactory.CreateClientReturns(nil, err)
+					reps, err = delegate.FetchCellReps(logger, "abcd")
+				})
 
-	// 			It("should log the error", func() {
-	// 				Expect(logger.(*lagertest.TestLogger).Buffer()).To(gbytes.Say("BOOM!!!"))
-	// 			})
+				It("should log the error", func() {
+					Expect(logger.(*lagertest.TestLogger).Buffer()).To(gbytes.Say("BOOM!!!"))
+				})
 
-	// 			It("not return the client", func() {
-	// 				Expect(err).NotTo(HaveOccurred())
-	// 				Expect(reps).To(HaveLen(0))
-	// 			})
-	// 		})
-	// 	})
+				It("not return the client", func() {
+					Expect(err).NotTo(HaveOccurred())
+					Expect(reps).To(HaveLen(0))
+				})
+			})
+		})
 
-	// Context("when the BBS errors", func() {
-	// 	BeforeEach(func() {
-	// 		bbsClient.CellsReturns(nil, errors.New("boom"))
-	// 	})
+		Context("when the BBS errors", func() {
+			BeforeEach(func() {
+				bbsClient.CellsReturns(nil, errors.New("boom"))
+			})
 
-	// 	It("should error", func() {
-	// 		cells, err := delegate.FetchCellReps()
-	// 		Expect(err).To(MatchError(errors.New("boom")))
-	// 		Expect(cells).To(BeEmpty())
-	// 	})
-	// })
-	// })
+			It("should error", func() {
+				cells, err := delegate.FetchCellReps(logger, "abcd")
+				Expect(err).To(MatchError(errors.New("boom")))
+				Expect(cells).To(BeEmpty())
+			})
+		})
+	})
 
 	Describe("when batches are distributed", func() {
 		var results auctiontypes.AuctionResults
