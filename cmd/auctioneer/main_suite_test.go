@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"log"
 	"net/url"
-	"os"
 	"path"
 	"strings"
 	"testing"
@@ -124,7 +123,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 		Host:   bbsAddress,
 	}
 
-	fixturesPath := path.Join(os.Getenv("DIEGO_RELEASE_DIR"), "src/code.cloudfoundry.org/auctioneer/cmd/auctioneer/fixtures")
+	fixturesPath := "fixtures"
 
 	bbsConfig = bbsconfig.BBSConfig{
 		UUID:                        "bbs",
