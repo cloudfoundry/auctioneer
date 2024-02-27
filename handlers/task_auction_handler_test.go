@@ -16,7 +16,6 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/gbytes"
 	. "github.com/onsi/gomega/gbytes"
 )
 
@@ -71,7 +70,7 @@ var _ = Describe("TaskAuctionHandler", func() {
 			})
 
 			It("logs trace ID", func() {
-				Expect(logger.Buffer()).To(gbytes.Say(b3RequestIdHeader))
+				Expect(logger.Buffer()).To(Say(b3RequestIdHeader))
 			})
 		})
 
