@@ -44,8 +44,7 @@ var _ = Describe("Auctioneer Client", func() {
 			err := c.RequestTaskAuctions(dummyLogger, traceID, []*auctioneer.TaskStartRequest{})
 			Expect(err).NotTo(HaveOccurred())
 
-			var firstRequest *http.Request
-			firstRequest = fakeAuctioneerServer.ReceivedRequests()[0]
+			firstRequest := fakeAuctioneerServer.ReceivedRequests()[0]
 			vCapRequestIdHeader := firstRequest.Header["X-Vcap-Request-Id"]
 			Expect(len(vCapRequestIdHeader)).To(Equal(1))
 			Expect(vCapRequestIdHeader[0]).To(Equal(traceID))
@@ -57,8 +56,7 @@ var _ = Describe("Auctioneer Client", func() {
 			err := c.RequestLRPAuctions(dummyLogger, traceID, []*auctioneer.LRPStartRequest{})
 			Expect(err).NotTo(HaveOccurred())
 
-			var firstRequest *http.Request
-			firstRequest = fakeAuctioneerServer.ReceivedRequests()[0]
+			firstRequest := fakeAuctioneerServer.ReceivedRequests()[0]
 			vCapRequestIdHeader := firstRequest.Header["X-Vcap-Request-Id"]
 			Expect(len(vCapRequestIdHeader)).To(Equal(1))
 			Expect(vCapRequestIdHeader[0]).To(Equal(traceID))
@@ -116,8 +114,7 @@ var _ = Describe("Auctioneer Client", func() {
 			err = c.RequestTaskAuctions(dummyLogger, traceID, []*auctioneer.TaskStartRequest{})
 			Expect(err).NotTo(HaveOccurred())
 
-			var firstRequest *http.Request
-			firstRequest = fakeAuctioneerServer.ReceivedRequests()[0]
+			firstRequest := fakeAuctioneerServer.ReceivedRequests()[0]
 			vCapRequestIdHeader := firstRequest.Header["X-Vcap-Request-Id"]
 			Expect(len(vCapRequestIdHeader)).To(Equal(1))
 			Expect(vCapRequestIdHeader[0]).To(Equal(traceID))
@@ -130,8 +127,7 @@ var _ = Describe("Auctioneer Client", func() {
 			err = c.RequestLRPAuctions(dummyLogger, traceID, []*auctioneer.LRPStartRequest{})
 			Expect(err).NotTo(HaveOccurred())
 
-			var firstRequest *http.Request
-			firstRequest = fakeAuctioneerServer.ReceivedRequests()[0]
+			firstRequest := fakeAuctioneerServer.ReceivedRequests()[0]
 			vCapRequestIdHeader := firstRequest.Header["X-Vcap-Request-Id"]
 			Expect(len(vCapRequestIdHeader)).To(Equal(1))
 			Expect(vCapRequestIdHeader[0]).To(Equal(traceID))
@@ -200,8 +196,7 @@ var _ = Describe("Auctioneer Client", func() {
 				err = c.RequestLRPAuctions(dummyLogger, traceID, []*auctioneer.LRPStartRequest{})
 				Expect(err).NotTo(HaveOccurred())
 
-				var firstRequest *http.Request
-				firstRequest = fakeAuctioneerServer.ReceivedRequests()[0]
+				firstRequest := fakeAuctioneerServer.ReceivedRequests()[0]
 				vCapRequestIdHeader := firstRequest.Header["X-Vcap-Request-Id"]
 				Expect(len(vCapRequestIdHeader)).To(Equal(1))
 				Expect(vCapRequestIdHeader[0]).To(Equal(traceID))
@@ -214,8 +209,7 @@ var _ = Describe("Auctioneer Client", func() {
 				err = c.RequestTaskAuctions(dummyLogger, traceID, []*auctioneer.TaskStartRequest{})
 				Expect(err).NotTo(HaveOccurred())
 
-				var firstRequest *http.Request
-				firstRequest = fakeAuctioneerServer.ReceivedRequests()[0]
+				firstRequest := fakeAuctioneerServer.ReceivedRequests()[0]
 				vCapRequestIdHeader := firstRequest.Header["X-Vcap-Request-Id"]
 				Expect(len(vCapRequestIdHeader)).To(Equal(1))
 				Expect(vCapRequestIdHeader[0]).To(Equal(traceID))
