@@ -41,10 +41,10 @@ func newTestRequest(body interface{}) *http.Request {
 
 type badReader struct{}
 
-func (_ badReader) Read(_ []byte) (int, error) {
+func (badReader) Read(_ []byte) (int, error) {
 	return 0, ErrBadRead
 }
 
-func (_ badReader) Close() error {
+func (badReader) Close() error {
 	return nil
 }
