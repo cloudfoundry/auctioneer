@@ -2,7 +2,7 @@ package main_test
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/url"
 	"path"
@@ -77,7 +77,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 
 	return []byte(strings.Join([]string{compiledAuctioneerPath, compiledBBSPath, locketPath}, ","))
 }, func(pathsByte []byte) {
-	grpclog.SetLogger(log.New(ioutil.Discard, "", 0))
+	grpclog.SetLogger(log.New(io.Discard, "", 0))
 	node := GinkgoParallelProcess()
 	startPort := 1050 * node
 	portRange := 1000

@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"code.cloudfoundry.org/auction/auctiontypes"
@@ -28,7 +28,7 @@ func (*TaskAuctionHandler) logSession(logger lager.Logger) lager.Logger {
 func (h *TaskAuctionHandler) Create(w http.ResponseWriter, r *http.Request, logger lager.Logger) {
 	logger = h.logSession(logger).Session("create").WithTraceInfo(r)
 
-	payload, err := ioutil.ReadAll(r.Body)
+	payload, err := io.ReadAll(r.Body)
 	if err != nil {
 		logger.Error("failed-to-read-request-body", err)
 		writeInternalErrorJSONResponse(w, err)

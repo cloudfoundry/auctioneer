@@ -1,7 +1,6 @@
 package config_test
 
 import (
-	"io/ioutil"
 	"os"
 	"time"
 
@@ -69,7 +68,7 @@ var _ = Describe("AuctioneerConfig", func() {
 	})
 
 	JustBeforeEach(func() {
-		configFile, err := ioutil.TempFile("", "auctioneer-config-file")
+		configFile, err := os.CreateTemp("", "auctioneer-config-file")
 		Expect(err).NotTo(HaveOccurred())
 
 		n, err := configFile.WriteString(configData)

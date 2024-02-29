@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"os/exec"
@@ -111,7 +110,7 @@ var _ = Describe("Auctioneer", func() {
 	})
 
 	JustBeforeEach(func() {
-		configFile, err := ioutil.TempFile("", "auctioneer-config")
+		configFile, err := os.CreateTemp("", "auctioneer-config")
 		Expect(err).NotTo(HaveOccurred())
 
 		encoder := json.NewEncoder(configFile)
