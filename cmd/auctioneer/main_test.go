@@ -14,8 +14,6 @@ import (
 	"code.cloudfoundry.org/auctioneer"
 	"code.cloudfoundry.org/auctioneer/cmd/auctioneer/config"
 	"code.cloudfoundry.org/bbs"
-	"code.cloudfoundry.org/bbs/models"
-	"code.cloudfoundry.org/bbs/models/test/model_helpers"
 	"code.cloudfoundry.org/clock"
 	diego_logging_client "code.cloudfoundry.org/diego-logging-client"
 	"code.cloudfoundry.org/diego-logging-client/testhelpers"
@@ -38,31 +36,6 @@ import (
 const (
 	defaultAuctioneerClientRequestTimeout = 5 * time.Second
 )
-
-var dummyAction = &models.RunAction{
-	User: "me",
-	Path: "cat",
-	Args: []string{"/tmp/file"},
-}
-
-var exampleDesiredLRP = models.DesiredLRP{
-	ProcessGuid: "process-guid",
-	DiskMb:      1,
-	MemoryMb:    1,
-	MaxPids:     1,
-	RootFs:      linuxRootFSURL,
-	Action:      models.WrapAction(dummyAction),
-	Domain:      "test",
-	Instances:   2,
-}
-
-func exampleTaskDefinition() *models.TaskDefinition {
-	taskDef := model_helpers.NewValidTaskDefinition()
-	taskDef.RootFs = linuxRootFSURL
-	taskDef.Action = models.WrapAction(dummyAction)
-	taskDef.PlacementTags = nil
-	return taskDef
-}
 
 var _ = Describe("Auctioneer", func() {
 	var (

@@ -14,7 +14,6 @@ import (
 	bbsconfig "code.cloudfoundry.org/bbs/cmd/bbs/config"
 	bbstestrunner "code.cloudfoundry.org/bbs/cmd/bbs/testrunner"
 	"code.cloudfoundry.org/bbs/encryption"
-	"code.cloudfoundry.org/bbs/models"
 	"code.cloudfoundry.org/bbs/test_helpers"
 	"code.cloudfoundry.org/bbs/test_helpers/sqlrunner"
 	"code.cloudfoundry.org/durationjson"
@@ -37,10 +36,6 @@ var (
 	auctioneerPath       string
 	auctioneerServerPort uint16
 	auctioneerLocation   string
-
-	dotNetStack    = "dot-net"
-	linuxStack     = "linux"
-	linuxRootFSURL = models.PreloadedRootFS(linuxStack)
 
 	bbsConfig  bbsconfig.BBSConfig
 	bbsBinPath string
