@@ -77,7 +77,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 
 	return []byte(strings.Join([]string{compiledAuctioneerPath, compiledBBSPath, locketPath}, ","))
 }, func(pathsByte []byte) {
-	grpclog.SetLogger(log.New(io.Discard, "", 0))
+	grpclog.SetLoggerV2(grpclog.NewLoggerV2(io.Discard, io.Discard, io.Discard))
 	node := GinkgoParallelProcess()
 	startPort := 1050 * node
 	portRange := 1000
