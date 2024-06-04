@@ -78,11 +78,11 @@ func NewLRPStartRequestFromModel(d *models.DesiredLRP, indices ...int) LRPStartR
 
 func NewLRPStartRequestFromSchedulingInfo(s *models.DesiredLRPSchedulingInfo, indices ...int) LRPStartRequest {
 	return NewLRPStartRequest(
-		s.ProcessGuid,
-		s.Domain,
+		s.DesiredLrpKey.ProcessGuid,
+		s.DesiredLrpKey.Domain,
 		indices,
-		rep.NewResource(s.MemoryMb, s.DiskMb, s.MaxPids),
-		rep.NewPlacementConstraint(s.RootFs, s.PlacementTags, s.VolumePlacement.DriverNames),
+		rep.NewResource(s.DesiredLrpResource.MemoryMb, s.DesiredLrpResource.DiskMb, s.DesiredLrpResource.MaxPids),
+		rep.NewPlacementConstraint(s.DesiredLrpResource.RootFs, s.PlacementTags, s.VolumePlacement.DriverNames),
 	)
 }
 
