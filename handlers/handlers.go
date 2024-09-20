@@ -58,7 +58,10 @@ type auctioneerEmitter struct {
 }
 
 func (e *auctioneerEmitter) IncrementRequestCounter(delta int) {
-	e.metronClient.IncrementCounter(RequestCount)
+	err := e.metronClient.IncrementCounter(RequestCount)
+	if err != nil {
+		e.logger.Error("failed-to-increment-request-counter", err)
+	}
 }
 
 func (e *auctioneerEmitter) UpdateLatency(latency time.Duration) {
