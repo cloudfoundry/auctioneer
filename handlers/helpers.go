@@ -32,6 +32,7 @@ func writeJSONResponse(w http.ResponseWriter, statusCode int, jsonObj interface{
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
 
+	// #nosec G104 - ignore errors when writing HTTP responses so we don't spam our logs during a DoS
 	w.Write(jsonBytes)
 }
 
