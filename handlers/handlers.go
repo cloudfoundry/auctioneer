@@ -57,14 +57,14 @@ type auctioneerEmitter struct {
 	metronClient loggingclient.IngressClient
 }
 
-func (e *auctioneerEmitter) IncrementRequestCounter(delta int) {
+func (e *auctioneerEmitter) IncrementRequestCounter(delta int, route string) {
 	err := e.metronClient.IncrementCounter(RequestCount)
 	if err != nil {
 		e.logger.Error("failed-to-increment-request-counter", err)
 	}
 }
 
-func (e *auctioneerEmitter) UpdateLatency(latency time.Duration) {
+func (e *auctioneerEmitter) UpdateLatency(latency time.Duration, route string) {
 	err := e.metronClient.SendDuration(RequestLatencyDuration, latency)
 	if err != nil {
 		e.logger.Error("failed-to-send-latency", err)
