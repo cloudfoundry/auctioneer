@@ -78,7 +78,7 @@ func main() {
 	lockIdentifier := &locketmodels.Resource{
 		Key:      auctioneerLockKey,
 		Owner:    cfg.UUID,
-		TypeCode: locketmodels.TypeCode_LOCK,
+		TypeCode: locketmodels.LOCK,
 		Type:     locketmodels.LockType,
 	}
 

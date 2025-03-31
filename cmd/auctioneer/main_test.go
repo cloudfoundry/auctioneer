@@ -257,7 +257,7 @@ var _ = Describe("Auctioneer", func() {
 					Key:      "auctioneer",
 					Owner:    "Your worst enemy.",
 					Value:    "Something",
-					TypeCode: locketmodels.TypeCode_LOCK,
+					TypeCode: locketmodels.LOCK,
 				}
 
 				clock := clock.NewClock()
