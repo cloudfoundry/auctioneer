@@ -158,7 +158,7 @@ func initializeAuctionRunner(logger lager.Logger, cfg config.AuctioneerConfig, b
 		cfhttp.WithRequestTimeout(time.Duration(cfg.CellStateTimeout)),
 	)
 	repTLSConfig := &rep.TLSConfig{
-		RequireTLS:      cfg.RepRequireTLS,
+		RequireTLS:      true,
 		CaCertFile:      cfg.RepCACert,
 		CertFile:        cfg.RepClientCert,
 		KeyFile:         cfg.RepClientKey,
