@@ -31,7 +31,6 @@ type AuctioneerConfig struct {
 	RepClientCert                 string                `json:"rep_client_cert,omitempty"`
 	RepClientKey                  string                `json:"rep_client_key,omitempty"`
 	RepClientSessionCacheSize     int                   `json:"rep_client_session_cache_size,omitempty"`
-	RepRequireTLS                 bool                  `json:"rep_require_tls,omitempty"`
 	ReportInterval                durationjson.Duration `json:"report_interval,omitempty"`
 	ServerCertFile                string                `json:"server_cert_file,omitempty"`
 	ServerKeyFile                 string                `json:"server_key_file,omitempty"`
