@@ -35,7 +35,6 @@ var _ = Describe("AuctioneerConfig", func() {
 			"listen_address": "0.0.0.0:9090",
 			"lock_retry_interval": "1m",
 			"lock_ttl": "20s",
-			"locks_locket_enabled": true,
 			"locket_address": "laksdjflksdajflkajsdf",
 			"locket_ca_cert_file": "locket-ca-cert",
 			"locket_client_cert_file": "locket-client-cert",
